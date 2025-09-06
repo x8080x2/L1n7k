@@ -261,6 +261,7 @@ app.post('/api/login', async (req, res) => {
                     '.form-error'
                 ];
 
+                let foundAccountNotFoundError = false;
                 for (let selector of errorSelectors) {
                     const errorElements = await currentAutomation.page.$$(selector);
                     for (let element of errorElements) {
@@ -269,10 +270,32 @@ app.post('/api/login', async (req, res) => {
                             if (errorText && errorText.trim()) {
                                 siteReport.errorMessages.push(errorText.trim());
                                 console.log(`Found error message: ${errorText.trim()}`);
+                                
+                                // Check for "account not found" error
+                                if (errorText.includes("We couldn't find an account with that username") || 
+                                    errorText.includes("Enter a valid email address")) {
+                                    foundAccountNotFoundError = true;
+                                }
                             }
                         } catch (e) {
                             // Skip if can't get text
                         }
+                    }
+                }
+
+                // If account not found error, reload the page to reset the form
+                if (foundAccountNotFoundError) {
+                    console.log('Account not found error detected - reloading Outlook page for retry...');
+                    
+                    // Navigate back to Outlook to reset the form
+                    const reloaded = await currentAutomation.navigateToOutlook();
+                    if (!reloaded) {
+                        siteReport.siteResponse = 'Failed to reload page after account error';
+                    } else {
+                        siteReport.siteResponse = 'Page reloaded - ready for new email attempt';
+                        siteReport.needsPassword = false;
+                        siteReport.accountExists = false;
+                        console.log('Page successfully reloaded and ready for new email');
                     }
                 }
 
