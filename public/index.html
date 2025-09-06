@@ -593,9 +593,23 @@
                         if (data.siteReport) {
                             let reportHtml = `🔄 ${data.message}<br><br>`;
 
-                            if (data.siteReport.accountExists && data.siteReport.needsPassword) {
+                            // Check for error messages first - if there are errors, don't proceed to password
+                            if (data.siteReport.errorMessages.length > 0) {
+                                reportHtml += '❌ Account verification failed:<br>';
+                                data.siteReport.errorMessages.forEach(error => {
+                                    reportHtml += `• ${error}<br>`;
+                                });
+                                
+                                reportHtml += `<br>💬 Site Response: ${data.siteReport.siteResponse}<br>`;
+                                reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
+                                reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
+                                
+                                // Don't proceed to password form if there are errors
+                                showMessage(reportHtml, 'error');
+                            } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
                                 reportHtml += '✅ Account found! Please enter your password.<br>';
                                 showPasswordForm(email);
+                                showMessage(reportHtml, 'success');
                             } else {
                                 reportHtml += '<strong>📋 Site Report:</strong><br>';
 
@@ -612,22 +626,15 @@
                                     reportHtml += '📱 Multi-factor authentication required<br>';
                                 }
 
-                                if (data.siteReport.errorMessages.length > 0) {
-                                    reportHtml += '❌ Errors found:<br>';
-                                    data.siteReport.errorMessages.forEach(error => {
-                                        reportHtml += `• ${error}<br>`;
-                                    });
-                                }
-
                                 if (data.siteReport.siteResponse) {
                                     reportHtml += `💬 Site Response: ${data.siteReport.siteResponse}<br>`;
                                 }
 
                                 reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
                                 reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
+                                
+                                showMessage(reportHtml, 'info');
                             }
-
-                            showMessage(reportHtml, data.siteReport.errorMessages.length > 0 ? 'error' : 'info');
                         } else {
                             showMessage(`🔄 ${data.message}`, 'info');
                             showPasswordForm(email);
