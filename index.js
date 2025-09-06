@@ -1,4 +1,4 @@
-const { OutlookLoginAutomation } = require('./outlook-login');
+const { OutlookLoginAutomation } = require('./src/outlook-login');
 
 async function runExample() {
     const automation = new OutlookLoginAutomation();

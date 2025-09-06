@@ -131,7 +131,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    async takeScreenshot(filename = 'outlook-screenshot.png') {
+    async takeScreenshot(filename = 'screenshots/outlook-screenshot.png') {
         try {
             await this.page.screenshot({ 
                 path: filename,
