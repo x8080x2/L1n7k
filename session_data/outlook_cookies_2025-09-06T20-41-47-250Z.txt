@@ -1,0 +1,76 @@
+# Outlook Session Cookies
+# Saved on: 2025-09-06T20:41:47.250Z
+# URL: https://outlook.office.com/mail/
+
+Name: SuiteServiceProxyKey
+Value: XQxvnq5v4pPenXJd5SrzLP9+lvGC3khiMj6yyadbFcE=&eBczRWDC3u6sQa7F7APfig==
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: false
+Expires: 1969-12-31T23:59:59.000Z
+---
+
+Name: luat
+Value: D02dXc4bN6+ZWN/q9jvxPtK5M85+Ulh0HV/Mzha46xaGpvsNJzwGjIfeuFwgcYNxZIh2ZNNhvZat2AO+bSxUtYv7fHLJC2nYV+8ySGI4LG/+ecrlw9iUj7PamuqpDwPnEjy4+MW5nPtTkm/boyD3FqA3+gzv3kd3IH8lgEyTZ9oF3FQ/JrU17EicXxvzN7URoCaqPYCO+1OkqRjYarly5a0f4VXdASA3wd/O3SrY86KCXAeu23fcZjl4bRWg+Oo6fruIIHsaBDcjMtAGIf/8yB4dQAC2piluDbHBp24VZmRMpwDKbRMspYhzxXvgXDnQlJ3V/D1fcY9wn//GCuTvag==
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: true
+Expires: 1969-12-31T23:59:59.000Z
+---
+
+Name: OWAAppIdType
+Value: Exchange
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: true
+Expires: 2025-10-06T20:41:47.119Z
+---
+
+Name: ClientId
+Value: 014F166BCE4E4442B97835C40D9726DA
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: false
+Expires: 2026-09-06T20:38:27.807Z
+---
+
+Name: DefaultAnchorMailbox
+Value: PUID:1003000088D29CF9@29775c6a-2d6e-42ef-a6ea-3e0a46793619
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: false
+Expires: 1969-12-31T23:59:59.000Z
+---
+
+Name: UC
+Value: 7e34c1a4ff294176befc3328514ced62
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: true
+Expires: 1969-12-31T23:59:59.000Z
+---
+
+Name: OIDC
+Value: 1
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: true
+Expires: 2026-03-06T20:41:41.374Z
+---
+
+Name: msal.cache.encryption
+Value: %7B%22id%22%3A%22019920c0-7659-7987-a1ca-4f7fb21d6b8e%22%2C%22key%22%3A%22wmlRi7jdSW3uq0wSNSFcScvu_R2cyrfI3CDzdaxp3Tw%22%7D
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: false
+Expires: 1969-12-31T23:59:59.000Z
+---
+
