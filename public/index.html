@@ -506,7 +506,7 @@
         async function preloadOutlook() {
             try {
                 document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
-                showMessage('🚀 Pre-loading Outlook page for faster email entry...', 'info');
+                // Removed preload info message
 
                 const response = await fetch(`${API_BASE}/api/preload`, {
                     method: 'POST',
@@ -518,10 +518,10 @@
                 if (response.ok) {
                     if (data.status === 'preloaded') {
                         document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
-                        showMessage('✅ Outlook page pre-loaded! Ready for instant email entry.', 'success');
+                        // Removed success message notification
                     } else if (data.status === 'already-loaded') {
                         document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
-                        showMessage('✅ Outlook page already loaded and ready.', 'success');
+                        // Removed success message notification
 
                         // If there's already a session, show it
                         if (data.sessionId) {
