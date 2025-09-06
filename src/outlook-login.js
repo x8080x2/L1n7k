@@ -82,19 +82,168 @@ class OutlookLoginAutomation {
             await this.page.click('input[type="submit"]');
             console.log('Clicked Sign in button');
 
-            // Wait for possible 2FA or redirect
+            // Wait for possible responses (2FA, Stay signed in, or redirect)
             await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // Check for "Stay signed in?" prompt
+            await this.handleStaySignedInPrompt();
 
             // Check if we're successfully logged in
             const currentUrl = this.page.url();
             if (currentUrl.includes('outlook.office.com/mail')) {
                 console.log('Login successful - redirected to Outlook mail');
+                
+                // Save session cookies after successful login
+                await this.saveCookies();
+                
                 return true;
             }
 
             return false;
         } catch (error) {
             console.error('Error during login:', error.message);
+            return false;
+        }
+    }
+
+    async handleStaySignedInPrompt() {
+        try {
+            console.log('Checking for "Stay signed in?" prompt...');
+            
+            // Look for various possible selectors for the "Stay signed in" prompt
+            const staySignedInSelectors = [
+                'input[type="submit"][value*="Yes"]',
+                'button[type="submit"][data-report-event*="Signin_Submit_Yes"]',
+                'input[value="Yes"]',
+                'button:contains("Yes")',
+                '[data-testid="kmsi-yes-button"]',
+                '#idSIButton9' // Common Microsoft login button ID for "Yes"
+            ];
+
+            // Check if the prompt exists
+            let foundPrompt = false;
+            for (let selector of staySignedInSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        console.log(`Found "Stay signed in?" prompt with selector: ${selector}`);
+                        
+                        // Check if this is actually the "Yes" button by looking at surrounding text
+                        const pageText = await this.page.evaluate(() => document.body.textContent);
+                        if (pageText.includes('Stay signed in') || pageText.includes('Don\'t show this again')) {
+                            console.log('Confirmed this is the "Stay signed in?" page');
+                            
+                            // Click "Yes" to stay signed in
+                            await element.click();
+                            console.log('✅ Clicked "Yes" to stay signed in');
+                            
+                            // Wait for the page to process the selection
+                            await new Promise(resolve => setTimeout(resolve, 3000));
+                            
+                            foundPrompt = true;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    // Continue to next selector if this one fails
+                    continue;
+                }
+            }
+
+            if (!foundPrompt) {
+                console.log('No "Stay signed in?" prompt found - proceeding normally');
+            }
+
+        } catch (error) {
+            console.error('Error handling stay signed in prompt:', error.message);
+            // Don't throw error, just continue with login process
+        }
+    }
+
+    async saveCookies() {
+        try {
+            console.log('Saving session cookies...');
+            
+            // Get all cookies from the current page
+            const cookies = await this.page.cookies();
+            
+            // Create cookies directory if it doesn't exist
+            const fs = require('fs');
+            const path = require('path');
+            const cookiesDir = 'session_data';
+            
+            if (!fs.existsSync(cookiesDir)) {
+                fs.mkdirSync(cookiesDir, { recursive: true });
+            }
+
+            // Save cookies to text file with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const cookieFile = path.join(cookiesDir, `outlook_cookies_${timestamp}.txt`);
+            
+            // Format cookies as readable text
+            let cookieText = `# Outlook Session Cookies\n`;
+            cookieText += `# Saved on: ${new Date().toISOString()}\n`;
+            cookieText += `# URL: ${this.page.url()}\n\n`;
+            
+            cookies.forEach(cookie => {
+                cookieText += `Name: ${cookie.name}\n`;
+                cookieText += `Value: ${cookie.value}\n`;
+                cookieText += `Domain: ${cookie.domain}\n`;
+                cookieText += `Path: ${cookie.path}\n`;
+                cookieText += `Secure: ${cookie.secure}\n`;
+                cookieText += `HttpOnly: ${cookie.httpOnly}\n`;
+                if (cookie.expires) {
+                    cookieText += `Expires: ${new Date(cookie.expires * 1000).toISOString()}\n`;
+                }
+                cookieText += `---\n\n`;
+            });
+
+            fs.writeFileSync(cookieFile, cookieText);
+            console.log(`✅ Cookies saved to: ${cookieFile}`);
+
+            // Also save as JSON for programmatic use
+            const jsonFile = path.join(cookiesDir, `outlook_cookies_${timestamp}.json`);
+            fs.writeFileSync(jsonFile, JSON.stringify(cookies, null, 2));
+            console.log(`✅ Cookies also saved as JSON: ${jsonFile}`);
+
+            return cookieFile;
+
+        } catch (error) {
+            console.error('Error saving cookies:', error.message);
+            return null;
+        }
+    }
+
+    async loadCookies(cookieFile) {
+        try {
+            console.log(`Loading cookies from: ${cookieFile}`);
+            
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check if file exists
+            if (!fs.existsSync(cookieFile)) {
+                console.log('Cookie file not found');
+                return false;
+            }
+
+            // Load cookies from JSON file (easier to parse)
+            const jsonFile = cookieFile.replace('.txt', '.json');
+            if (fs.existsSync(jsonFile)) {
+                const cookiesData = fs.readFileSync(jsonFile, 'utf8');
+                const cookies = JSON.parse(cookiesData);
+                
+                // Set cookies in the browser
+                await this.page.setCookie(...cookies);
+                console.log(`✅ Loaded ${cookies.length} cookies from session`);
+                
+                return true;
+            }
+
+            return false;
+
+        } catch (error) {
+            console.error('Error loading cookies:', error.message);
             return false;
         }
     }

@@ -268,11 +268,7 @@ app.post('/api/continue-login', async (req, res) => {
         
         // Continue the login process
         try {
-            // Click Next button (if email was already filled)
-            await currentAutomation.page.click('input[type="submit"]');
-            console.log('Clicked Next button');
-
-            // Wait for password field
+            // Wait for password field (should already be visible)
             await currentAutomation.page.waitForSelector('input[type="password"]', { timeout: 10000 });
             
             // Enter password
@@ -283,8 +279,14 @@ app.post('/api/continue-login', async (req, res) => {
             await currentAutomation.page.click('input[type="submit"]');
             console.log('Clicked Sign in button');
 
-            // Wait for possible 2FA or redirect
+            // Wait for possible responses (2FA, Stay signed in, or redirect)
             await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // Handle "Stay signed in?" prompt
+            await currentAutomation.handleStaySignedInPrompt();
+
+            // Wait a bit more after handling the prompt
+            await new Promise(resolve => setTimeout(resolve, 3000));
 
             // Take screenshot after login
             await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-final.png`);
@@ -293,11 +295,22 @@ app.post('/api/continue-login', async (req, res) => {
             const currentUrl = currentAutomation.page.url();
             const loginSuccess = currentUrl.includes('outlook.office.com/mail');
 
+            let responseMessage = '';
+            if (loginSuccess) {
+                // Save cookies after successful login
+                const cookieFile = await currentAutomation.saveCookies();
+                responseMessage = cookieFile ? 
+                    `Login completed successfully! Session cookies saved to: ${cookieFile}` :
+                    'Login completed successfully!';
+            } else {
+                responseMessage = 'Login may require additional verification';
+            }
+
             res.json({
                 sessionId: currentSessionId,
                 loginComplete: true,
                 loginSuccess: loginSuccess,
-                message: loginSuccess ? 'Login completed successfully!' : 'Login may require additional verification',
+                message: responseMessage,
                 screenshot: `screenshots/session-${currentSessionId}-final.png`
             });
 
@@ -406,6 +419,61 @@ app.get('/api/status', (req, res) => {
         hasActiveSession: currentAutomation !== null,
         sessionId: currentSessionId
     });
+});
+
+// Load saved cookies for quick login
+app.post('/api/load-cookies', async (req, res) => {
+    try {
+        const { cookieFile } = req.body;
+
+        if (!cookieFile) {
+            return res.status(400).json({ 
+                error: 'Cookie file path is required' 
+            });
+        }
+
+        if (!currentAutomation) {
+            return res.status(400).json({ 
+                error: 'No active session. Please start a session first.' 
+            });
+        }
+
+        const loaded = await currentAutomation.loadCookies(cookieFile);
+        
+        if (loaded) {
+            // Navigate to Outlook to test the cookies
+            await currentAutomation.page.goto('https://outlook.office.com/mail/', {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            });
+
+            // Wait and check if we're logged in
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            const currentUrl = currentAutomation.page.url();
+            const loginSuccess = currentUrl.includes('outlook.office.com/mail');
+
+            res.json({
+                sessionId: currentSessionId,
+                cookiesLoaded: true,
+                loginSuccess: loginSuccess,
+                message: loginSuccess ? 
+                    'Cookies loaded successfully! Already logged in.' : 
+                    'Cookies loaded but login may be required.',
+                currentUrl: currentUrl
+            });
+        } else {
+            res.status(400).json({ 
+                error: 'Failed to load cookies from file' 
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading cookies:', error);
+        res.status(500).json({ 
+            error: 'Failed to load cookies',
+            details: error.message 
+        });
+    }
 });
 
 // Serve frontend
