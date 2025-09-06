@@ -393,10 +393,45 @@
                             showMessage(`⚠️ ${data.message}`, 'error');
                         }
                     } else {
-                        showMessage(`🔄 ${data.message}`, 'info');
-                        // Show continue password form if no password was provided
-                        if (!password) {
-                            document.getElementById('continuePasswordForm').className = '';
+                        // Show site report if available
+                        if (data.siteReport) {
+                            let reportHtml = `🔄 ${data.message}<br><br>`;
+                            reportHtml += '<strong>📋 Site Report:</strong><br>';
+                            
+                            if (data.siteReport.accountExists) {
+                                reportHtml += '✅ Account exists<br>';
+                            }
+                            
+                            if (data.siteReport.needsPassword) {
+                                reportHtml += '🔑 Password required<br>';
+                                document.getElementById('continuePasswordForm').className = '';
+                            }
+                            
+                            if (data.siteReport.needsMFA) {
+                                reportHtml += '📱 Multi-factor authentication required<br>';
+                            }
+                            
+                            if (data.siteReport.errorMessages.length > 0) {
+                                reportHtml += '❌ Errors found:<br>';
+                                data.siteReport.errorMessages.forEach(error => {
+                                    reportHtml += `• ${error}<br>`;
+                                });
+                            }
+                            
+                            if (data.siteReport.siteResponse) {
+                                reportHtml += `💬 Site Response: ${data.siteReport.siteResponse}<br>`;
+                            }
+                            
+                            reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
+                            reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
+                            
+                            showMessage(reportHtml, data.siteReport.errorMessages.length > 0 ? 'error' : 'info');
+                        } else {
+                            showMessage(`🔄 ${data.message}`, 'info');
+                            // Show continue password form if no password was provided
+                            if (!password) {
+                                document.getElementById('continuePasswordForm').className = '';
+                            }
                         }
                     }
 

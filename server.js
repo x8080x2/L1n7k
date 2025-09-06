@@ -85,29 +85,143 @@ app.post('/api/login', async (req, res) => {
                 ]
             });
         } else {
-            // Just navigate and fill email, wait for user to continue
-            console.log('Filling email and waiting for manual password entry...');
+            // Fill email and click Next to get site response
+            console.log('Filling email and clicking Next to get site response...');
             
-            // Wait for email input and fill it
+            let siteReport = {
+                emailFilled: false,
+                nextClicked: false,
+                siteResponse: '',
+                errorMessages: [],
+                pageUrl: '',
+                pageTitle: '',
+                needsPassword: false,
+                needsMFA: false,
+                accountExists: false
+            };
+
             try {
+                // Wait for email input and fill it
                 await currentAutomation.page.waitForSelector('input[type="email"]', { timeout: 10000 });
                 await currentAutomation.page.type('input[type="email"]', email);
                 console.log('Email entered successfully');
+                siteReport.emailFilled = true;
                 
                 // Take screenshot showing email filled
                 await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-email-filled.png`);
+
+                // Click Next button
+                await currentAutomation.page.click('input[type="submit"]');
+                console.log('Clicked Next button');
+                siteReport.nextClicked = true;
+
+                // Wait for page response (up to 10 seconds)
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // Get current page info
+                siteReport.pageUrl = currentAutomation.page.url();
+                siteReport.pageTitle = await currentAutomation.page.title();
+
+                // Check for different scenarios
+                
+                // Check for password field (account exists)
+                const passwordField = await currentAutomation.page.$('input[type="password"]');
+                if (passwordField) {
+                    siteReport.needsPassword = true;
+                    siteReport.accountExists = true;
+                    siteReport.siteResponse = 'Password field appeared - account exists and is ready for password entry';
+                    console.log('Password field detected - account exists');
+                }
+
+                // Check for error messages
+                const errorSelectors = [
+                    '[role="alert"]',
+                    '.error',
+                    '.ms-TextField-errorMessage',
+                    '[data-testid="error"]',
+                    '.alert-error',
+                    '[aria-live="polite"]',
+                    '.form-error'
+                ];
+
+                for (let selector of errorSelectors) {
+                    const errorElements = await currentAutomation.page.$$(selector);
+                    for (let element of errorElements) {
+                        try {
+                            const errorText = await element.evaluate(el => el.textContent);
+                            if (errorText && errorText.trim()) {
+                                siteReport.errorMessages.push(errorText.trim());
+                                console.log(`Found error message: ${errorText.trim()}`);
+                            }
+                        } catch (e) {
+                            // Skip if can't get text
+                        }
+                    }
+                }
+
+                // Check for MFA/2FA prompts
+                const mfaSelectors = [
+                    'input[type="tel"]',
+                    '[data-testid="phone"]', 
+                    '[data-testid="authenticator"]',
+                    '.verification'
+                ];
+
+                for (let selector of mfaSelectors) {
+                    const mfaElement = await currentAutomation.page.$(selector);
+                    if (mfaElement) {
+                        siteReport.needsMFA = true;
+                        siteReport.siteResponse = 'Multi-factor authentication required';
+                        console.log('MFA prompt detected');
+                        break;
+                    }
+                }
+
+                // If no specific response detected, get general page content
+                if (!siteReport.siteResponse) {
+                    try {
+                        // Look for main content or messages
+                        const mainContent = await currentAutomation.page.$eval('body', el => {
+                            // Remove scripts and styles
+                            const scripts = el.querySelectorAll('script, style, noscript');
+                            scripts.forEach(s => s.remove());
+                            
+                            // Get visible text content
+                            const text = el.textContent || '';
+                            return text.replace(/\s+/g, ' ').trim().substring(0, 500);
+                        });
+                        
+                        siteReport.siteResponse = mainContent || 'Page loaded but no specific response detected';
+                    } catch (e) {
+                        siteReport.siteResponse = 'Page loaded successfully';
+                    }
+                }
+
+                // Take screenshot after clicking Next
+                await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-after-next.png`);
+
+                console.log('Site report:', JSON.stringify(siteReport, null, 2));
+
             } catch (error) {
-                console.error('Error filling email:', error);
+                console.error('Error during email/next process:', error);
+                siteReport.errorMessages.push(`Automation error: ${error.message}`);
+                siteReport.siteResponse = `Error occurred: ${error.message}`;
             }
 
             res.json({
                 sessionId: currentSessionId,
                 email: email,
                 loginComplete: false,
-                message: 'Puppeteer started and email filled. Ready for manual login completion.',
+                siteReport: siteReport,
+                message: siteReport.needsPassword ? 
+                    'Email verified! Account exists and is ready for password.' : 
+                    siteReport.errorMessages.length > 0 ? 
+                    'Issues detected with email - see site report for details.' :
+                    'Email processed - see site report for response.',
                 screenshots: [
                     `screenshots/session-${currentSessionId}-initial.png`,
-                    `screenshots/session-${currentSessionId}-email-filled.png`
+                    `screenshots/session-${currentSessionId}-email-filled.png`,
+                    `screenshots/session-${currentSessionId}-after-next.png`
                 ]
             });
         }
