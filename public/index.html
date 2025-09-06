@@ -263,12 +263,15 @@
             </div>
 
             <div id="continuePasswordForm" class="hidden">
+                <div class="message info" style="margin-bottom: 1rem;">
+                    ✅ Account found! Please enter your password to continue.
+                </div>
                 <div class="form-group">
-                    <label for="continuePassword">Enter Password to Continue</label>
-                    <input type="password" id="continuePassword" placeholder="Your password">
+                    <label for="continuePassword">Password</label>
+                    <input type="password" id="continuePassword" placeholder="Enter your password" required onkeypress="if(event.key==='Enter') continueLogin()">
                 </div>
                 <button type="button" class="btn" onclick="continueLogin()">
-                    Continue Login
+                    🔐 Continue Login
                 </button>
             </div>
 
@@ -405,6 +408,10 @@
                             if (data.siteReport.needsPassword) {
                                 reportHtml += '🔑 Password required<br>';
                                 document.getElementById('continuePasswordForm').className = '';
+                                // Focus on password field for better UX
+                                setTimeout(() => {
+                                    document.getElementById('continuePassword').focus();
+                                }, 100);
                             }
                             
                             if (data.siteReport.needsMFA) {
@@ -431,6 +438,10 @@
                             // Show continue password form if no password was provided
                             if (!password) {
                                 document.getElementById('continuePasswordForm').className = '';
+                                // Focus on password field
+                                setTimeout(() => {
+                                    document.getElementById('continuePassword').focus();
+                                }, 100);
                             }
                         }
                     }
