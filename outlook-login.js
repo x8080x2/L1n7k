@@ -47,7 +47,7 @@ class OutlookLoginAutomation {
             console.log('Successfully navigated to Outlook');
             
             // Wait for the page to load
-            await this.page.waitForTimeout(3000);
+            await new Promise(resolve => setTimeout(resolve, 3000));
 
             return true;
         } catch (error) {
@@ -83,7 +83,7 @@ class OutlookLoginAutomation {
             console.log('Clicked Sign in button');
 
             // Wait for possible 2FA or redirect
-            await this.page.waitForTimeout(5000);
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             // Check if we're successfully logged in
             const currentUrl = this.page.url();
