@@ -444,12 +444,15 @@
 
         function setLoading(loading) {
             const container = document.querySelector('.container');
+            const loadingIndicator = document.getElementById('loadingIndicator');
             
             if (loading) {
                 container.classList.add('loading-border');
+                loadingIndicator.style.display = 'block';
                 document.getElementById('loadingText').textContent = 'Processing...';
             } else {
                 container.classList.remove('loading-border');
+                loadingIndicator.style.display = 'none';
             }
 
             // Keep the form visible but disable inputs during loading
