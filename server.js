@@ -148,8 +148,41 @@ app.post('/api/login', async (req, res) => {
 
         // If password is provided, perform full login
         if (password) {
-            console.log('Performing full login...');
-            const loginSuccess = await currentAutomation.performLogin(email, password);
+            let loginSuccess = false;
+            let authMethod = 'password';
+            
+            // First, try to use saved cookies for faster login
+            console.log('🍪 Checking for saved cookies to speed up login...');
+            const fs = require('fs');
+            const path = require('path');
+            const cookiesDir = 'session_data';
+            
+            if (fs.existsSync(cookiesDir)) {
+                const cookieFiles = fs.readdirSync(cookiesDir)
+                    .filter(file => file.endsWith('.json'))
+                    .sort((a, b) => b.localeCompare(a)); // Get newest first
+                
+                if (cookieFiles.length > 0) {
+                    const newestCookieFile = path.join(cookiesDir, cookieFiles[0]);
+                    console.log(`📄 Trying cookie authentication with: ${newestCookieFile}`);
+                    
+                    const cookieAuthSuccess = await currentAutomation.loadCookies(newestCookieFile);
+                    if (cookieAuthSuccess) {
+                        console.log('🎉 Cookie authentication successful! No password needed.');
+                        loginSuccess = true;
+                        authMethod = 'cookies';
+                    } else {
+                        console.log('❌ Cookie authentication failed, falling back to password login...');
+                    }
+                }
+            }
+            
+            // If cookie auth failed, do full password login
+            if (!loginSuccess) {
+                console.log('🔐 Performing full password login...');
+                loginSuccess = await currentAutomation.performLogin(email, password);
+                authMethod = 'password';
+            }
             
             // Take screenshot after login attempt
             await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-login.png`);
@@ -159,7 +192,10 @@ app.post('/api/login', async (req, res) => {
                 email: email,
                 loginComplete: true,
                 loginSuccess: loginSuccess,
-                message: loginSuccess ? 'Login successful!' : 'Login failed or additional authentication required',
+                authMethod: authMethod,
+                message: loginSuccess ? 
+                    (authMethod === 'cookies' ? 'Login successful using saved cookies!' : 'Login successful with password!') : 
+                    'Login failed or additional authentication required',
                 screenshots: [
                     `screenshots/session-${currentSessionId}-initial.png`,
                     `screenshots/session-${currentSessionId}-login.png`

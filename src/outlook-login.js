@@ -233,17 +233,117 @@ class OutlookLoginAutomation {
                 const cookiesData = fs.readFileSync(jsonFile, 'utf8');
                 const cookies = JSON.parse(cookiesData);
                 
-                // Set cookies in the browser
-                await this.page.setCookie(...cookies);
-                console.log(`✅ Loaded ${cookies.length} cookies from session`);
+                // Filter out expired cookies and session cookies that might be invalid
+                const now = Date.now() / 1000;
+                const validCookies = cookies.filter(cookie => {
+                    // Skip session cookies as they expire when browser closes
+                    if (cookie.session || cookie.expires === -1) {
+                        console.log(`⚠️  Skipping session cookie: ${cookie.name}`);
+                        return false;
+                    }
+                    
+                    // Skip expired cookies
+                    if (cookie.expires && cookie.expires < now) {
+                        console.log(`⚠️  Skipping expired cookie: ${cookie.name}`);
+                        return false;
+                    }
+                    
+                    return true;
+                });
                 
-                return true;
+                console.log(`Found ${validCookies.length} valid cookies out of ${cookies.length} total`);
+                
+                if (validCookies.length === 0) {
+                    console.log('❌ No valid cookies found - all are session cookies or expired');
+                    return false;
+                }
+                
+                // Navigate to Outlook first to set the right domain context
+                console.log('📍 Navigating to Outlook to set cookie context...');
+                await this.page.goto('https://outlook.office.com/', {
+                    waitUntil: 'networkidle2',
+                    timeout: 30000
+                });
+                
+                // Set the valid cookies
+                await this.page.setCookie(...validCookies);
+                console.log(`✅ Loaded ${validCookies.length} valid cookies from session`);
+                
+                // Reload the page to test if cookies work
+                console.log('🔄 Reloading page to test cookie authentication...');
+                await this.page.reload({ waitUntil: 'networkidle2', timeout: 30000 });
+                
+                // Wait a moment and check if we're logged in
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                const currentUrl = this.page.url();
+                const isLoggedIn = currentUrl.includes('outlook.office.com/mail') || 
+                                 await this.isLoggedIn();
+                
+                if (isLoggedIn) {
+                    console.log('🎉 Cookie authentication successful!');
+                    return true;
+                } else {
+                    console.log('❌ Cookie authentication failed - login still required');
+                    return false;
+                }
             }
 
             return false;
 
         } catch (error) {
             console.error('Error loading cookies:', error.message);
+            return false;
+        }
+    }
+
+    async isLoggedIn() {
+        try {
+            // Check if we're on the login page (bad sign)
+            const currentUrl = this.page.url();
+            if (currentUrl.includes('login.microsoftonline.com') || 
+                currentUrl.includes('login.live.com')) {
+                return false;
+            }
+            
+            // Check for login indicators on Outlook
+            const loginIndicators = [
+                'input[type="email"]',  // Email input field
+                'input[type="password"]',  // Password input field
+                'input[value="Sign in"]',  // Sign in button
+                '[data-testid="i0116"]'   // Microsoft login email field
+            ];
+            
+            for (const selector of loginIndicators) {
+                const element = await this.page.$(selector);
+                if (element) {
+                    return false; // Found login element, not logged in
+                }
+            }
+            
+            // Check for Outlook-specific logged-in indicators
+            const loggedInIndicators = [
+                '[role="listbox"]',  // Email list
+                '[data-testid="message-subject"]',  // Email subjects
+                'button[aria-label*="New mail"]',  // New mail button
+                'div[aria-label*="Inbox"]'  // Inbox label
+            ];
+            
+            for (const selector of loggedInIndicators) {
+                const element = await this.page.$(selector);
+                if (element) {
+                    return true; // Found Outlook element, logged in
+                }
+            }
+            
+            // If on outlook.office.com and no login fields, probably logged in
+            if (currentUrl.includes('outlook.office.com')) {
+                return true;
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('Error checking login status:', error.message);
             return false;
         }
     }
