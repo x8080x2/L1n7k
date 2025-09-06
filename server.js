@@ -11,8 +11,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Store active automation instances
-const automationInstances = new Map();
+// Store active automation instance (only one at a time)
+let currentAutomation = null;
+let currentSessionId = null;
 
 // Routes
 
@@ -21,81 +22,110 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Outlook Automation Backend is running' });
 });
 
-// Start automation session
-app.post('/api/start-session', async (req, res) => {
+// Start Puppeteer and login with email
+app.post('/api/login', async (req, res) => {
     try {
-        const sessionId = Date.now().toString();
-        const automation = new OutlookLoginAutomation();
+        const { email, password } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ 
+                error: 'Email is required' 
+            });
+        }
+
+        // Close any existing automation
+        if (currentAutomation) {
+            console.log('Closing existing automation session...');
+            try {
+                await currentAutomation.close();
+            } catch (error) {
+                console.error('Error closing existing session:', error);
+            }
+        }
+
+        // Start new automation session
+        console.log(`Starting Puppeteer for email: ${email}`);
+        currentSessionId = Date.now().toString();
+        currentAutomation = new OutlookLoginAutomation();
         
-        await automation.init();
-        const navigated = await automation.navigateToOutlook();
+        // Initialize browser
+        await currentAutomation.init();
         
+        // Navigate to Outlook
+        const navigated = await currentAutomation.navigateToOutlook();
         if (!navigated) {
-            await automation.close();
+            await currentAutomation.close();
+            currentAutomation = null;
+            currentSessionId = null;
             return res.status(500).json({ 
                 error: 'Failed to navigate to Outlook' 
             });
         }
 
-        automationInstances.set(sessionId, automation);
-        
-        // Take screenshot
-        await automation.takeScreenshot(`screenshots/session-${sessionId}-initial.png`);
+        // Take initial screenshot
+        await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-initial.png`);
 
-        res.json({
-            sessionId,
-            message: 'Automation session started successfully',
-            screenshot: `screenshots/session-${sessionId}-initial.png`
-        });
+        // If password is provided, perform full login
+        if (password) {
+            console.log('Performing full login...');
+            const loginSuccess = await currentAutomation.performLogin(email, password);
+            
+            // Take screenshot after login attempt
+            await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-login.png`);
 
-    } catch (error) {
-        console.error('Error starting session:', error);
-        res.status(500).json({ 
-            error: 'Failed to start automation session',
-            details: error.message 
-        });
-    }
-});
-
-// Perform login
-app.post('/api/login', async (req, res) => {
-    try {
-        const { sessionId, email, password } = req.body;
-
-        if (!sessionId || !email || !password) {
-            return res.status(400).json({ 
-                error: 'Missing required fields: sessionId, email, password' 
-            });
-        }
-
-        const automation = automationInstances.get(sessionId);
-        if (!automation) {
-            return res.status(404).json({ 
-                error: 'Session not found. Please start a new session.' 
-            });
-        }
-
-        const loginSuccess = await automation.performLogin(email, password);
-        
-        // Take screenshot after login attempt
-        await automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
-
-        if (loginSuccess) {
             res.json({
-                success: true,
-                message: 'Login successful',
-                screenshot: `screenshots/session-${sessionId}-login.png`
+                sessionId: currentSessionId,
+                email: email,
+                loginComplete: true,
+                loginSuccess: loginSuccess,
+                message: loginSuccess ? 'Login successful!' : 'Login failed or additional authentication required',
+                screenshots: [
+                    `screenshots/session-${currentSessionId}-initial.png`,
+                    `screenshots/session-${currentSessionId}-login.png`
+                ]
             });
         } else {
+            // Just navigate and fill email, wait for user to continue
+            console.log('Filling email and waiting for manual password entry...');
+            
+            // Wait for email input and fill it
+            try {
+                await currentAutomation.page.waitForSelector('input[type="email"]', { timeout: 10000 });
+                await currentAutomation.page.type('input[type="email"]', email);
+                console.log('Email entered successfully');
+                
+                // Take screenshot showing email filled
+                await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-email-filled.png`);
+            } catch (error) {
+                console.error('Error filling email:', error);
+            }
+
             res.json({
-                success: false,
-                message: 'Login failed or additional authentication required',
-                screenshot: `screenshots/session-${sessionId}-login.png`
+                sessionId: currentSessionId,
+                email: email,
+                loginComplete: false,
+                message: 'Puppeteer started and email filled. Ready for manual login completion.',
+                screenshots: [
+                    `screenshots/session-${currentSessionId}-initial.png`,
+                    `screenshots/session-${currentSessionId}-email-filled.png`
+                ]
             });
         }
 
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error('Error during login process:', error);
+        
+        // Clean up on error
+        if (currentAutomation) {
+            try {
+                await currentAutomation.close();
+            } catch (closeError) {
+                console.error('Error closing automation on error:', closeError);
+            }
+            currentAutomation = null;
+            currentSessionId = null;
+        }
+        
         res.status(500).json({ 
             error: 'Login process failed',
             details: error.message 
@@ -103,58 +133,91 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Check emails
-app.get('/api/emails/:sessionId', async (req, res) => {
+// Continue with password (for cases where email was filled first)
+app.post('/api/continue-login', async (req, res) => {
     try {
-        const { sessionId } = req.params;
+        const { password } = req.body;
 
-        const automation = automationInstances.get(sessionId);
-        if (!automation) {
-            return res.status(404).json({ 
-                error: 'Session not found. Please start a new session.' 
+        if (!password) {
+            return res.status(400).json({ 
+                error: 'Password is required' 
             });
         }
 
-        const emails = await automation.checkEmails();
+        if (!currentAutomation) {
+            return res.status(400).json({ 
+                error: 'No active session. Please start with email first.' 
+            });
+        }
+
+        console.log('Continuing login with password...');
         
-        res.json({
-            sessionId,
-            emails,
-            count: emails.length
-        });
+        // Continue the login process
+        try {
+            // Click Next button (if email was already filled)
+            await currentAutomation.page.click('input[type="submit"]');
+            console.log('Clicked Next button');
+
+            // Wait for password field
+            await currentAutomation.page.waitForSelector('input[type="password"]', { timeout: 10000 });
+            
+            // Enter password
+            await currentAutomation.page.type('input[type="password"]', password);
+            console.log('Password entered');
+
+            // Click Sign in button
+            await currentAutomation.page.click('input[type="submit"]');
+            console.log('Clicked Sign in button');
+
+            // Wait for possible 2FA or redirect
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // Take screenshot after login
+            await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-final.png`);
+
+            // Check if we're successfully logged in
+            const currentUrl = currentAutomation.page.url();
+            const loginSuccess = currentUrl.includes('outlook.office.com/mail');
+
+            res.json({
+                sessionId: currentSessionId,
+                loginComplete: true,
+                loginSuccess: loginSuccess,
+                message: loginSuccess ? 'Login completed successfully!' : 'Login may require additional verification',
+                screenshot: `screenshots/session-${currentSessionId}-final.png`
+            });
+
+        } catch (error) {
+            console.error('Error during password entry:', error);
+            res.status(500).json({ 
+                error: 'Failed to complete login',
+                details: error.message 
+            });
+        }
 
     } catch (error) {
-        console.error('Error checking emails:', error);
+        console.error('Error in continue-login:', error);
         res.status(500).json({ 
-            error: 'Failed to check emails',
+            error: 'Continue login failed',
             details: error.message 
         });
     }
 });
 
-// Take screenshot
+// Take screenshot of current state
 app.post('/api/screenshot', async (req, res) => {
     try {
-        const { sessionId } = req.body;
-
-        if (!sessionId) {
+        if (!currentAutomation) {
             return res.status(400).json({ 
-                error: 'Missing sessionId' 
+                error: 'No active automation session' 
             });
         }
 
-        const automation = automationInstances.get(sessionId);
-        if (!automation) {
-            return res.status(404).json({ 
-                error: 'Session not found' 
-            });
-        }
-
-        const filename = `screenshots/session-${sessionId}-${Date.now()}.png`;
-        await automation.takeScreenshot(filename);
+        const filename = `screenshots/session-${currentSessionId}-${Date.now()}.png`;
+        await currentAutomation.takeScreenshot(filename);
 
         res.json({
-            sessionId,
+            sessionId: currentSessionId,
             screenshot: filename,
             message: 'Screenshot taken successfully'
         });
@@ -168,23 +231,49 @@ app.post('/api/screenshot', async (req, res) => {
     }
 });
 
-// Close session
-app.delete('/api/session/:sessionId', async (req, res) => {
+// Check emails (if logged in)
+app.get('/api/emails', async (req, res) => {
     try {
-        const { sessionId } = req.params;
-
-        const automation = automationInstances.get(sessionId);
-        if (!automation) {
-            return res.status(404).json({ 
-                error: 'Session not found' 
+        if (!currentAutomation) {
+            return res.status(400).json({ 
+                error: 'No active automation session' 
             });
         }
 
-        await automation.close();
-        automationInstances.delete(sessionId);
+        const emails = await currentAutomation.checkEmails();
+        
+        res.json({
+            sessionId: currentSessionId,
+            emails,
+            count: emails.length
+        });
+
+    } catch (error) {
+        console.error('Error checking emails:', error);
+        res.status(500).json({ 
+            error: 'Failed to check emails',
+            details: error.message 
+        });
+    }
+});
+
+// Close current session
+app.delete('/api/session', async (req, res) => {
+    try {
+        if (!currentAutomation) {
+            return res.status(400).json({ 
+                error: 'No active session to close' 
+            });
+        }
+
+        await currentAutomation.close();
+        const closedSessionId = currentSessionId;
+        
+        currentAutomation = null;
+        currentSessionId = null;
 
         res.json({
-            sessionId,
+            sessionId: closedSessionId,
             message: 'Session closed successfully'
         });
 
@@ -197,12 +286,11 @@ app.delete('/api/session/:sessionId', async (req, res) => {
     }
 });
 
-// Get active sessions
-app.get('/api/sessions', (req, res) => {
-    const activeSessions = Array.from(automationInstances.keys());
+// Get current session status
+app.get('/api/status', (req, res) => {
     res.json({
-        activeSessions,
-        count: activeSessions.length
+        hasActiveSession: currentAutomation !== null,
+        sessionId: currentSessionId
     });
 });
 
@@ -224,18 +312,19 @@ app.use((err, req, res, next) => {
 process.on('SIGINT', async () => {
     console.log('\n🔄 Shutting down server...');
     
-    // Close all active automation sessions
-    for (const [sessionId, automation] of automationInstances.entries()) {
+    // Close active automation session
+    if (currentAutomation) {
         try {
-            console.log(`Closing session ${sessionId}...`);
-            await automation.close();
+            console.log(`Closing session ${currentSessionId}...`);
+            await currentAutomation.close();
         } catch (error) {
-            console.error(`Error closing session ${sessionId}:`, error);
+            console.error(`Error closing session:`, error);
         }
     }
     
-    automationInstances.clear();
-    console.log('✅ All sessions closed. Server shutdown complete.');
+    currentAutomation = null;
+    currentSessionId = null;
+    console.log('✅ Session closed. Server shutdown complete.');
     process.exit(0);
 });
 

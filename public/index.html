@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outlook Automation Control Panel</title>
+    <title>Outlook Login Automation</title>
     <style>
         * {
             margin: 0;
@@ -15,33 +15,55 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
             background: white;
+            padding: 2rem;
             border-radius: 10px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            width: 100%;
+            max-width: 500px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .header {
-            background: #333;
-            color: white;
-            padding: 20px;
             text-align: center;
+            margin-bottom: 2rem;
         }
 
         .header h1 {
-            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.9rem;
         }
 
         .status {
-            background: #f8f9fa;
-            padding: 15px;
-            border-bottom: 1px solid #dee2e6;
+            background: #f8f9ff;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #667eea;
         }
 
         .status-indicator {
@@ -60,65 +82,47 @@
             background: #dc3545;
         }
 
-        .controls {
-            padding: 20px;
-        }
-
-        .section {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .section:last-child {
-            border-bottom: none;
-        }
-
-        .section h3 {
-            color: #333;
-            margin-bottom: 15px;
-        }
-
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 1.5rem;
         }
 
-        .form-group label {
+        label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
+            margin-bottom: 0.5rem;
             color: #333;
+            font-weight: 500;
         }
 
-        .form-group input[type="email"],
-        .form-group input[type="password"] {
+        input[type="email"],
+        input[type="password"] {
             width: 100%;
-            padding: 10px;
+            padding: 0.75rem;
             border: 2px solid #ddd;
             border-radius: 5px;
-            font-size: 14px;
+            font-size: 1rem;
             transition: border-color 0.3s ease;
         }
 
-        .form-group input:focus {
+        input[type="email"]:focus,
+        input[type="password"]:focus {
             outline: none;
             border-color: #667eea;
         }
 
         .btn {
+            width: 100%;
+            padding: 0.75rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 10px 20px;
             border-radius: 5px;
+            font-size: 1rem;
             cursor: pointer;
-            font-size: 14px;
-            margin-right: 10px;
-            margin-bottom: 10px;
             transition: transform 0.2s ease;
+            margin-bottom: 10px;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
         }
 
@@ -126,6 +130,10 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .btn.secondary {
+            background: #6c757d;
         }
 
         .btn.danger {
@@ -136,46 +144,29 @@
             background: #28a745;
         }
 
-        .log {
-            background: #2d3748;
-            color: #e2e8f0;
-            padding: 15px;
+        .message {
+            padding: 1rem;
             border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 15px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
         }
 
-        .log-entry {
-            margin-bottom: 5px;
-            padding: 2px 0;
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .log-entry.success {
-            color: #68d391;
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
-        .log-entry.error {
-            color: #fc8181;
-        }
-
-        .log-entry.info {
-            color: #63b3ed;
-        }
-
-        .session-info {
-            background: #e6f3ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #667eea;
-        }
-
-        .session-info h4 {
-            margin-bottom: 10px;
-            color: #333;
+        .message.info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b8daff;
         }
 
         .loading {
@@ -185,86 +176,117 @@
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .session-info {
+            background: #e6f3ff;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .actions {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .actions.visible {
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📧 Outlook Automation Control Panel</h1>
-            <p>Backend-driven Puppeteer automation for Outlook</p>
+            <h1>📧 Outlook Login</h1>
+            <p>Automated browser login to Outlook</p>
         </div>
 
         <div class="status">
             <span class="status-indicator" id="statusIndicator"></span>
-            <span id="statusText">Checking backend status...</span>
+            <span id="statusText">Checking backend...</span>
         </div>
 
-        <div class="controls">
-            <!-- Session Management -->
-            <div class="section">
-                <h3>🎮 Session Management</h3>
-                <button class="btn" id="startSessionBtn" onclick="startSession()">Start New Session</button>
-                <button class="btn success" id="checkSessionsBtn" onclick="checkSessions()">Check Active Sessions</button>
-                <button class="btn danger" id="closeSessionBtn" onclick="closeCurrentSession()" disabled>Close Session</button>
-                
-                <div id="sessionInfo" class="session-info" style="display: none;">
-                    <h4>Active Session</h4>
-                    <p><strong>Session ID:</strong> <span id="currentSessionId"></span></p>
-                    <p><strong>Status:</strong> <span id="sessionStatus"></span></p>
-                </div>
-            </div>
+        <!-- Message area -->
+        <div id="messageArea"></div>
 
-            <!-- Login Section -->
-            <div class="section">
-                <h3>🔐 Outlook Login</h3>
+        <!-- Loading indicator -->
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Starting Puppeteer and navigating to Outlook...</p>
+        </div>
+
+        <!-- Login form -->
+        <div id="loginForm">
+            <form id="emailForm" onsubmit="startLogin(event)">
                 <div class="form-group">
-                    <label for="email">Email Address:</label>
-                    <input type="email" id="email" placeholder="your-email@company.com">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="your-email@outlook.com" required>
                 </div>
+
                 <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" placeholder="Your password">
+                    <label for="password">Password (optional)</label>
+                    <input type="password" id="password" placeholder="Leave empty for manual login">
+                    <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
+                        If you provide a password, full automation will be attempted. 
+                        Leave empty to manually complete login in the browser.
+                    </small>
                 </div>
-                <button class="btn" id="loginBtn" onclick="performLogin()" disabled>Login to Outlook</button>
-                <button class="btn" id="screenshotBtn" onclick="takeScreenshot()" disabled>Take Screenshot</button>
+
+                <button type="submit" class="btn" id="startBtn">
+                    🚀 Start Outlook Login
+                </button>
+            </form>
+        </div>
+
+        <!-- Session actions (shown after login starts) -->
+        <div class="actions" id="sessionActions">
+            <div class="session-info">
+                <strong>Session Active:</strong> <span id="sessionId">-</span>
             </div>
 
-            <!-- Email Check Section -->
-            <div class="section">
-                <h3>📬 Email Management</h3>
-                <button class="btn success" id="checkEmailsBtn" onclick="checkEmails()" disabled>Check Emails</button>
-                <div id="emailList" style="display: none; margin-top: 15px;">
-                    <h4>Recent Emails:</h4>
-                    <ul id="emails"></ul>
+            <div id="continuePasswordForm" class="hidden">
+                <div class="form-group">
+                    <label for="continuePassword">Enter Password to Continue</label>
+                    <input type="password" id="continuePassword" placeholder="Your password">
                 </div>
+                <button type="button" class="btn" onclick="continueLogin()">
+                    Continue Login
+                </button>
             </div>
 
-            <!-- Loading Indicator -->
-            <div class="loading" id="loadingIndicator">
-                <div class="spinner"></div>
-                <p>Processing request...</p>
-            </div>
-
-            <!-- Activity Log -->
-            <div class="section">
-                <h3>📝 Activity Log</h3>
-                <div class="log" id="activityLog">
-                    <div class="log-entry info">[INFO] Control panel initialized</div>
-                </div>
-            </div>
+            <button type="button" class="btn success" onclick="takeScreenshot()">
+                📸 Take Screenshot
+            </button>
+            
+            <button type="button" class="btn success" onclick="checkEmails()">
+                📬 Check Emails
+            </button>
+            
+            <button type="button" class="btn secondary" onclick="startNewSession()">
+                🔄 Start New Session
+            </button>
+            
+            <button type="button" class="btn danger" onclick="closeSession()">
+                ❌ Close Session
+            </button>
         </div>
     </div>
 
@@ -275,45 +297,34 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             checkBackendHealth();
+            checkSessionStatus();
         });
 
         // Utility functions
-        function log(message, type = 'info') {
-            const logElement = document.getElementById('activityLog');
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${type}`;
-            logEntry.textContent = `[${timestamp}] ${message}`;
-            logElement.appendChild(logEntry);
-            logElement.scrollTop = logElement.scrollHeight;
+        function showMessage(message, type = 'info') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
+        }
+
+        function clearMessage() {
+            document.getElementById('messageArea').innerHTML = '';
         }
 
         function setLoading(loading) {
             document.getElementById('loadingIndicator').style.display = loading ? 'block' : 'none';
+            document.getElementById('loginForm').style.display = loading ? 'none' : 'block';
+            
             const buttons = document.querySelectorAll('.btn');
             buttons.forEach(btn => btn.disabled = loading);
-            updateButtonStates();
         }
 
-        function updateButtonStates() {
-            const hasSession = currentSessionId !== null;
-            document.getElementById('loginBtn').disabled = !hasSession;
-            document.getElementById('screenshotBtn').disabled = !hasSession;
-            document.getElementById('checkEmailsBtn').disabled = !hasSession;
-            document.getElementById('closeSessionBtn').disabled = !hasSession;
-        }
-
-        function updateSessionInfo() {
-            const sessionInfo = document.getElementById('sessionInfo');
-            const sessionIdElement = document.getElementById('currentSessionId');
-            const sessionStatusElement = document.getElementById('sessionStatus');
-
-            if (currentSessionId) {
-                sessionInfo.style.display = 'block';
-                sessionIdElement.textContent = currentSessionId;
-                sessionStatusElement.textContent = 'Active';
-            } else {
-                sessionInfo.style.display = 'none';
+        function showSessionActions(show) {
+            const actions = document.getElementById('sessionActions');
+            actions.className = show ? 'actions visible' : 'actions';
+            
+            if (!show) {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('continuePasswordForm').className = 'hidden';
             }
         }
 
@@ -325,199 +336,203 @@
                 
                 if (response.ok) {
                     document.getElementById('statusIndicator').className = 'status-indicator online';
-                    document.getElementById('statusText').textContent = 'Backend is online';
-                    log('Backend health check successful', 'success');
+                    document.getElementById('statusText').textContent = 'Backend online - Ready';
                 } else {
                     throw new Error('Backend health check failed');
                 }
             } catch (error) {
                 document.getElementById('statusIndicator').className = 'status-indicator offline';
-                document.getElementById('statusText').textContent = 'Backend is offline';
-                log(`Backend health check failed: ${error.message}`, 'error');
+                document.getElementById('statusText').textContent = 'Backend offline';
+                showMessage('Backend is not available. Please check the server.', 'error');
             }
         }
 
-        async function startSession() {
+        async function checkSessionStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                if (data.hasActiveSession) {
+                    currentSessionId = data.sessionId;
+                    document.getElementById('sessionId').textContent = currentSessionId;
+                    showSessionActions(true);
+                    document.getElementById('loginForm').style.display = 'none';
+                    showMessage('Found existing session. You can take screenshots or start a new session.', 'info');
+                }
+            } catch (error) {
+                console.error('Error checking session status:', error);
+            }
+        }
+
+        async function startLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            clearMessage();
             setLoading(true);
-            log('Starting new automation session...');
 
             try {
-                const response = await fetch(`${API_BASE}/api/start-session`, {
+                const response = await fetch(`${API_BASE}/api/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
                     currentSessionId = data.sessionId;
-                    updateSessionInfo();
-                    log(`Session started successfully: ${currentSessionId}`, 'success');
-                    log(`Screenshot saved: ${data.screenshot}`, 'info');
+                    document.getElementById('sessionId').textContent = currentSessionId;
+
+                    if (data.loginComplete) {
+                        if (data.loginSuccess) {
+                            showMessage(`✅ ${data.message}`, 'success');
+                        } else {
+                            showMessage(`⚠️ ${data.message}`, 'error');
+                        }
+                    } else {
+                        showMessage(`🔄 ${data.message}`, 'info');
+                        // Show continue password form if no password was provided
+                        if (!password) {
+                            document.getElementById('continuePasswordForm').className = '';
+                        }
+                    }
+
+                    showSessionActions(true);
+                    document.getElementById('loginForm').style.display = 'none';
+
                 } else {
-                    throw new Error(data.error);
+                    throw new Error(data.error || 'Login failed');
                 }
+
             } catch (error) {
-                log(`Failed to start session: ${error.message}`, 'error');
+                showMessage(`❌ Error: ${error.message}`, 'error');
             } finally {
                 setLoading(false);
             }
         }
 
-        async function performLogin() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            if (!email || !password) {
-                log('Please enter both email and password', 'error');
+        async function continueLogin() {
+            const password = document.getElementById('continuePassword').value;
+            
+            if (!password) {
+                showMessage('Please enter your password', 'error');
                 return;
             }
 
+            clearMessage();
             setLoading(true);
-            log(`Attempting login for: ${email}`);
 
             try {
-                const response = await fetch(`${API_BASE}/api/login`, {
+                const response = await fetch(`${API_BASE}/api/continue-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId: currentSessionId,
-                        email: email,
-                        password: password
-                    })
+                    body: JSON.stringify({ password })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    if (data.success) {
-                        log('Login successful!', 'success');
+                    if (data.loginSuccess) {
+                        showMessage(`✅ ${data.message}`, 'success');
                     } else {
-                        log('Login failed or additional authentication required', 'error');
+                        showMessage(`⚠️ ${data.message}`, 'error');
                     }
-                    log(`Screenshot saved: ${data.screenshot}`, 'info');
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                log(`Login failed: ${error.message}`, 'error');
-            } finally {
-                setLoading(false);
-                // Clear password for security
-                document.getElementById('password').value = '';
-            }
-        }
-
-        async function checkEmails() {
-            setLoading(true);
-            log('Checking emails...');
-
-            try {
-                const response = await fetch(`${API_BASE}/api/emails/${currentSessionId}`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    const emailList = document.getElementById('emailList');
-                    const emailsElement = document.getElementById('emails');
                     
-                    emailsElement.innerHTML = '';
-                    
-                    if (data.emails.length > 0) {
-                        data.emails.forEach(email => {
-                            const li = document.createElement('li');
-                            li.textContent = email;
-                            emailsElement.appendChild(li);
-                        });
-                        emailList.style.display = 'block';
-                        log(`Found ${data.count} emails`, 'success');
-                    } else {
-                        emailList.style.display = 'none';
-                        log('No emails found', 'info');
-                    }
+                    // Hide continue form
+                    document.getElementById('continuePasswordForm').className = 'hidden';
+                    document.getElementById('continuePassword').value = '';
+
                 } else {
-                    throw new Error(data.error);
+                    throw new Error(data.error || 'Continue login failed');
                 }
+
             } catch (error) {
-                log(`Failed to check emails: ${error.message}`, 'error');
+                showMessage(`❌ Error: ${error.message}`, 'error');
             } finally {
                 setLoading(false);
             }
         }
 
         async function takeScreenshot() {
-            setLoading(true);
-            log('Taking screenshot...');
+            clearMessage();
+            showMessage('📸 Taking screenshot...', 'info');
 
             try {
                 const response = await fetch(`${API_BASE}/api/screenshot`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: currentSessionId })
+                    body: JSON.stringify({})
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    log(`Screenshot saved: ${data.screenshot}`, 'success');
+                    showMessage(`📸 Screenshot saved: ${data.screenshot}`, 'success');
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                log(`Failed to take screenshot: ${error.message}`, 'error');
-            } finally {
-                setLoading(false);
+                showMessage(`❌ Screenshot failed: ${error.message}`, 'error');
             }
         }
 
-        async function closeCurrentSession() {
-            if (!currentSessionId) return;
-
-            setLoading(true);
-            log(`Closing session: ${currentSessionId}`);
+        async function checkEmails() {
+            clearMessage();
+            showMessage('📬 Checking emails...', 'info');
 
             try {
-                const response = await fetch(`${API_BASE}/api/session/${currentSessionId}`, {
+                const response = await fetch(`${API_BASE}/api/emails`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.emails.length > 0) {
+                        const emailList = data.emails.slice(0, 5).join('<br>• ');
+                        showMessage(`📬 Found ${data.count} emails:<br>• ${emailList}`, 'success');
+                    } else {
+                        showMessage('📭 No emails found', 'info');
+                    }
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                showMessage(`❌ Email check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function startNewSession() {
+            if (confirm('This will close the current session and start a new one. Continue?')) {
+                await closeSession();
+                // Reset form
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+                clearMessage();
+            }
+        }
+
+        async function closeSession() {
+            if (!currentSessionId) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/session`, {
                     method: 'DELETE'
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    log('Session closed successfully', 'success');
-                    currentSessionId = null;
-                    updateSessionInfo();
-                    
-                    // Clear form
-                    document.getElementById('email').value = '';
-                    document.getElementById('password').value = '';
-                    document.getElementById('emailList').style.display = 'none';
+                    showMessage('✅ Session closed successfully', 'success');
                 } else {
-                    throw new Error(data.error);
+                    showMessage('⚠️ Session may not have closed properly', 'error');
                 }
             } catch (error) {
-                log(`Failed to close session: ${error.message}`, 'error');
+                showMessage(`❌ Error closing session: ${error.message}`, 'error');
             } finally {
-                setLoading(false);
-            }
-        }
-
-        async function checkSessions() {
-            log('Checking active sessions...');
-
-            try {
-                const response = await fetch(`${API_BASE}/api/sessions`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    log(`Active sessions: ${data.count}`, 'info');
-                    if (data.activeSessions.length > 0) {
-                        log(`Session IDs: ${data.activeSessions.join(', ')}`, 'info');
-                    }
-                } else {
-                    throw new Error('Failed to check sessions');
-                }
-            } catch (error) {
-                log(`Failed to check sessions: ${error.message}`, 'error');
+                currentSessionId = null;
+                showSessionActions(false);
+                clearMessage();
             }
         }
     </script>
