@@ -593,6 +593,73 @@ app.post('/api/load-cookies', async (req, res) => {
     }
 });
 
+// Export cookies for browser injection
+app.get('/api/export-cookies', async (req, res) => {
+    try {
+        if (!currentAutomation) {
+            return res.status(400).json({ 
+                error: 'No active session found' 
+            });
+        }
+
+        // Get cookies from the current Puppeteer session
+        const cookies = await currentAutomation.page.cookies();
+        
+        // Generate JavaScript cookie injection script
+        const cookieInjectionScript = `
+// Outlook Cookie Injection Script
+(function() {
+    console.log('🍪 Injecting Outlook authentication cookies...');
+    
+    const cookies = ${JSON.stringify(cookies)};
+    let successCount = 0;
+    
+    cookies.forEach(cookie => {
+        try {
+            let cookieString = cookie.name + '=' + cookie.value + ';';
+            cookieString += 'Max-Age=31536000;'; // 1 year
+            if (cookie.path) cookieString += 'path=' + cookie.path + ';';
+            if (cookie.domain) cookieString += 'domain=' + cookie.domain + ';';
+            if (cookie.secure) cookieString += 'secure;';
+            if (cookie.httpOnly) cookieString += 'httponly;';
+            if (cookie.sameSite) cookieString += 'samesite=' + cookie.sameSite + ';';
+            
+            document.cookie = cookieString;
+            successCount++;
+            console.log('✅ Set cookie:', cookie.name);
+        } catch (error) {
+            console.warn('⚠️ Failed to set cookie:', cookie.name, error);
+        }
+    });
+    
+    console.log(\`🎉 Successfully injected \${successCount} cookies!\`);
+    console.log('🔄 Please refresh the page or navigate to https://outlook.office.com/mail/');
+    alert(\`Successfully injected \${successCount} authentication cookies! Navigate to outlook.office.com to access your emails.\`);
+    
+    return {
+        success: true,
+        cookiesSet: successCount,
+        totalCookies: cookies.length
+    };
+})();`;
+
+        res.json({
+            success: true,
+            cookieCount: cookies.length,
+            injectionScript: cookieInjectionScript,
+            redirectUrl: 'https://outlook.office.com/mail/',
+            message: 'Copy the script to your browser console or click the button to inject cookies'
+        });
+
+    } catch (error) {
+        console.error('Error exporting cookies:', error);
+        res.status(500).json({ 
+            error: 'Failed to export cookies',
+            details: error.message 
+        });
+    }
+});
+
 // Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

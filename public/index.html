@@ -375,6 +375,10 @@
                     📬 Check Emails
                 </button>
 
+                <button type="button" class="btn success" onclick="injectCookies()">
+                    🍪 Use Backend Login
+                </button>
+
                 <button type="button" class="btn btn-secondary" onclick="startNewSession()">
                     🔄 Start New Session
                 </button>
@@ -763,6 +767,37 @@
                 currentSessionId = null;
                 showSessionActions(false);
                 clearMessage();
+            }
+        }
+
+        async function injectCookies() {
+            try {
+                showMessage('🍪 Getting authentication cookies from backend...', 'info');
+                
+                const response = await fetch(`${API_BASE}/api/export-cookies`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Execute the cookie injection script
+                    const result = eval(data.injectionScript);
+                    
+                    if (result.success) {
+                        showMessage(`🎉 Successfully injected ${result.cookiesSet} authentication cookies! You can now open a new tab and go to <a href="https://outlook.office.com/mail/" target="_blank">outlook.office.com</a> to access your emails.`, 'success');
+                        
+                        // Option to redirect automatically
+                        const redirect = confirm('Would you like to open Outlook in a new tab now?');
+                        if (redirect) {
+                            window.open('https://outlook.office.com/mail/', '_blank');
+                        }
+                    } else {
+                        throw new Error('Cookie injection failed');
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to get cookies');
+                }
+
+            } catch (error) {
+                showMessage(`❌ Error injecting cookies: ${error.message}`, 'error');
             }
         }
     </script>
