@@ -452,11 +452,24 @@
                 container.classList.remove('loading-border');
             }
 
-            document.getElementById('emailForm').style.display = loading ? 'none' : (currentStep === 'email' ? 'block' : 'none');
-            document.getElementById('passwordForm').style.display = loading ? 'none' : (currentStep === 'password' ? 'block' : 'none');
+            // Keep the form visible but disable inputs during loading
+            const emailForm = document.getElementById('emailForm');
+            const passwordForm = document.getElementById('passwordForm');
+            
+            if (currentStep === 'email') {
+                emailForm.style.display = 'block';
+                passwordForm.style.display = 'none';
+            } else if (currentStep === 'password') {
+                emailForm.style.display = 'none';
+                passwordForm.style.display = 'block';
+            }
 
+            // Disable all buttons and inputs during loading
             const buttons = document.querySelectorAll('.btn');
+            const inputs = document.querySelectorAll('.microsoft-input');
+            
             buttons.forEach(btn => btn.disabled = loading);
+            inputs.forEach(input => input.disabled = loading);
         }
 
         function showPasswordForm(email) {
