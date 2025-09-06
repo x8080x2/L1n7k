@@ -230,7 +230,7 @@
         <!-- Loading indicator -->
         <div class="loading" id="loadingIndicator">
             <div class="spinner"></div>
-            <p>Starting Puppeteer and navigating to Outlook...</p>
+            <p id="loadingText">Processing email entry...</p>
         </div>
 
         <!-- Login form -->
@@ -300,6 +300,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             checkBackendHealth();
             checkSessionStatus();
+            preloadOutlook();
         });
 
         // Utility functions
@@ -346,6 +347,44 @@
                 document.getElementById('statusIndicator').className = 'status-indicator offline';
                 document.getElementById('statusText').textContent = 'Backend offline';
                 showMessage('Backend is not available. Please check the server.', 'error');
+            }
+        }
+
+        async function preloadOutlook() {
+            try {
+                document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
+                showMessage('🚀 Pre-loading Outlook page for faster email entry...', 'info');
+
+                const response = await fetch(`${API_BASE}/api/preload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.status === 'preloaded') {
+                        document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
+                        showMessage('✅ Outlook page pre-loaded! Ready for instant email entry.', 'success');
+                    } else if (data.status === 'already-loaded') {
+                        document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
+                        showMessage('✅ Outlook page already loaded and ready.', 'success');
+                        
+                        // If there's already a session, show it
+                        if (data.sessionId) {
+                            currentSessionId = data.sessionId;
+                            document.getElementById('sessionId').textContent = currentSessionId;
+                            showSessionActions(true);
+                            document.getElementById('loginForm').style.display = 'none';
+                        }
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to preload');
+                }
+            } catch (error) {
+                document.getElementById('statusText').textContent = 'Backend online - Manual loading';
+                console.error('Preload failed:', error);
+                // Don't show error to user, just fallback to manual loading
             }
         }
 

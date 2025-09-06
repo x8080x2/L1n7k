@@ -14,6 +14,7 @@ app.use(express.static('public'));
 // Store active automation instance (only one at a time)
 let currentAutomation = null;
 let currentSessionId = null;
+let isPreloaded = false;
 
 // Routes
 
@@ -22,14 +23,15 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Outlook Automation Backend is running' });
 });
 
-// Start Puppeteer and login with email
-app.post('/api/login', async (req, res) => {
+// Preload Outlook page
+app.post('/api/preload', async (req, res) => {
     try {
-        const { email, password } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ 
-                error: 'Email is required' 
+        // If already preloaded or has active session, return status
+        if (isPreloaded && currentAutomation) {
+            return res.json({
+                status: 'already-loaded',
+                message: 'Outlook page is already loaded and ready',
+                sessionId: currentSessionId
             });
         }
 
@@ -43,8 +45,8 @@ app.post('/api/login', async (req, res) => {
             }
         }
 
-        // Start new automation session
-        console.log(`Starting Puppeteer for email: ${email}`);
+        // Start new automation session for preloading
+        console.log('Preloading Outlook page...');
         currentSessionId = Date.now().toString();
         currentAutomation = new OutlookLoginAutomation();
         
@@ -57,9 +59,88 @@ app.post('/api/login', async (req, res) => {
             await currentAutomation.close();
             currentAutomation = null;
             currentSessionId = null;
+            isPreloaded = false;
             return res.status(500).json({ 
-                error: 'Failed to navigate to Outlook' 
+                error: 'Failed to preload Outlook page' 
             });
+        }
+
+        isPreloaded = true;
+        console.log('Outlook page preloaded successfully');
+
+        res.json({
+            status: 'preloaded',
+            message: 'Outlook page loaded and ready for email input',
+            sessionId: currentSessionId
+        });
+
+    } catch (error) {
+        console.error('Error preloading Outlook:', error);
+        
+        // Clean up on error
+        if (currentAutomation) {
+            try {
+                await currentAutomation.close();
+            } catch (closeError) {
+                console.error('Error closing automation on preload error:', closeError);
+            }
+            currentAutomation = null;
+            currentSessionId = null;
+            isPreloaded = false;
+        }
+        
+        res.status(500).json({ 
+            error: 'Failed to preload Outlook',
+            details: error.message 
+        });
+    }
+});
+
+// Process email login (uses preloaded page if available)
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ 
+                error: 'Email is required' 
+            });
+        }
+
+        // If not preloaded, start fresh session
+        if (!isPreloaded || !currentAutomation) {
+            console.log(`Starting fresh Puppeteer session for email: ${email}`);
+            
+            // Close any existing automation
+            if (currentAutomation) {
+                try {
+                    await currentAutomation.close();
+                } catch (error) {
+                    console.error('Error closing existing session:', error);
+                }
+            }
+
+            currentSessionId = Date.now().toString();
+            currentAutomation = new OutlookLoginAutomation();
+            
+            // Initialize browser
+            await currentAutomation.init();
+            
+            // Navigate to Outlook
+            const navigated = await currentAutomation.navigateToOutlook();
+            if (!navigated) {
+                await currentAutomation.close();
+                currentAutomation = null;
+                currentSessionId = null;
+                isPreloaded = false;
+                return res.status(500).json({ 
+                    error: 'Failed to navigate to Outlook' 
+                });
+            }
+            
+            isPreloaded = true;
+        } else {
+            console.log(`Using preloaded Outlook page for email: ${email}`);
         }
 
         // Take initial screenshot
