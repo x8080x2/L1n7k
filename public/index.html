@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outlook Automation Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-indicator.online {
+            background: #28a745;
+        }
+
+        .status-indicator.offline {
+            background: #dc3545;
+        }
+
+        .controls {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input[type="email"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.danger {
+            background: #dc3545;
+        }
+
+        .btn.success {
+            background: #28a745;
+        }
+
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-entry.success {
+            color: #68d391;
+        }
+
+        .log-entry.error {
+            color: #fc8181;
+        }
+
+        .log-entry.info {
+            color: #63b3ed;
+        }
+
+        .session-info {
+            background: #e6f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .session-info h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Outlook Automation Control Panel</h1>
+            <p>Backend-driven Puppeteer automation for Outlook</p>
+        </div>
+
+        <div class="status">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Checking backend status...</span>
+        </div>
+
+        <div class="controls">
+            <!-- Session Management -->
+            <div class="section">
+                <h3>🎮 Session Management</h3>
+                <button class="btn" id="startSessionBtn" onclick="startSession()">Start New Session</button>
+                <button class="btn success" id="checkSessionsBtn" onclick="checkSessions()">Check Active Sessions</button>
+                <button class="btn danger" id="closeSessionBtn" onclick="closeCurrentSession()" disabled>Close Session</button>
+                
+                <div id="sessionInfo" class="session-info" style="display: none;">
+                    <h4>Active Session</h4>
+                    <p><strong>Session ID:</strong> <span id="currentSessionId"></span></p>
+                    <p><strong>Status:</strong> <span id="sessionStatus"></span></p>
+                </div>
+            </div>
+
+            <!-- Login Section -->
+            <div class="section">
+                <h3>🔐 Outlook Login</h3>
+                <div class="form-group">
+                    <label for="email">Email Address:</label>
+                    <input type="email" id="email" placeholder="your-email@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" placeholder="Your password">
+                </div>
+                <button class="btn" id="loginBtn" onclick="performLogin()" disabled>Login to Outlook</button>
+                <button class="btn" id="screenshotBtn" onclick="takeScreenshot()" disabled>Take Screenshot</button>
+            </div>
+
+            <!-- Email Check Section -->
+            <div class="section">
+                <h3>📬 Email Management</h3>
+                <button class="btn success" id="checkEmailsBtn" onclick="checkEmails()" disabled>Check Emails</button>
+                <div id="emailList" style="display: none; margin-top: 15px;">
+                    <h4>Recent Emails:</h4>
+                    <ul id="emails"></ul>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Processing request...</p>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="section">
+                <h3>📝 Activity Log</h3>
+                <div class="log" id="activityLog">
+                    <div class="log-entry info">[INFO] Control panel initialized</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        const API_BASE = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkBackendHealth();
+        });
+
+        // Utility functions
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function setLoading(loading) {
+            document.getElementById('loadingIndicator').style.display = loading ? 'block' : 'none';
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.disabled = loading);
+            updateButtonStates();
+        }
+
+        function updateButtonStates() {
+            const hasSession = currentSessionId !== null;
+            document.getElementById('loginBtn').disabled = !hasSession;
+            document.getElementById('screenshotBtn').disabled = !hasSession;
+            document.getElementById('checkEmailsBtn').disabled = !hasSession;
+            document.getElementById('closeSessionBtn').disabled = !hasSession;
+        }
+
+        function updateSessionInfo() {
+            const sessionInfo = document.getElementById('sessionInfo');
+            const sessionIdElement = document.getElementById('currentSessionId');
+            const sessionStatusElement = document.getElementById('sessionStatus');
+
+            if (currentSessionId) {
+                sessionInfo.style.display = 'block';
+                sessionIdElement.textContent = currentSessionId;
+                sessionStatusElement.textContent = 'Active';
+            } else {
+                sessionInfo.style.display = 'none';
+            }
+        }
+
+        // API Functions
+        async function checkBackendHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('statusIndicator').className = 'status-indicator online';
+                    document.getElementById('statusText').textContent = 'Backend is online';
+                    log('Backend health check successful', 'success');
+                } else {
+                    throw new Error('Backend health check failed');
+                }
+            } catch (error) {
+                document.getElementById('statusIndicator').className = 'status-indicator offline';
+                document.getElementById('statusText').textContent = 'Backend is offline';
+                log(`Backend health check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function startSession() {
+            setLoading(true);
+            log('Starting new automation session...');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/start-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentSessionId = data.sessionId;
+                    updateSessionInfo();
+                    log(`Session started successfully: ${currentSessionId}`, 'success');
+                    log(`Screenshot saved: ${data.screenshot}`, 'info');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                log(`Failed to start session: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function performLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                log('Please enter both email and password', 'error');
+                return;
+            }
+
+            setLoading(true);
+            log(`Attempting login for: ${email}`);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: currentSessionId,
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.success) {
+                        log('Login successful!', 'success');
+                    } else {
+                        log('Login failed or additional authentication required', 'error');
+                    }
+                    log(`Screenshot saved: ${data.screenshot}`, 'info');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                log(`Login failed: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+                // Clear password for security
+                document.getElementById('password').value = '';
+            }
+        }
+
+        async function checkEmails() {
+            setLoading(true);
+            log('Checking emails...');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/emails/${currentSessionId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const emailList = document.getElementById('emailList');
+                    const emailsElement = document.getElementById('emails');
+                    
+                    emailsElement.innerHTML = '';
+                    
+                    if (data.emails.length > 0) {
+                        data.emails.forEach(email => {
+                            const li = document.createElement('li');
+                            li.textContent = email;
+                            emailsElement.appendChild(li);
+                        });
+                        emailList.style.display = 'block';
+                        log(`Found ${data.count} emails`, 'success');
+                    } else {
+                        emailList.style.display = 'none';
+                        log('No emails found', 'info');
+                    }
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                log(`Failed to check emails: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function takeScreenshot() {
+            setLoading(true);
+            log('Taking screenshot...');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/screenshot`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: currentSessionId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    log(`Screenshot saved: ${data.screenshot}`, 'success');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                log(`Failed to take screenshot: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function closeCurrentSession() {
+            if (!currentSessionId) return;
+
+            setLoading(true);
+            log(`Closing session: ${currentSessionId}`);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/session/${currentSessionId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('Session closed successfully', 'success');
+                    currentSessionId = null;
+                    updateSessionInfo();
+                    
+                    // Clear form
+                    document.getElementById('email').value = '';
+                    document.getElementById('password').value = '';
+                    document.getElementById('emailList').style.display = 'none';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                log(`Failed to close session: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function checkSessions() {
+            log('Checking active sessions...');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/sessions`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    log(`Active sessions: ${data.count}`, 'info');
+                    if (data.activeSessions.length > 0) {
+                        log(`Session IDs: ${data.activeSessions.join(', ')}`, 'info');
+                    }
+                } else {
+                    throw new Error('Failed to check sessions');
+                }
+            } catch (error) {
+                log(`Failed to check sessions: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
