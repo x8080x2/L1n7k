@@ -192,6 +192,21 @@
             border: 1px solid #a4262c;
         }
 
+        .message.microsoft-error {
+            background: transparent;
+            color: #d13438;
+            border: none;
+            padding: 8px 0;
+            margin: 8px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .message.microsoft-error a {
+            color: #0067b8;
+            text-decoration: underline;
+        }
+
         .message.info {
             background: #deecf9;
             color: #323130;
@@ -391,11 +406,29 @@
         // Utility functions
         function showMessage(message, type = 'info') {
             const messageArea = document.getElementById('messageArea');
-            messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
+            messageArea.style.display = 'block';
+            
+            // Check if this is a Microsoft-specific error message
+            if (type === 'error' && (
+                message.includes("We couldn't find an account") ||
+                message.includes("That username is incorrect") ||
+                message.includes("get a new Microsoft account")
+            )) {
+                // Format Microsoft error with proper styling and link
+                let formattedMessage = message.replace(
+                    'get a new Microsoft account',
+                    '<a href="#" onclick="return false;">get a new Microsoft account</a>'
+                );
+                messageArea.innerHTML = `<div class="message microsoft-error">${formattedMessage}</div>`;
+            } else {
+                messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
+            }
         }
 
         function clearMessage() {
-            document.getElementById('messageArea').innerHTML = '';
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = '';
+            messageArea.style.display = 'none';
         }
 
         function setLoading(loading) {
