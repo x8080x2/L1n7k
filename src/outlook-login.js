@@ -38,21 +38,20 @@ class OutlookLoginAutomation {
 
     async navigateToOutlook() {
         try {
-            console.log('Navigating to Outlook login page...');
-            // Go directly to login page to ensure we can input email
-            await this.page.goto('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3A%2F%2Foutlook.office.com%2Fmail%2F&response_type=code+id_token&scope=openid+profile&state=1&nonce=1&response_mode=form_post', {
+            console.log('Navigating to Outlook...');
+            await this.page.goto('https://outlook.office.com/mail/', {
                 waitUntil: 'networkidle2',
                 timeout: 30000
             });
 
-            console.log('Successfully navigated to Outlook login page');
+            console.log('Successfully navigated to Outlook');
             
             // Wait for the page to load
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             return true;
         } catch (error) {
-            console.error('Error navigating to Outlook login page:', error.message);
+            console.error('Error navigating to Outlook:', error.message);
             return false;
         }
     }

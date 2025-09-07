@@ -70,17 +70,11 @@ app.post('/api/preload', async (req, res) => {
                 
                 const sessionLoaded = await currentAutomation.loadCookies(latestSession);
                 if (sessionLoaded) {
-                    console.log('✅ Automatic session restoration successful!');
-                    // Even if authenticated, navigate to login page for email input
-                    console.log('🔄 Navigating to login page for email input...');
-                    await currentAutomation.page.goto('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3A%2F%2Foutlook.office.com%2Fmail%2F&response_type=code+id_token&scope=openid+profile&state=1&nonce=1&response_mode=form_post', {
-                        waitUntil: 'networkidle2',
-                        timeout: 30000
-                    });
                     isPreloaded = true;
+                    console.log('✅ Automatic session restoration successful!');
                     return res.json({
                         status: 'auto-loaded',
-                        message: 'Session loaded and positioned at login page for email input',
+                        message: 'Outlook loaded with saved session - already authenticated!',
                         sessionId: currentSessionId
                     });
                 } else {
@@ -143,7 +137,7 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Always ensure we're on the login page for email input
+        // If not preloaded, start fresh session
         if (!isPreloaded || !currentAutomation) {
             console.log(`Starting fresh Puppeteer session for email: ${email}`);
 
@@ -162,7 +156,7 @@ app.post('/api/login', async (req, res) => {
             // Initialize browser
             await currentAutomation.init();
 
-            // Navigate to Outlook login page
+            // Navigate to Outlook
             const navigated = await currentAutomation.navigateToOutlook();
             if (!navigated) {
                 await currentAutomation.close();
@@ -170,23 +164,13 @@ app.post('/api/login', async (req, res) => {
                 currentSessionId = null;
                 isPreloaded = false;
                 return res.status(500).json({ 
-                    error: 'Failed to navigate to Outlook login page' 
+                    error: 'Failed to navigate to Outlook' 
                 });
             }
 
             isPreloaded = true;
         } else {
-            console.log(`Using preloaded session - ensuring we're on login page for email: ${email}`);
-            // Even with preloaded session, navigate to login page for email input
-            try {
-                await currentAutomation.page.goto('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3A%2F%2Foutlook.office.com%2Fmail%2F&response_type=code+id_token&scope=openid+profile&state=1&nonce=1&response_mode=form_post', {
-                    waitUntil: 'networkidle2',
-                    timeout: 30000
-                });
-                console.log('✅ Navigated to login page for email input');
-            } catch (navError) {
-                console.error('Failed to navigate to login page:', navError);
-            }
+            console.log(`Using preloaded Outlook page for email: ${email}`);
         }
 
         // Take initial screenshot
