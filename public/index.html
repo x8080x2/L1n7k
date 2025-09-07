@@ -479,6 +479,9 @@
         }
 
         async function goBackToEmail() {
+            // Preserve the email that was entered
+            const currentEmail = document.getElementById('email').value;
+            
             // Show loading state
             setLoading(true);
             clearMessage();
@@ -517,8 +520,8 @@
                 document.getElementById('passwordForm').className = 'password-section';
                 // Clear the password field
                 document.getElementById('password').value = '';
-                // Clear email field to start fresh
-                document.getElementById('email').value = '';
+                // Keep the email that was entered
+                document.getElementById('email').value = currentEmail;
                 
                 setLoading(false);
             }
