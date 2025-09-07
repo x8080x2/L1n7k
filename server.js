@@ -554,6 +554,42 @@ app.delete('/api/session', async (req, res) => {
     }
 });
 
+// Handle back navigation - reload Outlook page
+app.post('/api/back', async (req, res) => {
+    try {
+        if (!currentAutomation) {
+            return res.status(400).json({ 
+                error: 'No active session' 
+            });
+        }
+
+        console.log('Back button clicked - auto reloading Outlook page...');
+        
+        // Navigate back to Outlook to reset the form
+        const reloaded = await currentAutomation.navigateToOutlook();
+        if (!reloaded) {
+            return res.status(500).json({ 
+                error: 'Failed to reload Outlook page' 
+            });
+        }
+
+        console.log('Page successfully reloaded after back navigation');
+
+        res.json({
+            sessionId: currentSessionId,
+            message: 'Outlook page reloaded successfully',
+            status: 'reloaded'
+        });
+
+    } catch (error) {
+        console.error('Error during back navigation reload:', error);
+        res.status(500).json({ 
+            error: 'Failed to reload page on back navigation',
+            details: error.message 
+        });
+    }
+});
+
 // Get current session status
 app.get('/api/status', (req, res) => {
     res.json({
