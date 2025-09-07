@@ -56,35 +56,8 @@ app.post('/api/preload', async (req, res) => {
         // Initialize browser
         await currentAutomation.init();
 
-        // Try to load most recent enhanced session automatically
-        console.log('🔍 Checking for existing enhanced sessions...');
-        const fs = require('fs');
-        const path = require('path');
-        const sessionDir = 'session_data';
-        
-        if (fs.existsSync(sessionDir)) {
-            const sessionFiles = fs.readdirSync(sessionDir)
-                .filter(file => file.startsWith('outlook_session_') && file.endsWith('.json'))
-                .sort((a, b) => b.localeCompare(a)); // Get newest first
-
-            if (sessionFiles.length > 0) {
-                const latestSession = path.join(sessionDir, sessionFiles[0]);
-                console.log(`🔄 Attempting to load latest session: ${latestSession}`);
-                
-                const sessionLoaded = await currentAutomation.loadCookies(latestSession);
-                if (sessionLoaded) {
-                    isPreloaded = true;
-                    console.log('✅ Automatic session restoration successful!');
-                    return res.json({
-                        status: 'auto-loaded',
-                        message: 'Outlook loaded with saved session - already authenticated!',
-                        sessionId: currentSessionId
-                    });
-                } else {
-                    console.log('⚠️ Session restoration failed, continuing with manual preload...');
-                }
-            }
-        }
+        // Automatic session loading disabled - always start fresh
+        console.log('🔄 Starting fresh session (auto-restore disabled)...');
 
         // Navigate to Outlook (fallback if no session loaded)
         const navigated = await currentAutomation.navigateToOutlook();
