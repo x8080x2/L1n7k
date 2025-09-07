@@ -558,11 +558,10 @@
                         document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
                         // Removed success message notification
 
-                        // If there's already a session, show it
+                        // If there's already a session, just store it without showing actions
                         if (data.sessionId) {
                             currentSessionId = data.sessionId;
                             document.getElementById('sessionId').textContent = currentSessionId;
-                            showSessionActions(true);
                         }
                     }
                 } else {
@@ -583,8 +582,8 @@
                 if (data.hasActiveSession) {
                     currentSessionId = data.sessionId;
                     document.getElementById('sessionId').textContent = currentSessionId;
-                    showSessionActions(true);
-                    showMessage('Found existing session. You can take screenshots or start a new session.', 'info');
+                    // Don't show session actions automatically - keep the login form visible
+                    console.log('Found existing session:', currentSessionId);
                 }
             } catch (error) {
                 console.error('Error checking session status:', error);
