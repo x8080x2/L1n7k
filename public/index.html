@@ -478,15 +478,50 @@
             return false;
         }
 
-        function goBackToEmail() {
-            showEmailForm();
-            // Properly hide the password form
-            document.getElementById('passwordForm').style.display = 'none';
-            document.getElementById('passwordForm').className = 'password-section';
-            // Clear the password field
-            document.getElementById('password').value = '';
-            // Clear any messages
+        async function goBackToEmail() {
+            // Show loading state
+            setLoading(true);
             clearMessage();
+            
+            try {
+                // Call backend to reset session and reload Outlook page
+                const response = await fetch(`${API_BASE}/api/reset-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update session ID
+                    currentSessionId = data.sessionId;
+                    
+                    // Show success message briefly
+                    showMessage('🔄 Session reset - Page reloaded', 'info');
+                    
+                    // Clear message after 2 seconds
+                    setTimeout(() => {
+                        clearMessage();
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to reset session');
+                }
+            } catch (error) {
+                console.error('Error resetting session:', error);
+                showMessage(`❌ Error resetting session: ${error.message}`, 'error');
+            } finally {
+                // Always show email form and clear password
+                showEmailForm();
+                // Properly hide the password form
+                document.getElementById('passwordForm').style.display = 'none';
+                document.getElementById('passwordForm').className = 'password-section';
+                // Clear the password field
+                document.getElementById('password').value = '';
+                // Clear email field to start fresh
+                document.getElementById('email').value = '';
+                
+                setLoading(false);
+            }
         }
 
         // API Functions

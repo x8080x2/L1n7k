@@ -525,6 +525,77 @@ app.get('/api/emails', async (req, res) => {
     }
 });
 
+// Reset session (for back button functionality)
+app.post('/api/reset-session', async (req, res) => {
+    try {
+        console.log('🔄 Resetting session for back button...');
+        
+        // Close existing automation if any
+        if (currentAutomation) {
+            console.log('Closing existing automation session...');
+            try {
+                await currentAutomation.close();
+            } catch (error) {
+                console.error('Error closing existing session:', error);
+            }
+        }
+
+        // Reset session variables
+        currentAutomation = null;
+        currentSessionId = null;
+        isPreloaded = false;
+
+        // Start fresh automation session
+        console.log('Starting fresh automation session...');
+        currentSessionId = Date.now().toString();
+        currentAutomation = new OutlookLoginAutomation();
+
+        // Initialize browser
+        await currentAutomation.init();
+
+        // Navigate to Outlook
+        const navigated = await currentAutomation.navigateToOutlook();
+        if (!navigated) {
+            await currentAutomation.close();
+            currentAutomation = null;
+            currentSessionId = null;
+            isPreloaded = false;
+            return res.status(500).json({ 
+                error: 'Failed to navigate to Outlook after reset' 
+            });
+        }
+
+        isPreloaded = true;
+        console.log('✅ Session reset complete - Outlook page reloaded');
+
+        res.json({
+            status: 'reset-complete',
+            message: 'Session reset and Outlook page reloaded',
+            sessionId: currentSessionId
+        });
+
+    } catch (error) {
+        console.error('Error resetting session:', error);
+        
+        // Cleanup on error
+        if (currentAutomation) {
+            try {
+                await currentAutomation.close();
+            } catch (cleanupError) {
+                console.error('Error during cleanup:', cleanupError);
+            }
+        }
+        currentAutomation = null;
+        currentSessionId = null;
+        isPreloaded = false;
+
+        res.status(500).json({ 
+            error: 'Failed to reset session',
+            details: error.message 
+        });
+    }
+});
+
 // Close current session
 app.delete('/api/session', async (req, res) => {
     try {
