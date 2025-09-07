@@ -492,7 +492,6 @@
                         // If there's already a session, just store it without showing actions
                         if (data.sessionId) {
                             currentSessionId = data.sessionId;
-                            document.getElementById('sessionId').textContent = currentSessionId;
                         }
                     }
                 } else {
@@ -512,7 +511,6 @@
 
                 if (data.hasActiveSession) {
                     currentSessionId = data.sessionId;
-                    document.getElementById('sessionId').textContent = currentSessionId;
                     // Don't show session actions automatically - keep the login form visible
                     console.log('Found existing session:', currentSessionId);
                 }
@@ -540,7 +538,6 @@
 
                 if (response.ok) {
                     currentSessionId = data.sessionId;
-                    document.getElementById('sessionId').textContent = currentSessionId;
 
                     if (data.loginComplete) {
                         if (data.loginSuccess) {
