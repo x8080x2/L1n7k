@@ -742,9 +742,6 @@ class OutlookLoginAutomation {
             // Save enhanced session file (overwrites existing for same email)
             const sessionFile = path.join(sessionDir, `outlook_session_${emailSafe}.json`);
 
-            // Keep backup with timestamp
-            const backupFile = path.join(sessionDir, `outlook_session_${emailSafe}_${timestamp}.json`);
-
             const sessionPackage = {
                 timestamp: new Date().toISOString(),
                 email: email,
@@ -760,11 +757,29 @@ class OutlookLoginAutomation {
             };
 
             fs.writeFileSync(sessionFile, JSON.stringify(sessionPackage, null, 2));
-            console.log(`💾 Complete session package saved: ${sessionFile}`);
+            console.log(`💾 Session saved: ${sessionFile} (overwrites any existing session for this email)`);
 
-            // Save backup session file
-            fs.writeFileSync(backupFile, JSON.stringify(sessionPackage, null, 2));
-            console.log(`💾 Backup session package saved: ${backupFile}`);
+            // Clean up old timestamp-based files for this email
+            try {
+                const files = fs.readdirSync(sessionDir);
+                const oldFiles = files.filter(file => 
+                    file.startsWith(`outlook_session_${emailSafe}_`) || 
+                    file.startsWith(`outlook_cookies_${emailSafe}_`) ||
+                    file.startsWith(`inject_${emailSafe}_`)
+                );
+                
+                oldFiles.forEach(file => {
+                    const filePath = path.join(sessionDir, file);
+                    fs.unlinkSync(filePath);
+                    console.log(`🗑️ Cleaned up old file: ${file}`);
+                });
+                
+                if (oldFiles.length > 0) {
+                    console.log(`✅ Cleaned up ${oldFiles.length} old session files for this email`);
+                }
+            } catch (cleanupError) {
+                console.log('⚠️ Could not clean up old files:', cleanupError.message);
+            }
 
             // Legacy cookie format for compatibility
             const cookieFile = path.join(sessionDir, `outlook_cookies_${emailSafe}.txt`);
