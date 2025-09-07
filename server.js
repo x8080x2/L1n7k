@@ -250,7 +250,7 @@ app.post('/api/login', async (req, res) => {
                     console.log('Password field detected - account exists');
                 }
 
-                // Check for error messages
+                // Check for specific "account not found" error message only
                 const errorSelectors = [
                     '[role="alert"]',
                     '.error',
@@ -268,12 +268,10 @@ app.post('/api/login', async (req, res) => {
                         try {
                             const errorText = await element.evaluate(el => el.textContent);
                             if (errorText && errorText.trim()) {
-                                siteReport.errorMessages.push(errorText.trim());
-                                console.log(`Found error message: ${errorText.trim()}`);
-
-                                // Check for "account not found" error
-                                if (errorText.includes("We couldn't find an account with that username") || 
-                                    errorText.includes("Enter a valid email address")) {
+                                // Only capture the specific "account not found" error message
+                                if (errorText.includes("We couldn't find an account with that username")) {
+                                    siteReport.errorMessages.push(errorText.trim());
+                                    console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
                                 }
                             }
