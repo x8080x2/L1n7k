@@ -250,7 +250,7 @@ app.post('/api/login', async (req, res) => {
                     console.log('Password field detected - account exists');
                 }
 
-                // Check for specific "account not found" error message only
+                // Remove bordered error messages from HTML and only capture specific "account not found" error
                 const errorSelectors = [
                     '[role="alert"]',
                     '.error',
@@ -273,6 +273,9 @@ app.post('/api/login', async (req, res) => {
                                     siteReport.errorMessages.push(errorText.trim());
                                     console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
+                                } else {
+                                    // Remove all other bordered error messages from HTML
+                                    await element.evaluate(el => el.remove());
                                 }
                             }
                         } catch (e) {
