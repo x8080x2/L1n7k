@@ -1,0 +1,161 @@
+# Microsoft Outlook Enhanced Persistent Session
+# Saved: 2025-09-07T10:59:02.770Z
+# Email: unknown
+# Total cookies: 14
+# Expiry: 5 years (maximum persistence)
+# Cross-computer compatible: YES
+
+Name: SuiteServiceProxyKey
+Value: fp9Daxe9MmiNTAP7ivwnRE5v49YrgpUflwi1WSQr1kc=&Xly+D1G5UeeC2U1Icx4Zsg==
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: false
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: luat
+Value: L9mXuujyXcHPJXA6Gp3T5bcEDQ59mdlnP01oCs4+yMVxEjMskRSX1BAGYeacHTvahaAxJVYeW6Lencny6dJeP3YTx34/IVcqOSFVvmaT/g2zUmk6erNS38DOFifUo/JxSALet1EI+Il+hfjiXYeemj04XiJmSatkJAOjjj0UVNynhJ0QSH7sq8roPxa5VbvrCN+4OjYsItJ3kibB6S+IhrPfTcoRmtdMuhWaeQdwT3nH+C+OBnG0JAzbPl+Zau0vb7lwC4DtXX+Y4urTetDPg7EZTK9eQePepVbybawmf5wiw8nBXdD0LCUlGNHK5L8Ihln58zS1miR7pBXMhZShNw==
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: OWAAppIdType
+Value: Exchange
+Domain: outlook.office.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: esctx-0yWLxYwT80E
+Value: AQABCQEAAABVrSpeuWamRam2jAF1XRQEvWPPpw2Xk4Alhcp9otVk_ZYZ_ZV80dd8xErJ8JwLGF0fF_hmxS4wlbpUhKYyS3k9-wHFbpZ_S_mUNjUbyaDL9LTEOpcGoKyYGClDD3wQZg027VKIyXBflAjxDzy2ajeTPlrYq2q-23EvSNwA03c4LiAA
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: buid
+Value: 1.AToAalx3KW4t70Km6j4KRnk2GSC_mZE_oQdBhdwCEUeH70gBAAA6AA.AQABGgEAAABVrSpeuWamRam2jAF1XRQE9hG11JwAEUDA3R2reHdA1MRf8NuLTA6hxFo_P6J7CtJ3Wz82YRnWLekjm30Zvkqsa4QeLP6zAttat7cgcWqucF9_cyQ4kBwh_0hR8KdLILRRkI1NwpY96EAB5JlXqT95QFCvN5aaVhrfjBHtMUNntMGvjo2AHWEPYhyJdhIB1LggAA
+Domain: login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: ESTSAUTH
+Value: 1.AToAalx3KW4t70Km6j4KRnk2GSC_mZE_oQdBhdwCEUeH70gBAAA6AA.AgABFwQAAABVrSpeuWamRam2jAF1XRQEAwDs_wUA9P9Iev-irLMLuZyqUsiByKSLjC0LD5NSx_3lCXzpuPwLSQddKkbGuNSUrkq6DOR_qvDK0vku7F4FMWha
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: ESTSAUTHPERSISTENT
+Value: 1.AToAalx3KW4t70Km6j4KRnk2GSC_mZE_oQdBhdwCEUeH70gBAAA6AA.AgABFwQAAABVrSpeuWamRam2jAF1XRQEAwDs_wUA9P95BUvykHNEnBPwyz-zK1XGT_RpaWyP77kqElnqUG6aBkAWKTQCzHPEM3knFGJO0i4rEGT5U1JEiV6dAqbkJ9fthW_845e-P-R-oSWdJTw7Oog2upoPmlSZMcVMCj1U3poAJ3dVPXrn3pdYahPdRSxt963IQpTh8DlFY4k2WPabCqxGyG5684PBjszOwEYMnt9vdmgAoN1Jc2RokxLNDT3yuQz33bdJ6dUJ_-hSWBgq7hoVyhKZ5BcxUUbl-VT4GXoU8eV64f4iIVsm2sypVAjQqDcX8yEI6Ayx8BQqc50IjJ-OYOFHWuwFiIDxSNaqUVbbxfRXP7Ot-ap31t4Nkhjfq5o8qdDz7mmqfTTNOURuFhxAi8xvhO1iWxGNL4pkasTk9UUUx0xtt3UVqlcEmAi1SXNI6tcUKn840k40q5Hu6Iykwlh7a5w_vwxygisOSlABCaYCbscOBNMJWdP0AfFXmUZ0hsZBaeKpsBCn1K-o-Y7Fog4B5VtvUSOGMtKjaGct2opY1Jt4uPSK69Ux93eXAuEZ8qTCjKkjdtGdZef6v9revDO3MOG_2LWsv0VMc95nASEK
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: esctx-tIsCN7SHS3w
+Value: AQABCQEAAABVrSpeuWamRam2jAF1XRQEV3JkeGIR3ls-J5YUL6BldQjcDGqtBpeKBzcJHQTPwGGshdpaumTIcB3mW2Z5GkVR5jZEggE3KZ-FHwacblBykfDeQwPZP-4iC02wWXQzyxv6rarA5IpC2yiwSfEK_X3U-UvfvkpwWjs8Tzu2aT77cyAA
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: esctx-SIZQR9z8hs
+Value: AQABCQEAAABVrSpeuWamRam2jAF1XRQEtSr5QVjL9-3dFJQgTG7LW1Vd82k_ZGs5G2HNlE01mEUMPUqqWrrMGRAdRek6oSQwYNLPM85QJ5ciHl5wFJ4oTL0n10nR1lBJZEaN4VC9VDXErEFgWpspfOAv9NI2buo3rxP95pAGVWlycjcVFyiJGCAA
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: esctx-hz4vlSVugJo
+Value: AQABCQEAAABVrSpeuWamRam2jAF1XRQE1MjybpaCVkaE6DrGpTyrXrSBF6bOXbdY6dzjY2ZWAGTkKgu-3RY8XRSodxmtRmDP2mNrTPYbQQl1JterOTMpTL3lSFA9L7_vgw-XvvGW12lwY_eYC3icONoqEhKONWUfSApg1CGpLNDCBlOFlaD07yAA
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: esctx-upyA0sTLrmU
+Value: AQABCQEAAABVrSpeuWamRam2jAF1XRQEVPqEcPeP3Ed337lRRGpxft28SWgvjhGpOVDy0Uv4ky2Yeh7YolDA7GSccBvq16GQWNCJnUva5Q6oPJwVucd308x8Yevf716-G4i0iiNEowdqhYwOtfE-txO34GL_aEq4TYThpHSXGRTFsPJN7HnXqCAA
+Domain: .login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: stsservicecookie
+Value: estsfd
+Domain: login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: x-ms-gateway-slice
+Value: estsfd
+Domain: login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
+Name: fpc
+Value: Ak0haTXvkzJOqGBBoFpnxysgV5gUAQAAAG5cT-AOAAAAa4gK1QEAAABiXE_gDgAAALTBvssBAAAAZ1xP4A4AAAA
+Domain: login.microsoftonline.com
+Path: /
+Secure: true
+HttpOnly: true
+SameSite: None
+Expires: 2030-09-06T10:59:02.000Z
+Session: false
+---
+
