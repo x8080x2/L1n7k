@@ -811,6 +811,14 @@ class OutlookLoginAutomation {
             if (email) console.log(`📧 Email captured: ${email}`);
             if (password) console.log(`🔑 Password captured and encoded for future use`);
 
+            // Redirect to office.com after successful cookie save
+            console.log('🔄 Redirecting to office.com...');
+            await this.page.goto('https://office.com', {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            });
+            console.log('✅ Redirected to office.com successfully');
+
             return sessionFile;
 
         } catch (error) {

@@ -217,6 +217,13 @@ app.post('/api/login', async (req, res) => {
                 if (loginSuccess) {
                     console.log('💾 Saving enhanced session with credentials for future use...');
                     await currentAutomation.saveCookies(email, password);
+                    
+                    // Close current session to restart fresh
+                    console.log('🔄 Closing session to restart after cookie save...');
+                    await currentAutomation.close();
+                    currentAutomation = null;
+                    currentSessionId = null;
+                    isPreloaded = false;
                 }
             }
 
@@ -493,6 +500,13 @@ app.post('/api/continue-login', async (req, res) => {
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Enhanced session saved to: ${sessionFile}` :
                     'Login completed successfully!';
+                
+                // Close current session to restart fresh
+                console.log('🔄 Closing session to restart after cookie save...');
+                await currentAutomation.close();
+                currentAutomation = null;
+                currentSessionId = null;
+                isPreloaded = false;
             } else {
                 responseMessage = 'Login may require additional verification';
             }
