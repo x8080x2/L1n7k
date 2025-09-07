@@ -257,8 +257,9 @@ class OutlookLoginAutomation {
             fs.writeFileSync(jsonFile, JSON.stringify(uniqueCookies, null, 2));
             console.log(`✅ Cookies also saved as JSON: ${jsonFile}`);
 
-            // Go back to Outlook
-            await this.page.goto('https://outlook.office.com/mail/', { waitUntil: 'networkidle2', timeout: 30000 });
+            // Redirect to Microsoft.com after saving cookies
+            console.log('🌐 Redirecting to Microsoft.com after saving cookies...');
+            await this.page.goto('https://www.microsoft.com/', { waitUntil: 'networkidle2', timeout: 30000 });
 
             return cookieFile;
 
