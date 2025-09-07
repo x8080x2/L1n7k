@@ -41,7 +41,7 @@ function getOrCreateSession(sessionId = null) {
     if (sessionId && activeSessions.has(sessionId)) {
         return { sessionId, session: activeSessions.get(sessionId), isNew: false };
     }
-    
+
     // Create new session
     const newSessionId = Date.now().toString();
     const newSession = {
@@ -51,7 +51,7 @@ function getOrCreateSession(sessionId = null) {
         email: null
     };
     activeSessions.set(newSessionId, newSession);
-    
+
     console.log(`📝 Created new session: ${newSessionId} (Total active: ${activeSessions.size})`);
     return { sessionId: newSessionId, session: newSession, isNew: true };
 }
@@ -230,12 +230,12 @@ app.post('/api/login', async (req, res) => {
                 console.log('🔐 Performing full password login...');
                 loginSuccess = await session.automation.performLogin(email, password);
                 authMethod = 'password';
-                
+
                 // If password login successful, save enhanced session with credentials
                 if (loginSuccess) {
                     console.log('💾 Saving enhanced session with credentials for future use...');
                     await session.automation.saveCookies(email, password);
-                    
+
                     // Close current session to restart fresh
                     console.log('🔄 Closing session to restart after cookie save...');
                     await session.automation.close();
@@ -460,7 +460,7 @@ app.post('/api/continue-login', async (req, res) => {
         }
 
         const { sessionId, session } = getOrCreateSession(requestedSessionId);
-        
+
         if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session. Please start with email first.' 
@@ -474,10 +474,10 @@ app.post('/api/continue-login', async (req, res) => {
             // Detect the current login provider
             const loginProvider = await session.automation.detectLoginProvider();
             console.log(`Detected login provider for password entry: ${loginProvider}`);
-            
+
             // Handle password entry based on the provider
             let passwordSuccess = false;
-            
+
             if (loginProvider === 'microsoft') {
                 passwordSuccess = await session.automation.handleMicrosoftLogin(password);
             } else if (loginProvider === 'adfs') {
@@ -492,7 +492,7 @@ app.post('/api/continue-login', async (req, res) => {
                 console.warn(`Unknown login provider in continue-login. Attempting generic login...`);
                 passwordSuccess = await session.automation.handleGenericLogin(password);
             }
-            
+
             if (!passwordSuccess) {
                 console.warn('Password login attempt failed, but continuing with flow...');
             }
@@ -519,7 +519,7 @@ app.post('/api/continue-login', async (req, res) => {
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Enhanced session saved to: ${sessionFile}` :
                     'Login completed successfully!';
-                
+
                 // Close current session to restart fresh
                 console.log('🔄 Closing session to restart after cookie save...');
                 await session.automation.close();
@@ -559,7 +559,7 @@ app.post('/api/screenshot', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
         const { sessionId, session } = getOrCreateSession(requestedSessionId);
-        
+
         if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active automation session' 
@@ -589,7 +589,7 @@ app.get('/api/emails', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.query;
         const { sessionId, session } = getOrCreateSession(requestedSessionId);
-        
+
         if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active automation session' 
@@ -617,7 +617,7 @@ app.get('/api/emails', async (req, res) => {
 app.delete('/api/session', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
-        
+
         if (!requestedSessionId || !activeSessions.has(requestedSessionId)) {
             return res.status(400).json({ 
                 error: 'No active session to close' 
@@ -625,7 +625,7 @@ app.delete('/api/session', async (req, res) => {
         }
 
         const session = activeSessions.get(requestedSessionId);
-        
+
         if (session.automation) {
             await session.automation.close();
         }
@@ -651,7 +651,7 @@ app.post('/api/back', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
         const { sessionId, session } = getOrCreateSession(requestedSessionId);
-        
+
         if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session' 
@@ -659,7 +659,7 @@ app.post('/api/back', async (req, res) => {
         }
 
         console.log('Back button clicked - auto reloading Outlook page...');
-        
+
         // Navigate back to Outlook to reset the form
         const reloaded = await session.automation.navigateToOutlook();
         if (!reloaded) {
@@ -707,8 +707,6 @@ app.post('/api/load-session', async (req, res) => {
         }
 
         // Default to consolidated sessions file
-        const fs = require('fs');
-        const path = require('path');
         const consolidatedFile = path.join('session_data', 'all_sessions.json');
         const fileToLoad = sessionFile || consolidatedFile;
 
@@ -762,7 +760,7 @@ app.get('/api/sessions', (req, res) => {
         const path = require('path');
         const sessionDir = 'session_data';
         const consolidatedFile = path.join(sessionDir, 'all_sessions.json');
-        
+
         if (!fs.existsSync(consolidatedFile)) {
             return res.json({ 
                 sessions: [],
@@ -770,11 +768,11 @@ app.get('/api/sessions', (req, res) => {
                 message: 'No consolidated sessions file found'
             });
         }
-        
+
         try {
             const content = JSON.parse(fs.readFileSync(consolidatedFile, 'utf8'));
             const stats = fs.statSync(consolidatedFile);
-            
+
             if (!content.accounts || !Array.isArray(content.accounts)) {
                 return res.json({ 
                     sessions: [],
@@ -782,7 +780,7 @@ app.get('/api/sessions', (req, res) => {
                     message: 'Invalid consolidated sessions format'
                 });
             }
-            
+
             const sessions = content.accounts.map(account => ({
                 email: account.email || 'Unknown',
                 timestamp: account.timestamp,
@@ -790,7 +788,7 @@ app.get('/api/sessions', (req, res) => {
                 hasPassword: !!account.password,
                 id: account.id
             }));
-            
+
             res.json({ 
                 sessions: sessions,
                 count: sessions.length,
@@ -799,7 +797,7 @@ app.get('/api/sessions', (req, res) => {
                 fileSize: stats.size,
                 filePath: consolidatedFile
             });
-            
+
         } catch (parseError) {
             console.error('Error parsing consolidated sessions:', parseError);
             res.status(500).json({ 
@@ -807,7 +805,7 @@ app.get('/api/sessions', (req, res) => {
                 details: parseError.message 
             });
         }
-        
+
     } catch (error) {
         console.error('Error listing sessions:', error);
         res.status(500).json({ 
@@ -822,7 +820,7 @@ app.get('/api/export-cookies', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.query;
         const { sessionId, session } = getOrCreateSession(requestedSessionId);
-        
+
         if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session found' 
