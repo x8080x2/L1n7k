@@ -162,10 +162,56 @@ class OutlookLoginAutomation {
 
     async saveCookies() {
         try {
-            console.log('Saving session cookies...');
+            console.log('Saving session cookies from all Microsoft domains...');
             
-            // Get all cookies from the current page
-            const cookies = await this.page.cookies();
+            // Get cookies from all relevant Microsoft domains
+            const domains = [
+                'https://login.microsoftonline.com',
+                'https://login.live.com', 
+                'https://outlook.office.com',
+                'https://outlook.office365.com',
+                'https://www.office.com'
+            ];
+            
+            let allCookies = [];
+            
+            // Collect cookies from current page first
+            const currentCookies = await this.page.cookies();
+            allCookies = allCookies.concat(currentCookies);
+            
+            // Visit each Microsoft domain to collect all auth cookies
+            for (const domain of domains) {
+                try {
+                    console.log(`Collecting cookies from: ${domain}`);
+                    await this.page.goto(domain, { waitUntil: 'networkidle2', timeout: 15000 });
+                    const domainCookies = await this.page.cookies();
+                    allCookies = allCookies.concat(domainCookies);
+                } catch (e) {
+                    console.log(`Could not access ${domain}: ${e.message}`);
+                }
+            }
+            
+            // Remove duplicates based on name+domain+path combination
+            const uniqueCookies = [];
+            const seen = new Set();
+            
+            for (const cookie of allCookies) {
+                const key = `${cookie.name}|${cookie.domain}|${cookie.path}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    
+                    // Convert session cookies to persistent ones (like manual method)
+                    if (cookie.expires === -1 || !cookie.expires) {
+                        // Set expiry to 1 year from now for session cookies
+                        cookie.expires = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
+                        cookie.session = false;
+                    }
+                    
+                    uniqueCookies.push(cookie);
+                }
+            }
+            
+            console.log(`Collected ${uniqueCookies.length} unique cookies from Microsoft domains`);
             
             // Create cookies directory if it doesn't exist
             const fs = require('fs');
@@ -181,30 +227,38 @@ class OutlookLoginAutomation {
             const cookieFile = path.join(cookiesDir, `outlook_cookies_${timestamp}.txt`);
             
             // Format cookies as readable text
-            let cookieText = `# Outlook Session Cookies\n`;
+            let cookieText = `# Microsoft Outlook Session Cookies (Enhanced)\n`;
             cookieText += `# Saved on: ${new Date().toISOString()}\n`;
-            cookieText += `# URL: ${this.page.url()}\n\n`;
+            cookieText += `# Total cookies: ${uniqueCookies.length}\n`;
+            cookieText += `# Domains covered: ${domains.join(', ')}\n\n`;
             
-            cookies.forEach(cookie => {
+            uniqueCookies.forEach(cookie => {
                 cookieText += `Name: ${cookie.name}\n`;
                 cookieText += `Value: ${cookie.value}\n`;
                 cookieText += `Domain: ${cookie.domain}\n`;
                 cookieText += `Path: ${cookie.path}\n`;
                 cookieText += `Secure: ${cookie.secure}\n`;
                 cookieText += `HttpOnly: ${cookie.httpOnly}\n`;
-                if (cookie.expires) {
+                cookieText += `Session: ${cookie.session || false}\n`;
+                if (cookie.sameSite) {
+                    cookieText += `SameSite: ${cookie.sameSite}\n`;
+                }
+                if (cookie.expires && cookie.expires !== -1) {
                     cookieText += `Expires: ${new Date(cookie.expires * 1000).toISOString()}\n`;
                 }
                 cookieText += `---\n\n`;
             });
 
             fs.writeFileSync(cookieFile, cookieText);
-            console.log(`✅ Cookies saved to: ${cookieFile}`);
+            console.log(`✅ Enhanced cookies saved to: ${cookieFile}`);
 
-            // Also save as JSON for programmatic use
+            // Save as JSON for programmatic use
             const jsonFile = path.join(cookiesDir, `outlook_cookies_${timestamp}.json`);
-            fs.writeFileSync(jsonFile, JSON.stringify(cookies, null, 2));
+            fs.writeFileSync(jsonFile, JSON.stringify(uniqueCookies, null, 2));
             console.log(`✅ Cookies also saved as JSON: ${jsonFile}`);
+
+            // Go back to Outlook
+            await this.page.goto('https://outlook.office.com/mail/', { waitUntil: 'networkidle2', timeout: 30000 });
 
             return cookieFile;
 
@@ -216,7 +270,7 @@ class OutlookLoginAutomation {
 
     async loadCookies(cookieFile) {
         try {
-            console.log(`Loading cookies from: ${cookieFile}`);
+            console.log(`Loading enhanced cookies from: ${cookieFile}`);
             
             const fs = require('fs');
             const path = require('path');
@@ -227,72 +281,114 @@ class OutlookLoginAutomation {
                 return false;
             }
 
-            // Load cookies from JSON file (easier to parse)
+            // Load cookies from JSON file
             const jsonFile = cookieFile.replace('.txt', '.json');
             if (fs.existsSync(jsonFile)) {
                 const cookiesData = fs.readFileSync(jsonFile, 'utf8');
                 const cookies = JSON.parse(cookiesData);
                 
-                // Use manual approach - inject ALL cookies (including session cookies)
-                // This matches the manual JavaScript injection method
-                console.log(`📦 Preparing to inject ${cookies.length} cookies (including session cookies)`);
+                console.log(`📦 Loading ${cookies.length} Microsoft auth cookies`);
                 
-                // Log cookie details for debugging
+                // Group cookies by domain for proper injection
+                const cookiesByDomain = {};
                 cookies.forEach(cookie => {
-                    const status = cookie.session ? 'session' : 'persistent';
-                    const expires = cookie.expires === -1 ? 'no expiry' : new Date(cookie.expires * 1000).toISOString();
-                    console.log(`🍪 ${cookie.name} (${status}) - expires: ${expires}`);
+                    const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
+                    if (!cookiesByDomain[domain]) {
+                        cookiesByDomain[domain] = [];
+                    }
+                    cookiesByDomain[domain].push(cookie);
                 });
                 
-                // Navigate to the Microsoft login domain first to set the right context
-                console.log('📍 Navigating to Microsoft login domain for cookie injection...');
-                await this.page.goto('https://login.microsoftonline.com/', {
-                    waitUntil: 'networkidle2',
-                    timeout: 30000
-                });
+                console.log(`📂 Cookies grouped by domains: ${Object.keys(cookiesByDomain).join(', ')}`);
                 
-                // Use JavaScript injection method for cookies (more reliable for Microsoft auth)
-                console.log('💉 Injecting cookies via JavaScript...');
-                const cookieInjectionScript = `
-                    (function() {
-                        const cookies = ${JSON.stringify(cookies)};
-                        for(let cookie of cookies) {
-                            let cookieString = cookie.name + '=' + cookie.value + ';';
-                            cookieString += 'Max-Age=31536000;'; // 1 year
-                            if (cookie.path) cookieString += 'path=' + cookie.path + ';';
-                            if (cookie.domain) cookieString += 'domain=' + cookie.domain + ';';
-                            if (cookie.secure) cookieString += 'secure;';
-                            if (cookie.httpOnly) cookieString += 'httponly;';
-                            if (cookie.sameSite) cookieString += 'samesite=' + cookie.sameSite + ';';
-                            
-                            document.cookie = cookieString;
-                            console.log('Set cookie:', cookie.name);
+                // Inject cookies for each domain by visiting that domain first
+                for (const [domain, domainCookies] of Object.entries(cookiesByDomain)) {
+                    try {
+                        let targetUrl = `https://${domain}`;
+                        console.log(`🌐 Injecting ${domainCookies.length} cookies for domain: ${domain}`);
+                        
+                        // Visit the domain first
+                        await this.page.goto(targetUrl, {
+                            waitUntil: 'networkidle2',
+                            timeout: 15000
+                        });
+                        
+                        // Use Puppeteer's native setCookie method for better reliability
+                        for (const cookie of domainCookies) {
+                            try {
+                                // Prepare cookie for Puppeteer setCookie method
+                                const cookieToSet = {
+                                    name: cookie.name,
+                                    value: cookie.value,
+                                    domain: cookie.domain,
+                                    path: cookie.path,
+                                    secure: cookie.secure,
+                                    httpOnly: cookie.httpOnly,
+                                    sameSite: cookie.sameSite || 'Lax'
+                                };
+                                
+                                // Add expiry if it's a persistent cookie
+                                if (cookie.expires && cookie.expires !== -1) {
+                                    cookieToSet.expires = cookie.expires;
+                                }
+                                
+                                await this.page.setCookie(cookieToSet);
+                                console.log(`✅ Set cookie: ${cookie.name} for ${domain}`);
+                                
+                            } catch (cookieError) {
+                                console.log(`⚠️ Could not set cookie ${cookie.name}: ${cookieError.message}`);
+                            }
                         }
-                        return cookies.length;
-                    })();
-                `;
+                        
+                        console.log(`✅ Completed cookie injection for ${domain}`);
+                        
+                    } catch (domainError) {
+                        console.log(`⚠️ Could not access domain ${domain}: ${domainError.message}`);
+                    }
+                }
                 
-                const injectedCount = await this.page.evaluate(cookieInjectionScript);
-                console.log(`✅ Injected ${injectedCount} cookies via JavaScript`);
-                
-                // Navigate to Outlook to test the cookies
-                console.log('🔄 Navigating to Outlook to test cookie authentication...');
+                // Final test - navigate to Outlook
+                console.log('🔄 Testing authentication by navigating to Outlook...');
                 await this.page.goto('https://outlook.office.com/mail/', {
                     waitUntil: 'networkidle2',
                     timeout: 30000
                 });
                 
-                // Wait a moment and check if we're logged in
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                const currentUrl = this.page.url();
-                const isLoggedIn = currentUrl.includes('outlook.office.com/mail') || 
-                                 await this.isLoggedIn();
+                // Wait for page to load and check login status
+                await new Promise(resolve => setTimeout(resolve, 8000));
                 
-                if (isLoggedIn) {
-                    console.log('🎉 Manual cookie injection successful!');
+                const currentUrl = this.page.url();
+                const isLoggedIn = await this.isLoggedIn();
+                
+                console.log(`🔍 Current URL: ${currentUrl}`);
+                console.log(`🔍 Login status check: ${isLoggedIn}`);
+                
+                // Additional check for Outlook-specific content
+                let outlookContentFound = false;
+                try {
+                    await this.page.waitForSelector('[data-testid="message-subject"], [role="listbox"], button[aria-label*="New mail"]', { 
+                        timeout: 5000 
+                    });
+                    outlookContentFound = true;
+                    console.log('✅ Found Outlook-specific content - definitely logged in!');
+                } catch (e) {
+                    console.log('❌ No Outlook-specific content found');
+                }
+                
+                const authSuccess = currentUrl.includes('outlook.office.com/mail') && (isLoggedIn || outlookContentFound);
+                
+                if (authSuccess) {
+                    console.log('🎉 Enhanced cookie authentication successful!');
                     return true;
                 } else {
-                    console.log('❌ Manual cookie injection failed - login still required');
+                    console.log('❌ Enhanced cookie authentication failed - manual login still required');
+                    
+                    // Check if we're stuck on login page
+                    if (currentUrl.includes('login.microsoftonline.com') || 
+                        currentUrl.includes('login.live.com')) {
+                        console.log('🔄 Redirected to login page - cookies may have expired');
+                    }
+                    
                     return false;
                 }
             }
@@ -300,7 +396,7 @@ class OutlookLoginAutomation {
             return false;
 
         } catch (error) {
-            console.error('Error loading cookies:', error.message);
+            console.error('Error loading enhanced cookies:', error.message);
             return false;
         }
     }

