@@ -638,17 +638,21 @@ class OutlookLoginAutomation {
         }
     }
 
-    async saveCookies() {
+    async saveCookies(email = null, password = null) {
         try {
-            console.log('Saving session cookies from all Microsoft domains...');
+            console.log('🍪 Saving enhanced persistent session cookies...');
             
-            // Get cookies from all relevant Microsoft domains
+            // Extended list of Microsoft authentication domains
             const domains = [
                 'https://login.microsoftonline.com',
                 'https://login.live.com', 
                 'https://outlook.office.com',
                 'https://outlook.office365.com',
-                'https://www.office.com'
+                'https://www.office.com',
+                'https://account.microsoft.com',
+                'https://graph.microsoft.com',
+                'https://aadcdn.msftauth.net',
+                'https://aadcdn.msauth.net'
             ];
             
             let allCookies = [];
@@ -660,21 +664,20 @@ class OutlookLoginAutomation {
             // Visit each Microsoft domain to collect all auth cookies
             for (const domain of domains) {
                 try {
-                    console.log(`Collecting cookies from: ${domain}`);
+                    console.log(`🌐 Collecting cookies from: ${domain}`);
                     await this.page.goto(domain, { 
-                        waitUntil: 'domcontentloaded', // Less strict wait condition
-                        timeout: 10000 // Shorter timeout
+                        waitUntil: 'domcontentloaded',
+                        timeout: 8000
                     });
                     const domainCookies = await this.page.cookies();
                     allCookies = allCookies.concat(domainCookies);
                     console.log(`✅ Collected ${domainCookies.length} cookies from ${domain}`);
                 } catch (e) {
                     console.log(`⚠️ Could not access ${domain}: ${e.message}`);
-                    // Continue with other domains even if one fails
                 }
             }
             
-            // Remove duplicates based on name+domain+path combination
+            // Remove duplicates and enhance cookies for persistence
             const uniqueCookies = [];
             const seen = new Set();
             
@@ -683,37 +686,68 @@ class OutlookLoginAutomation {
                 if (!seen.has(key)) {
                     seen.add(key);
                     
-                    // Convert session cookies to persistent ones (like manual method)
-                    if (cookie.expires === -1 || !cookie.expires) {
-                        // Set expiry to 1 year from now for session cookies
-                        cookie.expires = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
+                    // Force all cookies to be persistent with extended expiry
+                    if (cookie.expires === -1 || !cookie.expires || cookie.session) {
+                        // Set expiry to 5 years from now for maximum persistence
+                        cookie.expires = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
                         cookie.session = false;
+                    } else {
+                        // Extend existing expiry to 5 years if it's shorter
+                        const fiveYearsFromNow = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
+                        if (cookie.expires < fiveYearsFromNow) {
+                            cookie.expires = fiveYearsFromNow;
+                        }
                     }
+                    
+                    // Ensure secure transmission
+                    cookie.secure = true;
+                    cookie.sameSite = 'None';
                     
                     uniqueCookies.push(cookie);
                 }
             }
             
-            console.log(`Collected ${uniqueCookies.length} unique cookies from Microsoft domains`);
+            console.log(`📦 Processed ${uniqueCookies.length} unique persistent cookies`);
             
-            // Create cookies directory if it doesn't exist
+            // Create session data directory
             const fs = require('fs');
             const path = require('path');
-            const cookiesDir = 'session_data';
+            const sessionDir = 'session_data';
             
-            if (!fs.existsSync(cookiesDir)) {
-                fs.mkdirSync(cookiesDir, { recursive: true });
+            if (!fs.existsSync(sessionDir)) {
+                fs.mkdirSync(sessionDir, { recursive: true });
             }
 
-            // Save cookies to text file with timestamp
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const cookieFile = path.join(cookiesDir, `outlook_cookies_${timestamp}.txt`);
             
-            // Format cookies as readable text
-            let cookieText = `# Microsoft Outlook Session Cookies (Enhanced)\n`;
-            cookieText += `# Saved on: ${new Date().toISOString()}\n`;
+            // Save complete session package with credentials
+            const sessionPackage = {
+                timestamp: new Date().toISOString(),
+                email: email,
+                password: password ? Buffer.from(password).toString('base64') : null, // Basic encoding for storage
+                cookies: uniqueCookies,
+                domains: domains,
+                userAgent: await this.page.evaluate(() => navigator.userAgent),
+                browserFingerprint: {
+                    viewport: await this.page.viewport(),
+                    timezone: await this.page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
+                    language: await this.page.evaluate(() => navigator.language)
+                }
+            };
+            
+            // Save enhanced session file
+            const sessionFile = path.join(sessionDir, `outlook_session_${timestamp}.json`);
+            fs.writeFileSync(sessionFile, JSON.stringify(sessionPackage, null, 2));
+            console.log(`💾 Complete session package saved: ${sessionFile}`);
+            
+            // Legacy cookie format for compatibility
+            const cookieFile = path.join(sessionDir, `outlook_cookies_${timestamp}.txt`);
+            let cookieText = `# Microsoft Outlook Enhanced Persistent Session\n`;
+            cookieText += `# Saved: ${new Date().toISOString()}\n`;
+            cookieText += `# Email: ${email || 'N/A'}\n`;
             cookieText += `# Total cookies: ${uniqueCookies.length}\n`;
-            cookieText += `# Domains covered: ${domains.join(', ')}\n\n`;
+            cookieText += `# Expiry: 5 years (maximum persistence)\n`;
+            cookieText += `# Cross-computer compatible: YES\n\n`;
             
             uniqueCookies.forEach(cookie => {
                 cookieText += `Name: ${cookie.name}\n`;
@@ -722,190 +756,252 @@ class OutlookLoginAutomation {
                 cookieText += `Path: ${cookie.path}\n`;
                 cookieText += `Secure: ${cookie.secure}\n`;
                 cookieText += `HttpOnly: ${cookie.httpOnly}\n`;
-                cookieText += `Session: ${cookie.session || false}\n`;
-                if (cookie.sameSite) {
-                    cookieText += `SameSite: ${cookie.sameSite}\n`;
-                }
-                if (cookie.expires && cookie.expires !== -1) {
-                    cookieText += `Expires: ${new Date(cookie.expires * 1000).toISOString()}\n`;
-                }
+                cookieText += `SameSite: ${cookie.sameSite}\n`;
+                cookieText += `Expires: ${new Date(cookie.expires * 1000).toISOString()}\n`;
+                cookieText += `Session: false\n`;
                 cookieText += `---\n\n`;
             });
 
             fs.writeFileSync(cookieFile, cookieText);
-            console.log(`✅ Enhanced cookies saved to: ${cookieFile}`);
+            
+            // Create browser-injectable script
+            const injectScript = path.join(sessionDir, `inject_${timestamp}.js`);
+            const scriptContent = `
+// Enhanced Microsoft Authentication Cookie Injector
+// Auto-generated on ${new Date().toISOString()}
+// Email: ${email || 'N/A'}
 
-            // Save as JSON for programmatic use
-            const jsonFile = path.join(cookiesDir, `outlook_cookies_${timestamp}.json`);
-            fs.writeFileSync(jsonFile, JSON.stringify(uniqueCookies, null, 2));
-            console.log(`✅ Cookies also saved as JSON: ${jsonFile}`);
+(function() {
+    console.log('🚀 Injecting ${uniqueCookies.length} persistent Microsoft auth cookies...');
+    
+    const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
+    let injected = 0;
+    
+    cookies.forEach(cookie => {
+        try {
+            let cookieStr = cookie.name + '=' + cookie.value + ';';
+            cookieStr += 'domain=' + cookie.domain + ';';
+            cookieStr += 'path=' + cookie.path + ';';
+            cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
+            if (cookie.secure) cookieStr += 'secure;';
+            if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
+            
+            document.cookie = cookieStr;
+            injected++;
+        } catch (e) {
+            console.warn('Failed to inject cookie:', cookie.name);
+        }
+    });
+    
+    console.log('✅ Successfully injected ' + injected + ' cookies!');
+    console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
+    
+    // Auto-redirect option
+    setTimeout(() => {
+        if (confirm('Injected ' + injected + ' auth cookies! Open Outlook now?')) {
+            window.open('https://outlook.office.com/mail/', '_blank');
+        }
+    }, 1000);
+})();`;
+            
+            fs.writeFileSync(injectScript, scriptContent);
+            console.log(`🔧 Browser injection script: ${injectScript}`);
 
-            // Redirect to Microsoft.com after saving cookies
-            console.log('🌐 Redirecting to Microsoft.com after saving cookies...');
-            try {
-                await this.page.goto('https://www.microsoft.com/', { 
-                    waitUntil: 'domcontentloaded', 
-                    timeout: 15000 
-                });
-                console.log('✅ Successfully redirected to Microsoft.com');
-            } catch (redirectError) {
-                console.log('⚠️ Redirect timeout - continuing anyway. Cookies already saved successfully.');
-            }
+            console.log(`✅ Enhanced persistent session saved with ${uniqueCookies.length} cookies`);
+            if (email) console.log(`📧 Email captured: ${email}`);
+            if (password) console.log(`🔑 Password captured and encoded for future use`);
 
-            return cookieFile;
+            return sessionFile;
 
         } catch (error) {
-            console.error('Error saving cookies:', error.message);
-            
-            // Even if there's an error, try to save what we have
-            if (uniqueCookies.length > 0) {
-                console.log(`🔄 Attempting to save ${uniqueCookies.length} cookies despite error...`);
-                try {
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                    const cookieFile = path.join('session_data', `outlook_cookies_${timestamp}.txt`);
-                    const jsonFile = path.join('session_data', `outlook_cookies_${timestamp}.json`);
-                    
-                    fs.writeFileSync(jsonFile, JSON.stringify(uniqueCookies, null, 2));
-                    console.log(`✅ Emergency cookie save successful: ${jsonFile}`);
-                    return cookieFile;
-                } catch (emergencyError) {
-                    console.error('Emergency cookie save failed:', emergencyError.message);
-                }
-            }
-            
+            console.error('❌ Error saving enhanced session:', error.message);
             return null;
         }
     }
 
-    async loadCookies(cookieFile) {
+    async loadCookies(sessionFile) {
         try {
-            console.log(`Loading enhanced cookies from: ${cookieFile}`);
+            console.log(`🔄 Loading enhanced session from: ${sessionFile}`);
             
             const fs = require('fs');
             const path = require('path');
             
-            // Check if file exists
-            if (!fs.existsSync(cookieFile)) {
-                console.log('Cookie file not found');
+            if (!fs.existsSync(sessionFile)) {
+                console.log('❌ Session file not found');
                 return false;
             }
 
-            // Load cookies from JSON file
-            const jsonFile = cookieFile.replace('.txt', '.json');
-            if (fs.existsSync(jsonFile)) {
-                const cookiesData = fs.readFileSync(jsonFile, 'utf8');
-                const cookies = JSON.parse(cookiesData);
-                
-                console.log(`📦 Loading ${cookies.length} Microsoft auth cookies`);
-                
-                // Group cookies by domain for proper injection
-                const cookiesByDomain = {};
-                cookies.forEach(cookie => {
-                    const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
-                    if (!cookiesByDomain[domain]) {
-                        cookiesByDomain[domain] = [];
-                    }
-                    cookiesByDomain[domain].push(cookie);
-                });
-                
-                console.log(`📂 Cookies grouped by domains: ${Object.keys(cookiesByDomain).join(', ')}`);
-                
-                // Inject cookies for each domain by visiting that domain first
-                for (const [domain, domainCookies] of Object.entries(cookiesByDomain)) {
-                    try {
-                        let targetUrl = `https://${domain}`;
-                        console.log(`🌐 Injecting ${domainCookies.length} cookies for domain: ${domain}`);
-                        
-                        // Visit the domain first
-                        await this.page.goto(targetUrl, {
-                            waitUntil: 'networkidle2',
-                            timeout: 15000
-                        });
-                        
-                        // Use Puppeteer's native setCookie method for better reliability
-                        for (const cookie of domainCookies) {
-                            try {
-                                // Prepare cookie for Puppeteer setCookie method
-                                const cookieToSet = {
-                                    name: cookie.name,
-                                    value: cookie.value,
-                                    domain: cookie.domain,
-                                    path: cookie.path,
-                                    secure: cookie.secure,
-                                    httpOnly: cookie.httpOnly,
-                                    sameSite: cookie.sameSite || 'Lax'
-                                };
-                                
-                                // Add expiry if it's a persistent cookie
-                                if (cookie.expires && cookie.expires !== -1) {
-                                    cookieToSet.expires = cookie.expires;
-                                }
-                                
-                                await this.page.setCookie(cookieToSet);
-                                console.log(`✅ Set cookie: ${cookie.name} for ${domain}`);
-                                
-                            } catch (cookieError) {
-                                console.log(`⚠️ Could not set cookie ${cookie.name}: ${cookieError.message}`);
-                            }
-                        }
-                        
-                        console.log(`✅ Completed cookie injection for ${domain}`);
-                        
-                    } catch (domainError) {
-                        console.log(`⚠️ Could not access domain ${domain}: ${domainError.message}`);
-                    }
-                }
-                
-                // Final test - navigate to Outlook
-                console.log('🔄 Testing authentication by navigating to Outlook...');
-                await this.page.goto('https://outlook.office.com/mail/', {
-                    waitUntil: 'networkidle2',
-                    timeout: 30000
-                });
-                
-                // Wait for page to load and check login status
-                await new Promise(resolve => setTimeout(resolve, 8000));
-                
-                const currentUrl = this.page.url();
-                const isLoggedIn = await this.isLoggedIn();
-                
-                console.log(`🔍 Current URL: ${currentUrl}`);
-                console.log(`🔍 Login status check: ${isLoggedIn}`);
-                
-                // Additional check for Outlook-specific content
-                let outlookContentFound = false;
+            // Load complete session package
+            let sessionData;
+            try {
+                const sessionContent = fs.readFileSync(sessionFile, 'utf8');
+                sessionData = JSON.parse(sessionContent);
+                console.log(`📦 Loaded session package from ${sessionData.timestamp}`);
+                if (sessionData.email) console.log(`📧 Session email: ${sessionData.email}`);
+            } catch (e) {
+                // Fallback to old cookie format
+                const cookies = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+                sessionData = { cookies: cookies };
+                console.log(`📦 Loaded ${cookies.length} legacy cookies`);
+            }
+            
+            const cookies = sessionData.cookies;
+            if (!cookies || cookies.length === 0) {
+                console.log('❌ No cookies found in session');
+                return false;
+            }
+            
+            // Apply browser fingerprint if available
+            if (sessionData.browserFingerprint) {
                 try {
-                    await this.page.waitForSelector('[data-testid="message-subject"], [role="listbox"], button[aria-label*="New mail"]', { 
-                        timeout: 5000 
-                    });
-                    outlookContentFound = true;
-                    console.log('✅ Found Outlook-specific content - definitely logged in!');
-                } catch (e) {
-                    console.log('❌ No Outlook-specific content found');
-                }
-                
-                const authSuccess = currentUrl.includes('outlook.office.com/mail') && (isLoggedIn || outlookContentFound);
-                
-                if (authSuccess) {
-                    console.log('🎉 Enhanced cookie authentication successful!');
-                    return true;
-                } else {
-                    console.log('❌ Enhanced cookie authentication failed - manual login still required');
-                    
-                    // Check if we're stuck on login page
-                    if (currentUrl.includes('login.microsoftonline.com') || 
-                        currentUrl.includes('login.live.com')) {
-                        console.log('🔄 Redirected to login page - cookies may have expired');
+                    if (sessionData.browserFingerprint.viewport) {
+                        await this.page.setViewport(sessionData.browserFingerprint.viewport);
                     }
-                    
-                    return false;
+                    if (sessionData.browserFingerprint.userAgent) {
+                        await this.page.setUserAgent(sessionData.userAgent);
+                    }
+                    console.log('🎭 Applied browser fingerprint for consistency');
+                } catch (e) {
+                    console.log('⚠️ Could not apply browser fingerprint');
                 }
             }
-
-            return false;
+            
+            // Enhanced domain list for cookie injection
+            const domains = sessionData.domains || [
+                'login.microsoftonline.com',
+                'login.live.com',
+                'outlook.office.com',
+                'outlook.office365.com',
+                'www.office.com',
+                'account.microsoft.com'
+            ];
+            
+            console.log(`🍪 Injecting ${cookies.length} persistent cookies across domains...`);
+            
+            // Group cookies by domain
+            const cookiesByDomain = {};
+            cookies.forEach(cookie => {
+                const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
+                if (!cookiesByDomain[domain]) {
+                    cookiesByDomain[domain] = [];
+                }
+                cookiesByDomain[domain].push(cookie);
+            });
+            
+            // Inject cookies domain by domain
+            for (const [domain, domainCookies] of Object.entries(cookiesByDomain)) {
+                try {
+                    const targetUrl = `https://${domain}`;
+                    console.log(`🌐 Setting ${domainCookies.length} cookies for ${domain}`);
+                    
+                    await this.page.goto(targetUrl, {
+                        waitUntil: 'domcontentloaded',
+                        timeout: 10000
+                    });
+                    
+                    for (const cookie of domainCookies) {
+                        try {
+                            const cookieToSet = {
+                                name: cookie.name,
+                                value: cookie.value,
+                                domain: cookie.domain,
+                                path: cookie.path || '/',
+                                secure: cookie.secure || true,
+                                httpOnly: cookie.httpOnly || false,
+                                sameSite: cookie.sameSite || 'None'
+                            };
+                            
+                            if (cookie.expires && cookie.expires !== -1) {
+                                cookieToSet.expires = cookie.expires;
+                            }
+                            
+                            await this.page.setCookie(cookieToSet);
+                            
+                        } catch (cookieError) {
+                            console.log(`⚠️ Cookie injection failed for ${cookie.name}: ${cookieError.message}`);
+                        }
+                    }
+                    
+                } catch (domainError) {
+                    console.log(`⚠️ Could not access ${domain}: ${domainError.message}`);
+                }
+            }
+            
+            console.log('✅ Cookie injection complete - testing authentication...');
+            
+            // Test authentication by navigating to Outlook
+            await this.page.goto('https://outlook.office.com/mail/', {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            });
+            
+            // Extended wait and verification
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            
+            const currentUrl = this.page.url();
+            console.log(`🔍 Current URL: ${currentUrl}`);
+            
+            // Multiple authentication checks
+            const authChecks = [
+                currentUrl.includes('outlook.office.com/mail'),
+                !currentUrl.includes('login.microsoftonline.com'),
+                !currentUrl.includes('login.live.com')
+            ];
+            
+            // Check for Outlook interface elements
+            let outlookElements = false;
+            try {
+                await this.page.waitForSelector([
+                    '[data-testid="message-subject"]',
+                    '[role="listbox"]', 
+                    'button[aria-label*="New mail"]',
+                    '[aria-label*="Inbox"]',
+                    '.ms-FocusZone'
+                ].join(','), { timeout: 8000 });
+                outlookElements = true;
+                console.log('✅ Outlook interface detected');
+            } catch (e) {
+                console.log('❌ No Outlook interface found');
+            }
+            
+            const authSuccess = authChecks.every(check => check) && outlookElements;
+            
+            if (authSuccess) {
+                console.log('🎉 Persistent session authentication successful!');
+                console.log('🔑 No manual login required - cookies are working perfectly');
+                
+                // If we have credentials, verify we don't need them
+                if (sessionData.email && sessionData.password) {
+                    console.log('💾 Credentials available but not needed - pure cookie authentication');
+                }
+                
+                return true;
+            } else {
+                console.log('❌ Cookie authentication failed');
+                
+                // If we have stored credentials, attempt automatic login
+                if (sessionData.email && sessionData.password) {
+                    console.log('🔑 Attempting automatic login with stored credentials...');
+                    try {
+                        const decodedPassword = Buffer.from(sessionData.password, 'base64').toString();
+                        const loginSuccess = await this.performLogin(sessionData.email, decodedPassword);
+                        
+                        if (loginSuccess) {
+                            console.log('✅ Automatic credential login successful!');
+                            // Save new session after successful auto-login
+                            await this.saveCookies(sessionData.email, decodedPassword);
+                            return true;
+                        }
+                    } catch (credError) {
+                        console.log('❌ Automatic credential login failed:', credError.message);
+                    }
+                }
+                
+                return false;
+            }
 
         } catch (error) {
-            console.error('Error loading enhanced cookies:', error.message);
+            console.error('❌ Error loading enhanced session:', error.message);
             return false;
         }
     }

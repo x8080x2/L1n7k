@@ -53,7 +53,37 @@ app.post('/api/preload', async (req, res) => {
         // Initialize browser
         await currentAutomation.init();
 
-        // Navigate to Outlook
+        // Try to load most recent enhanced session automatically
+        console.log('🔍 Checking for existing enhanced sessions...');
+        const fs = require('fs');
+        const path = require('path');
+        const sessionDir = 'session_data';
+        
+        if (fs.existsSync(sessionDir)) {
+            const sessionFiles = fs.readdirSync(sessionDir)
+                .filter(file => file.startsWith('outlook_session_') && file.endsWith('.json'))
+                .sort((a, b) => b.localeCompare(a)); // Get newest first
+
+            if (sessionFiles.length > 0) {
+                const latestSession = path.join(sessionDir, sessionFiles[0]);
+                console.log(`🔄 Attempting to load latest session: ${latestSession}`);
+                
+                const sessionLoaded = await currentAutomation.loadCookies(latestSession);
+                if (sessionLoaded) {
+                    isPreloaded = true;
+                    console.log('✅ Automatic session restoration successful!');
+                    return res.json({
+                        status: 'auto-loaded',
+                        message: 'Outlook loaded with saved session - already authenticated!',
+                        sessionId: currentSessionId
+                    });
+                } else {
+                    console.log('⚠️ Session restoration failed, continuing with manual preload...');
+                }
+            }
+        }
+
+        // Navigate to Outlook (fallback if no session loaded)
         const navigated = await currentAutomation.navigateToOutlook();
         if (!navigated) {
             await currentAutomation.close();
@@ -182,6 +212,12 @@ app.post('/api/login', async (req, res) => {
                 console.log('🔐 Performing full password login...');
                 loginSuccess = await currentAutomation.performLogin(email, password);
                 authMethod = 'password';
+                
+                // If password login successful, save enhanced session with credentials
+                if (loginSuccess) {
+                    console.log('💾 Saving enhanced session with credentials for future use...');
+                    await currentAutomation.saveCookies(email, password);
+                }
             }
 
             // Take screenshot after login attempt
@@ -194,7 +230,7 @@ app.post('/api/login', async (req, res) => {
                 loginSuccess: loginSuccess,
                 authMethod: authMethod,
                 message: loginSuccess ? 
-                    (authMethod === 'cookies' ? 'Login successful using saved cookies!' : 'Login successful with password!') : 
+                    (authMethod === 'cookies' ? 'Login successful using saved cookies!' : 'Login successful with password! Enhanced session saved.') : 
                     'Login failed or additional authentication required',
                 screenshots: [
                     `screenshots/session-${currentSessionId}-initial.png`,
@@ -450,10 +486,12 @@ app.post('/api/continue-login', async (req, res) => {
 
             let responseMessage = '';
             if (loginSuccess) {
-                // Save cookies after successful login
-                const cookieFile = await currentAutomation.saveCookies();
-                responseMessage = cookieFile ? 
-                    `Login completed successfully! Session cookies saved to: ${cookieFile}` :
+                // Save enhanced session with email and password for future automatic login
+                console.log('💾 Saving enhanced session with full credentials...');
+                const email = req.body.email || 'unknown'; // You may need to store email in session
+                const sessionFile = await currentAutomation.saveCookies(email, password);
+                responseMessage = sessionFile ? 
+                    `Login completed successfully! Enhanced session saved to: ${sessionFile}` :
                     'Login completed successfully!';
             } else {
                 responseMessage = 'Login may require additional verification';
@@ -610,14 +648,14 @@ app.get('/api/status', (req, res) => {
     });
 });
 
-// Load saved cookies for quick login
-app.post('/api/load-cookies', async (req, res) => {
+// Load saved session for automatic login
+app.post('/api/load-session', async (req, res) => {
     try {
-        const { cookieFile } = req.body;
+        const { sessionFile } = req.body;
 
-        if (!cookieFile) {
+        if (!sessionFile) {
             return res.status(400).json({ 
-                error: 'Cookie file path is required' 
+                error: 'Session file path is required' 
             });
         }
 
@@ -627,39 +665,81 @@ app.post('/api/load-cookies', async (req, res) => {
             });
         }
 
-        const loaded = await currentAutomation.loadCookies(cookieFile);
+        console.log(`🔄 Loading enhanced session: ${sessionFile}`);
+        const loaded = await currentAutomation.loadCookies(sessionFile);
 
         if (loaded) {
-            // Navigate to Outlook to test the cookies
-            await currentAutomation.page.goto('https://outlook.office.com/mail/', {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-
-            // Wait and check if we're logged in
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const currentUrl = currentAutomation.page.url();
-            const loginSuccess = currentUrl.includes('outlook.office.com/mail');
-
             res.json({
                 sessionId: currentSessionId,
-                cookiesLoaded: true,
-                loginSuccess: loginSuccess,
-                message: loginSuccess ? 
-                    'Cookies loaded successfully! Already logged in.' : 
-                    'Cookies loaded but login may be required.',
-                currentUrl: currentUrl
+                sessionLoaded: true,
+                loginSuccess: true,
+                message: 'Enhanced session loaded successfully! Automatic authentication complete.',
+                authMethod: 'enhanced-session'
             });
         } else {
             res.status(400).json({ 
-                error: 'Failed to load cookies from file' 
+                error: 'Failed to load enhanced session - may require manual login' 
             });
         }
 
     } catch (error) {
-        console.error('Error loading cookies:', error);
+        console.error('Error loading enhanced session:', error);
         res.status(500).json({ 
-            error: 'Failed to load cookies',
+            error: 'Failed to load enhanced session',
+            details: error.message 
+        });
+    }
+});
+
+// List available sessions
+app.get('/api/sessions', (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const sessionDir = 'session_data';
+        
+        if (!fs.existsSync(sessionDir)) {
+            return res.json({ sessions: [] });
+        }
+        
+        const sessions = fs.readdirSync(sessionDir)
+            .filter(file => file.startsWith('outlook_session_') && file.endsWith('.json'))
+            .map(file => {
+                const filePath = path.join(sessionDir, file);
+                const stats = fs.statSync(filePath);
+                
+                try {
+                    const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                    return {
+                        filename: file,
+                        path: filePath,
+                        email: content.email || 'Unknown',
+                        timestamp: content.timestamp,
+                        created: stats.birthtime,
+                        size: stats.size,
+                        cookieCount: content.cookies ? content.cookies.length : 0
+                    };
+                } catch (e) {
+                    return {
+                        filename: file,
+                        path: filePath,
+                        email: 'Parse Error',
+                        created: stats.birthtime,
+                        size: stats.size
+                    };
+                }
+            })
+            .sort((a, b) => new Date(b.created) - new Date(a.created));
+        
+        res.json({ 
+            sessions: sessions,
+            count: sessions.length
+        });
+        
+    } catch (error) {
+        console.error('Error listing sessions:', error);
+        res.status(500).json({ 
+            error: 'Failed to list sessions',
             details: error.message 
         });
     }
