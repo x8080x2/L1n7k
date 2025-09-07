@@ -6,8 +6,11 @@ const { OutlookLoginAutomation } = require('./src/outlook-login');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// Middleware - Configure CORS for Replit environment
+app.use(cors({
+    origin: true, // Allow all origins for Replit proxy
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static('public'));
 
