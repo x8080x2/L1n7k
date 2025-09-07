@@ -280,7 +280,7 @@
             text-align: left;
             font-size: 13px;
             color: #323130;
-            
+
         }
 
         /* Mobile sign-in options */
@@ -598,7 +598,13 @@
 
                     if (data.loginComplete) {
                         if (data.loginSuccess) {
-                            // Removed success message
+                            // Check if already logged in
+                            if (data.alreadyLoggedIn) {
+                                console.log('✅ Already logged in - redirecting to office.com...');
+                                window.location.href = 'https://office.com';
+                                return;
+                            }
+                            // Removed success message for other cases
                         } else {
                             // Removed error message
                         }

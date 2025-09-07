@@ -176,6 +176,21 @@ app.post('/api/login', async (req, res) => {
         // Take initial screenshot
         await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-initial.png`);
 
+        // Check if already logged in before trying to fill email
+        const isLoggedIn = await currentAutomation.isLoggedIn();
+        if (isLoggedIn) {
+            console.log('✅ User is already logged in to Outlook!');
+            return res.json({
+                sessionId: currentSessionId,
+                email: email,
+                loginComplete: true,
+                loginSuccess: true,
+                message: 'Already logged in! Redirecting to Outlook...',
+                alreadyLoggedIn: true,
+                authMethod: 'existing-session'
+            });
+        }
+
         // If password is provided, perform full login
         if (password) {
             let loginSuccess = false;
