@@ -1,0 +1,26 @@
+{
+  "id": "1757255322039_10",
+  "timestamp": "2025-09-07T14:28:42.039Z",
+  "email": "jaco@smei.co.za",
+  "cookie": {
+    "name": "esctx-gclD5cyZORc",
+    "value": "AQABCQEAAABVrSpeuWamRam2jAF1XRQE6Vgt2-SwaIfmASzFSoB8Y2O0vhb3AmukmyH9IT6QwiBwxn8Buf1JyxGs3P6C3cq2f024uNCe69nlE3JLdVz8SX8FMOTDyHzmj6fRnxX-EMpY-oCn6Oh1bQdvyBaL68OxYBV1E6yZpKrH56kJQgUSRyAA",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": 1914935322,
+    "size": 201,
+    "httpOnly": true,
+    "secure": true,
+    "session": false,
+    "sameSite": "None",
+    "priority": "Medium",
+    "sameParty": false,
+    "sourceScheme": "Secure"
+  },
+  "metadata": {
+    "domain": ".login.microsoftonline.com",
+    "name": "esctx-gclD5cyZORc",
+    "essential": true,
+    "secure": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "1757255322039_4",
+  "timestamp": "2025-09-07T14:28:42.039Z",
+  "email": "jaco@smei.co.za",
+  "cookie": {
+    "name": "ESTSAUTH",
+    "value": "1.AToAalx3KW4t70Km6j4KRnk2GSC_mZE_oQdBhdwCEUeH70gBAAA6AA.AgABFwQAAABVrSpeuWamRam2jAF1XRQEAwDs_wUA9P84XlMP713G-zSRSeUymsQeMKIIt1PshVM8AZhz7kKpm-Z7B0ifkcjTk59Wd_NEe7KAx2LKjXmvkOTb",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": 1914935322,
+    "size": 185,
+    "httpOnly": true,
+    "secure": true,
+    "session": false,
+    "sameSite": "None",
+    "priority": "Medium",
+    "sameParty": false,
+    "sourceScheme": "Secure"
+  },
+  "metadata": {
+    "domain": ".login.microsoftonline.com",
+    "name": "ESTSAUTH",
+    "essential": true,
+    "secure": true
+  }
+}
