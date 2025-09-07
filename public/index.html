@@ -18,9 +18,17 @@
             background-position: center;
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             padding: 20px;
+        }
+
+        /* Mobile-first responsive design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+            }
         }
 
         .container {
@@ -31,6 +39,16 @@
             width: 100%;
             max-width: 440px;
             animation: fadeIn 0.5s ease-out;
+            margin-top: 20px;
+        }
+
+        /* Mobile container adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px 20px;
+                margin-top: 10px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            }
         }
 
         @keyframes fadeIn {
@@ -253,6 +271,15 @@
             text-align: left;
             font-size: 13px;
             color: #323130;
+        }
+
+        /* Mobile sign-in options */
+        @media (max-width: 768px) {
+            .sign-in-options {
+                padding: 15px 20px;
+                margin-top: 8px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            }
         }
 
         
