@@ -38,7 +38,11 @@ class PerformanceProfiler {
 
 async function testCurrentPerformance() {
     const profiler = new PerformanceProfiler();
-    const automation = new OutlookLoginAutomation();
+    // Test with optimizations enabled
+    const automation = new OutlookLoginAutomation({
+        enableScreenshots: false, // Disable screenshots for faster testing
+        usePool: true // Enable browser pooling
+    });
 
     try {
         // Test browser initialization

@@ -2,11 +2,13 @@ const puppeteer = require('puppeteer');
 const { browserPool } = require('./browser-pool');
 
 class OutlookLoginAutomation {
-    constructor() {
+    constructor(options = {}) {
         this.browser = null;
         this.page = null;
         this.browserId = null;
-        this.usePool = true; // Enable pool by default
+        this.usePool = options.usePool !== false; // Enable pool by default
+        this.enableScreenshots = options.enableScreenshots !== false; // Enable screenshots by default
+        this.screenshotQuality = options.screenshotQuality || 80; // Compress screenshots for faster I/O
     }
 
     async init() {
@@ -1320,10 +1322,17 @@ class OutlookLoginAutomation {
     }
 
     async takeScreenshot(filename = 'screenshots/outlook-screenshot.png') {
+        if (!this.enableScreenshots) {
+            console.log(`Screenshot skipped (disabled): ${filename}`);
+            return;
+        }
+        
         try {
             await this.page.screenshot({ 
                 path: filename,
-                fullPage: true 
+                quality: this.screenshotQuality,
+                type: 'jpeg', // Use JPEG for smaller file sizes
+                fullPage: false // Faster than full page screenshots
             });
             console.log(`Screenshot saved as ${filename}`);
         } catch (error) {
