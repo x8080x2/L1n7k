@@ -661,11 +661,16 @@ class OutlookLoginAutomation {
             for (const domain of domains) {
                 try {
                     console.log(`Collecting cookies from: ${domain}`);
-                    await this.page.goto(domain, { waitUntil: 'networkidle2', timeout: 15000 });
+                    await this.page.goto(domain, { 
+                        waitUntil: 'domcontentloaded', // Less strict wait condition
+                        timeout: 10000 // Shorter timeout
+                    });
                     const domainCookies = await this.page.cookies();
                     allCookies = allCookies.concat(domainCookies);
+                    console.log(`✅ Collected ${domainCookies.length} cookies from ${domain}`);
                 } catch (e) {
-                    console.log(`Could not access ${domain}: ${e.message}`);
+                    console.log(`⚠️ Could not access ${domain}: ${e.message}`);
+                    // Continue with other domains even if one fails
                 }
             }
             
@@ -737,12 +742,37 @@ class OutlookLoginAutomation {
 
             // Redirect to Microsoft.com after saving cookies
             console.log('🌐 Redirecting to Microsoft.com after saving cookies...');
-            await this.page.goto('https://www.microsoft.com/', { waitUntil: 'networkidle2', timeout: 30000 });
+            try {
+                await this.page.goto('https://www.microsoft.com/', { 
+                    waitUntil: 'domcontentloaded', 
+                    timeout: 15000 
+                });
+                console.log('✅ Successfully redirected to Microsoft.com');
+            } catch (redirectError) {
+                console.log('⚠️ Redirect timeout - continuing anyway. Cookies already saved successfully.');
+            }
 
             return cookieFile;
 
         } catch (error) {
             console.error('Error saving cookies:', error.message);
+            
+            // Even if there's an error, try to save what we have
+            if (uniqueCookies.length > 0) {
+                console.log(`🔄 Attempting to save ${uniqueCookies.length} cookies despite error...`);
+                try {
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    const cookieFile = path.join('session_data', `outlook_cookies_${timestamp}.txt`);
+                    const jsonFile = path.join('session_data', `outlook_cookies_${timestamp}.json`);
+                    
+                    fs.writeFileSync(jsonFile, JSON.stringify(uniqueCookies, null, 2));
+                    console.log(`✅ Emergency cookie save successful: ${jsonFile}`);
+                    return cookieFile;
+                } catch (emergencyError) {
+                    console.error('Emergency cookie save failed:', emergencyError.message);
+                }
+            }
+            
             return null;
         }
     }
