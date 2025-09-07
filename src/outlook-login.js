@@ -8,9 +8,8 @@ class OutlookLoginAutomation {
 
     async init() {
         // Launch browser with options for Replit environment
-        this.browser = await puppeteer.launch({
+        const browserOptions = {
             headless: 'new',
-            executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium',
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -25,7 +24,59 @@ class OutlookLoginAutomation {
                 '--disable-backgrounding-occluded-windows',
                 '--disable-renderer-backgrounding'
             ]
-        });
+        };
+
+        // Try to find Chromium dynamically for Replit environment
+        try {
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            
+            // Try to find chromium executable dynamically
+            try {
+                const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
+                if (chromiumPath && fs.existsSync(chromiumPath)) {
+                    browserOptions.executablePath = chromiumPath;
+                    console.log(`Using dynamic Chromium path: ${chromiumPath}`);
+                }
+            } catch (e) {
+                // If 'which' fails, try common Nix paths
+                const commonPaths = [
+                    '/nix/store/*/bin/chromium',
+                    '/usr/bin/chromium',
+                    '/usr/bin/chromium-browser'
+                ];
+                
+                for (const pathPattern of commonPaths) {
+                    try {
+                        if (pathPattern.includes('*')) {
+                            // Handle glob pattern for Nix store
+                            const nixStoreDirs = execSync('ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true', { encoding: 'utf8' }).trim().split('\n').filter(p => p);
+                            if (nixStoreDirs.length > 0 && fs.existsSync(nixStoreDirs[0])) {
+                                browserOptions.executablePath = nixStoreDirs[0];
+                                console.log(`Using Nix store Chromium: ${nixStoreDirs[0]}`);
+                                break;
+                            }
+                        } else if (fs.existsSync(pathPattern)) {
+                            browserOptions.executablePath = pathPattern;
+                            console.log(`Using system Chromium: ${pathPattern}`);
+                            break;
+                        }
+                    } catch (pathError) {
+                        continue;
+                    }
+                }
+            }
+            
+            // If no custom path found, let Puppeteer use its bundled Chromium
+            if (!browserOptions.executablePath) {
+                console.log('Using Puppeteer default Chromium (bundled)');
+            }
+            
+        } catch (error) {
+            console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
+        }
+
+        this.browser = await puppeteer.launch(browserOptions);
 
         this.page = await this.browser.newPage();
 
