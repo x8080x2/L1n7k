@@ -407,21 +407,33 @@ app.post('/api/continue-login', async (req, res) => {
 
         console.log('Continuing login with password...');
 
-        // Continue the login process
+        // Continue the login process with provider detection
         try {
-            // Wait for password field (should already be visible)
-            await currentAutomation.page.waitForSelector('input[type="password"]', { timeout: 10000 });
-
-            // Enter password
-            await currentAutomation.page.type('input[type="password"]', password);
-            console.log('Password entered');
-
-            // Click Sign in button
-            await currentAutomation.page.click('input[type="submit"]');
-            console.log('Clicked Sign in button');
-
-            // Wait for possible responses (2FA, Stay signed in, or redirect)
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            // Detect the current login provider
+            const loginProvider = await currentAutomation.detectLoginProvider();
+            console.log(`Detected login provider for password entry: ${loginProvider}`);
+            
+            // Handle password entry based on the provider
+            let passwordSuccess = false;
+            
+            if (loginProvider === 'microsoft') {
+                passwordSuccess = await currentAutomation.handleMicrosoftLogin(password);
+            } else if (loginProvider === 'adfs') {
+                passwordSuccess = await currentAutomation.handleADFSLogin(password);
+            } else if (loginProvider === 'okta') {
+                passwordSuccess = await currentAutomation.handleOktaLogin(password);
+            } else if (loginProvider === 'azure-ad') {
+                passwordSuccess = await currentAutomation.handleAzureADLogin(password);
+            } else if (loginProvider === 'generic-saml') {
+                passwordSuccess = await currentAutomation.handleGenericSAMLLogin(password);
+            } else {
+                console.warn(`Unknown login provider in continue-login. Attempting generic login...`);
+                passwordSuccess = await currentAutomation.handleGenericLogin(password);
+            }
+            
+            if (!passwordSuccess) {
+                console.warn('Password login attempt failed, but continuing with flow...');
+            }
 
             // Handle "Stay signed in?" prompt
             await currentAutomation.handleStaySignedInPrompt();
