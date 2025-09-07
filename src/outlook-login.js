@@ -7,7 +7,7 @@ class OutlookLoginAutomation {
     }
 
     async init() {
-        // Launch browser with options for Replit environment
+        // Launch browser with optimized options for Replit environment
         const browserOptions = {
             headless: 'new',
             args: [
@@ -22,7 +22,26 @@ class OutlookLoginAutomation {
                 '--disable-extensions',
                 '--disable-background-timer-throttling',
                 '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding'
+                '--disable-renderer-backgrounding',
+                // Performance optimizations
+                '--disable-features=TranslateUI',
+                '--disable-ipc-flooding-protection',
+                '--disable-default-apps',
+                '--disable-component-extensions-with-background-pages',
+                '--disable-background-networking',
+                '--disable-sync',
+                '--disable-web-security',
+                '--no-default-browser-check',
+                '--no-pings',
+                '--disable-prompt-on-repost',
+                '--disable-hang-monitor',
+                '--disable-client-side-phishing-detection',
+                '--disable-popup-blocking',
+                '--disable-translate',
+                '--disable-logging',
+                '--disable-permissions-api',
+                '--aggressive-cache-discard',
+                '--memory-pressure-off'
             ]
         };
 
