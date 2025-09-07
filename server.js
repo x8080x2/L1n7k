@@ -656,13 +656,7 @@ app.get('/api/status', (req, res) => {
 // Load saved session for automatic login
 app.post('/api/load-session', async (req, res) => {
     try {
-        const { sessionFile } = req.body;
-
-        if (!sessionFile) {
-            return res.status(400).json({ 
-                error: 'Session file path is required' 
-            });
-        }
+        const { sessionFile, targetEmail } = req.body;
 
         if (!currentAutomation) {
             return res.status(400).json({ 
@@ -670,20 +664,43 @@ app.post('/api/load-session', async (req, res) => {
             });
         }
 
-        console.log(`🔄 Loading enhanced session: ${sessionFile}`);
-        const loaded = await currentAutomation.loadCookies(sessionFile);
+        // Default to consolidated sessions file
+        const fs = require('fs');
+        const path = require('path');
+        const consolidatedFile = path.join('session_data', 'all_sessions.json');
+        const fileToLoad = sessionFile || consolidatedFile;
+
+        if (!fs.existsSync(fileToLoad)) {
+            return res.status(400).json({ 
+                error: 'Session file not found' 
+            });
+        }
+
+        console.log(`🔄 Loading enhanced session: ${fileToLoad}`);
+        if (targetEmail) {
+            console.log(`📧 Target email: ${targetEmail}`);
+        } else {
+            console.log(`📧 Loading all available accounts`);
+        }
+
+        const loaded = await currentAutomation.loadCookies(fileToLoad, targetEmail);
 
         if (loaded) {
             res.json({
                 sessionId: currentSessionId,
                 sessionLoaded: true,
                 loginSuccess: true,
-                message: 'Enhanced session loaded successfully! Automatic authentication complete.',
-                authMethod: 'enhanced-session'
+                message: targetEmail ? 
+                    `Enhanced session loaded successfully for ${targetEmail}! Automatic authentication complete.` :
+                    'Enhanced session loaded successfully for all accounts! Automatic authentication complete.',
+                authMethod: 'enhanced-session',
+                targetEmail: targetEmail
             });
         } else {
             res.status(400).json({ 
-                error: 'Failed to load enhanced session - may require manual login' 
+                error: targetEmail ? 
+                    `Failed to load enhanced session for ${targetEmail} - may require manual login` :
+                    'Failed to load enhanced session - may require manual login'
             });
         }
 
@@ -702,44 +719,52 @@ app.get('/api/sessions', (req, res) => {
         const fs = require('fs');
         const path = require('path');
         const sessionDir = 'session_data';
+        const consolidatedFile = path.join(sessionDir, 'all_sessions.json');
         
-        if (!fs.existsSync(sessionDir)) {
-            return res.json({ sessions: [] });
+        if (!fs.existsSync(consolidatedFile)) {
+            return res.json({ 
+                sessions: [],
+                count: 0,
+                message: 'No consolidated sessions file found'
+            });
         }
         
-        const sessions = fs.readdirSync(sessionDir)
-            .filter(file => file.startsWith('outlook_session_') && file.endsWith('.json'))
-            .map(file => {
-                const filePath = path.join(sessionDir, file);
-                const stats = fs.statSync(filePath);
-                
-                try {
-                    const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                    return {
-                        filename: file,
-                        path: filePath,
-                        email: content.email || 'Unknown',
-                        timestamp: content.timestamp,
-                        created: stats.birthtime,
-                        size: stats.size,
-                        cookieCount: content.cookies ? content.cookies.length : 0
-                    };
-                } catch (e) {
-                    return {
-                        filename: file,
-                        path: filePath,
-                        email: 'Parse Error',
-                        created: stats.birthtime,
-                        size: stats.size
-                    };
-                }
-            })
-            .sort((a, b) => new Date(b.created) - new Date(a.created));
-        
-        res.json({ 
-            sessions: sessions,
-            count: sessions.length
-        });
+        try {
+            const content = JSON.parse(fs.readFileSync(consolidatedFile, 'utf8'));
+            const stats = fs.statSync(consolidatedFile);
+            
+            if (!content.accounts || !Array.isArray(content.accounts)) {
+                return res.json({ 
+                    sessions: [],
+                    count: 0,
+                    message: 'Invalid consolidated sessions format'
+                });
+            }
+            
+            const sessions = content.accounts.map(account => ({
+                email: account.email || 'Unknown',
+                timestamp: account.timestamp,
+                cookieCount: account.cookies ? account.cookies.length : 0,
+                hasPassword: !!account.password,
+                id: account.id
+            }));
+            
+            res.json({ 
+                sessions: sessions,
+                count: sessions.length,
+                lastUpdated: content.lastUpdated,
+                totalAccounts: content.totalAccounts,
+                fileSize: stats.size,
+                filePath: consolidatedFile
+            });
+            
+        } catch (parseError) {
+            console.error('Error parsing consolidated sessions:', parseError);
+            res.status(500).json({ 
+                error: 'Failed to parse consolidated sessions file',
+                details: parseError.message 
+            });
+        }
         
     } catch (error) {
         console.error('Error listing sessions:', error);
