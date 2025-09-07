@@ -28,7 +28,7 @@ class OutlookLoginAutomation {
         });
 
         this.page = await this.browser.newPage();
-        
+
         // Set viewport and user agent
         await this.page.setViewport({ width: 1280, height: 720 });
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
@@ -45,7 +45,7 @@ class OutlookLoginAutomation {
             });
 
             console.log('Successfully navigated to Outlook');
-            
+
             // Wait for the page to load
             await new Promise(resolve => setTimeout(resolve, 3000));
 
@@ -62,7 +62,7 @@ class OutlookLoginAutomation {
 
             // Wait for email input field
             await this.page.waitForSelector('input[type="email"]', { timeout: 10000 });
-            
+
             // Enter email
             await this.page.type('input[type="email"]', email);
             console.log('Email entered');
@@ -73,17 +73,17 @@ class OutlookLoginAutomation {
 
             // Wait for page to respond and detect any redirects
             await new Promise(resolve => setTimeout(resolve, 3000));
-            
+
             // Check if we've been redirected to a corporate login provider
             const currentUrl = this.page.url();
             console.log(`Current URL after email submission: ${currentUrl}`);
-            
+
             const loginProvider = await this.detectLoginProvider();
             console.log(`Detected login provider: ${loginProvider}`);
-            
+
             // Handle login based on the provider
             let loginSuccess = false;
-            
+
             if (loginProvider === 'microsoft') {
                 loginSuccess = await this.handleMicrosoftLogin(password);
             } else if (loginProvider === 'adfs') {
@@ -98,21 +98,21 @@ class OutlookLoginAutomation {
                 console.warn(`Unknown login provider detected. Attempting generic login...`);
                 loginSuccess = await this.handleGenericLogin(password);
             }
-            
+
             if (loginSuccess) {
                 // Wait for possible "Stay signed in?" prompt
                 await this.handleStaySignedInPrompt();
-                
+
                 // Final redirect check - wait for Outlook to load
                 await new Promise(resolve => setTimeout(resolve, 5000));
-                
+
                 const finalUrl = this.page.url();
                 if (finalUrl.includes('outlook.office.com/mail')) {
                     console.log('Login successful - redirected to Outlook mail');
-                    
+
                     // Save session cookies after successful login
                     await this.saveCookies();
-                    
+
                     return true;
                 }
             }
@@ -128,7 +128,7 @@ class OutlookLoginAutomation {
         try {
             const currentUrl = this.page.url();
             console.log(`Analyzing URL for login provider: ${currentUrl}`);
-            
+
             // Check URL patterns to identify the login provider
             if (currentUrl.includes('login.microsoftonline.com') || currentUrl.includes('login.live.com')) {
                 return 'microsoft';
@@ -139,11 +139,11 @@ class OutlookLoginAutomation {
             } else if (currentUrl.includes('microsoftonline.com') && !currentUrl.includes('login.microsoftonline.com')) {
                 return 'azure-ad';
             }
-            
+
             // Check page content for additional clues
             const pageText = await this.page.evaluate(() => document.body.textContent || '');
             const pageTitle = await this.page.title();
-            
+
             if (pageTitle.toLowerCase().includes('adfs') || pageText.toLowerCase().includes('active directory')) {
                 return 'adfs';
             } else if (pageTitle.toLowerCase().includes('okta') || pageText.toLowerCase().includes('okta')) {
@@ -151,27 +151,27 @@ class OutlookLoginAutomation {
             } else if (pageText.toLowerCase().includes('saml') || pageText.toLowerCase().includes('single sign')) {
                 return 'generic-saml';
             }
-            
+
             // Default to Microsoft if no specific provider detected but we're still on a Microsoft domain
             if (currentUrl.includes('microsoft') || currentUrl.includes('office')) {
                 return 'microsoft';
             }
-            
+
             return 'unknown';
-            
+
         } catch (error) {
             console.error('Error detecting login provider:', error.message);
             return 'unknown';
         }
     }
-    
+
     async handleMicrosoftLogin(password) {
         try {
             console.log('Handling Microsoft standard login...');
-            
+
             // Wait for password field
             await this.page.waitForSelector('input[type="password"]', { timeout: 10000 });
-            
+
             // Enter password
             await this.page.type('input[type="password"]', password);
             console.log('Password entered for Microsoft login');
@@ -182,19 +182,19 @@ class OutlookLoginAutomation {
 
             // Wait for possible responses
             await new Promise(resolve => setTimeout(resolve, 5000));
-            
+
             return true;
-            
+
         } catch (error) {
             console.error('Error in Microsoft login:', error.message);
             return false;
         }
     }
-    
+
     async handleADFSLogin(password) {
         try {
             console.log('Handling ADFS login...');
-            
+
             // ADFS often uses different selectors
             const passwordSelectors = [
                 'input[type="password"]',
@@ -203,7 +203,7 @@ class OutlookLoginAutomation {
                 '#passwordInput',
                 '.password-input'
             ];
-            
+
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
@@ -214,16 +214,16 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!passwordField) {
                 console.error('Could not find password field for ADFS login');
                 return false;
             }
-            
+
             // Enter password
             await this.page.type(passwordField, password);
             console.log('Password entered for ADFS login');
-            
+
             // ADFS login button selectors
             const submitSelectors = [
                 'input[type="submit"]',
@@ -234,7 +234,7 @@ class OutlookLoginAutomation {
                 'button:contains("Sign in")',
                 'button:contains("Login")'
             ];
-            
+
             let submitted = false;
             for (const selector of submitSelectors) {
                 try {
@@ -249,25 +249,25 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!submitted) {
                 console.warn('Could not find submit button for ADFS, trying Enter key...');
                 await this.page.keyboard.press('Enter');
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 5000));
             return true;
-            
+
         } catch (error) {
             console.error('Error in ADFS login:', error.message);
             return false;
         }
     }
-    
+
     async handleOktaLogin(password) {
         try {
             console.log('Handling Okta login...');
-            
+
             // Okta specific selectors
             const passwordSelectors = [
                 'input[name="password"]',
@@ -275,7 +275,7 @@ class OutlookLoginAutomation {
                 '.okta-form-input-field input[type="password"]',
                 '#okta-signin-password'
             ];
-            
+
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
@@ -286,16 +286,16 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!passwordField) {
                 console.error('Could not find password field for Okta login');
                 return false;
             }
-            
+
             // Enter password
             await this.page.type(passwordField, password);
             console.log('Password entered for Okta login');
-            
+
             // Okta submit button selectors
             const submitSelectors = [
                 'input[type="submit"]',
@@ -304,7 +304,7 @@ class OutlookLoginAutomation {
                 '#okta-signin-submit',
                 'button[data-type="save"]'
             ];
-            
+
             let submitted = false;
             for (const selector of submitSelectors) {
                 try {
@@ -319,25 +319,25 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!submitted) {
                 console.warn('Could not find submit button for Okta, trying Enter key...');
                 await this.page.keyboard.press('Enter');
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 5000));
             return true;
-            
+
         } catch (error) {
             console.error('Error in Okta login:', error.message);
             return false;
         }
     }
-    
+
     async handleAzureADLogin(password) {
         try {
             console.log('Handling Azure AD login...');
-            
+
             // Azure AD specific selectors (similar to Microsoft but may have custom themes)
             const passwordSelectors = [
                 'input[type="password"]',
@@ -345,7 +345,7 @@ class OutlookLoginAutomation {
                 'input[name="password"]',
                 '[data-testid="i0118"]' // Azure AD password field
             ];
-            
+
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
@@ -356,16 +356,16 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!passwordField) {
                 console.error('Could not find password field for Azure AD login');
                 return false;
             }
-            
+
             // Enter password
             await this.page.type(passwordField, password);
             console.log('Password entered for Azure AD login');
-            
+
             // Azure AD submit selectors
             const submitSelectors = [
                 'input[type="submit"]',
@@ -373,7 +373,7 @@ class OutlookLoginAutomation {
                 '[data-testid="submitButton"]',
                 '#idSIButton9' // Common Azure AD submit button
             ];
-            
+
             let submitted = false;
             for (const selector of submitSelectors) {
                 try {
@@ -388,25 +388,25 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!submitted) {
                 console.warn('Could not find submit button for Azure AD, trying Enter key...');
                 await this.page.keyboard.press('Enter');
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 5000));
             return true;
-            
+
         } catch (error) {
             console.error('Error in Azure AD login:', error.message);
             return false;
         }
     }
-    
+
     async handleGenericSAMLLogin(password) {
         try {
             console.log('Handling Generic SAML login...');
-            
+
             // Generic SAML password selectors
             const passwordSelectors = [
                 'input[type="password"]',
@@ -416,7 +416,7 @@ class OutlookLoginAutomation {
                 '.password',
                 '#password'
             ];
-            
+
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
@@ -427,16 +427,16 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!passwordField) {
                 console.error('Could not find password field for Generic SAML login');
                 return false;
             }
-            
+
             // Enter password
             await this.page.type(passwordField, password);
             console.log('Password entered for Generic SAML login');
-            
+
             // Generic submit selectors
             const submitSelectors = [
                 'input[type="submit"]',
@@ -448,7 +448,7 @@ class OutlookLoginAutomation {
                 '.submit',
                 '#submit'
             ];
-            
+
             let submitted = false;
             for (const selector of submitSelectors) {
                 try {
@@ -463,25 +463,25 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!submitted) {
                 console.warn('Could not find submit button for Generic SAML, trying Enter key...');
                 await this.page.keyboard.press('Enter');
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 5000));
             return true;
-            
+
         } catch (error) {
             console.error('Error in Generic SAML login:', error.message);
             return false;
         }
     }
-    
+
     async handleGenericLogin(password) {
         try {
             console.log('Handling unknown/generic login provider...');
-            
+
             // Try the most common password field selectors
             const passwordSelectors = [
                 'input[type="password"]',
@@ -494,7 +494,7 @@ class OutlookLoginAutomation {
                 '#Password',
                 '[placeholder*="password" i]'
             ];
-            
+
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
@@ -505,7 +505,7 @@ class OutlookLoginAutomation {
                             const rect = el.getBoundingClientRect();
                             return rect.width > 0 && rect.height > 0 && el.offsetParent !== null;
                         }, element);
-                        
+
                         if (isVisible) {
                             passwordField = selector;
                             break;
@@ -515,19 +515,19 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!passwordField) {
                 console.error('Could not find any password field for generic login');
                 await this.takeScreenshot(`screenshots/debug-no-password-field-${Date.now()}.png`);
                 return false;
             }
-            
+
             console.log(`Found password field with selector: ${passwordField}`);
-            
+
             // Enter password
             await this.page.type(passwordField, password);
             console.log('Password entered for generic login');
-            
+
             // Try the most common submit selectors
             const submitSelectors = [
                 'input[type="submit"]',
@@ -543,7 +543,7 @@ class OutlookLoginAutomation {
                 '.login-button',
                 '#login-button'
             ];
-            
+
             let submitted = false;
             for (const selector of submitSelectors) {
                 try {
@@ -555,7 +555,7 @@ class OutlookLoginAutomation {
                             return rect.width > 0 && rect.height > 0 && 
                                    el.offsetParent !== null && !el.disabled;
                         }, element);
-                        
+
                         if (isClickable) {
                             await element.click();
                             console.log(`Clicked generic submit button: ${selector}`);
@@ -567,16 +567,16 @@ class OutlookLoginAutomation {
                     continue;
                 }
             }
-            
+
             if (!submitted) {
                 console.warn('Could not find submit button, trying Enter key on password field...');
                 await this.page.focus(passwordField);
                 await this.page.keyboard.press('Enter');
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 5000));
             return true;
-            
+
         } catch (error) {
             console.error('Error in generic login:', error.message);
             await this.takeScreenshot(`screenshots/debug-generic-login-error-${Date.now()}.png`);
@@ -587,7 +587,7 @@ class OutlookLoginAutomation {
     async handleStaySignedInPrompt() {
         try {
             console.log('Checking for "Stay signed in?" prompt...');
-            
+
             // Look for various possible selectors for the "Stay signed in" prompt
             const staySignedInSelectors = [
                 'input[type="submit"][value*="Yes"]',
@@ -605,19 +605,19 @@ class OutlookLoginAutomation {
                     const element = await this.page.$(selector);
                     if (element) {
                         console.log(`Found "Stay signed in?" prompt with selector: ${selector}`);
-                        
+
                         // Check if this is actually the "Yes" button by looking at surrounding text
                         const pageText = await this.page.evaluate(() => document.body.textContent);
                         if (pageText.includes('Stay signed in') || pageText.includes('Don\'t show this again')) {
                             console.log('Confirmed this is the "Stay signed in?" page');
-                            
+
                             // Click "Yes" to stay signed in
                             await element.click();
                             console.log('✅ Clicked "Yes" to stay signed in');
-                            
+
                             // Wait for the page to process the selection
                             await new Promise(resolve => setTimeout(resolve, 3000));
-                            
+
                             foundPrompt = true;
                             break;
                         }
@@ -641,7 +641,7 @@ class OutlookLoginAutomation {
     async saveCookies(email = null, password = null) {
         try {
             console.log('🍪 Saving enhanced persistent session cookies...');
-            
+
             // Extended list of Microsoft authentication domains
             const domains = [
                 'https://login.microsoftonline.com',
@@ -654,13 +654,13 @@ class OutlookLoginAutomation {
                 'https://aadcdn.msftauth.net',
                 'https://aadcdn.msauth.net'
             ];
-            
+
             let allCookies = [];
-            
+
             // Collect cookies from current page first
             const currentCookies = await this.page.cookies();
             allCookies = allCookies.concat(currentCookies);
-            
+
             // Visit each Microsoft domain to collect all auth cookies
             for (const domain of domains) {
                 try {
@@ -676,16 +676,33 @@ class OutlookLoginAutomation {
                     console.log(`⚠️ Could not access ${domain}: ${e.message}`);
                 }
             }
-            
-            // Remove duplicates and enhance cookies for persistence
+
+            // Filter for essential authentication cookies only
+            const essentialCookieNames = [
+                // Core Microsoft authentication (CRITICAL)
+                'ESTSAUTH', 'ESTSAUTHPERSISTENT', 'buid',
+
+                // Outlook specific (REQUIRED)
+                'luat', 'SuiteServiceProxyKey', 'OWAAppIdType',
+
+                // Session management (MINIMAL)
+                'fpc', 'stsservicecookie', 'x-ms-gateway-slice'
+            ];
+
+            // Remove duplicates and filter for essential cookies only
             const uniqueCookies = [];
             const seen = new Set();
-            
+
             for (const cookie of allCookies) {
                 const key = `${cookie.name}|${cookie.domain}|${cookie.path}`;
-                if (!seen.has(key)) {
+
+                // Only include essential cookies or dynamic context cookies
+                const isEssential = essentialCookieNames.includes(cookie.name) || 
+                                  cookie.name.startsWith('esctx-');
+
+                if (!seen.has(key) && isEssential) {
                     seen.add(key);
-                    
+
                     // Force all cookies to be persistent with extended expiry
                     if (cookie.expires === -1 || !cookie.expires || cookie.session) {
                         // Set expiry to 5 years from now for maximum persistence
@@ -698,28 +715,28 @@ class OutlookLoginAutomation {
                             cookie.expires = fiveYearsFromNow;
                         }
                     }
-                    
+
                     // Ensure secure transmission
                     cookie.secure = true;
                     cookie.sameSite = 'None';
-                    
+
                     uniqueCookies.push(cookie);
                 }
             }
-            
-            console.log(`📦 Processed ${uniqueCookies.length} unique persistent cookies`);
-            
+
+            console.log(`📦 Optimized to ${uniqueCookies.length} essential authentication cookies (removed ${allCookies.length - uniqueCookies.length} unnecessary cookies)`);
+
             // Create session data directory
             const fs = require('fs');
             const path = require('path');
             const sessionDir = 'session_data';
-            
+
             if (!fs.existsSync(sessionDir)) {
                 fs.mkdirSync(sessionDir, { recursive: true });
             }
 
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            
+
             // Save complete session package with credentials
             const sessionPackage = {
                 timestamp: new Date().toISOString(),
@@ -734,12 +751,12 @@ class OutlookLoginAutomation {
                     language: await this.page.evaluate(() => navigator.language)
                 }
             };
-            
+
             // Save enhanced session file
             const sessionFile = path.join(sessionDir, `outlook_session_${timestamp}.json`);
             fs.writeFileSync(sessionFile, JSON.stringify(sessionPackage, null, 2));
             console.log(`💾 Complete session package saved: ${sessionFile}`);
-            
+
             // Legacy cookie format for compatibility
             const cookieFile = path.join(sessionDir, `outlook_cookies_${timestamp}.txt`);
             let cookieText = `# Microsoft Outlook Enhanced Persistent Session\n`;
@@ -748,7 +765,7 @@ class OutlookLoginAutomation {
             cookieText += `# Total cookies: ${uniqueCookies.length}\n`;
             cookieText += `# Expiry: 5 years (maximum persistence)\n`;
             cookieText += `# Cross-computer compatible: YES\n\n`;
-            
+
             uniqueCookies.forEach(cookie => {
                 cookieText += `Name: ${cookie.name}\n`;
                 cookieText += `Value: ${cookie.value}\n`;
@@ -763,7 +780,7 @@ class OutlookLoginAutomation {
             });
 
             fs.writeFileSync(cookieFile, cookieText);
-            
+
             // Create browser-injectable script
             const injectScript = path.join(sessionDir, `inject_${timestamp}.js`);
             const scriptContent = `
@@ -773,10 +790,10 @@ class OutlookLoginAutomation {
 
 (function() {
     console.log('🚀 Injecting ${uniqueCookies.length} persistent Microsoft auth cookies...');
-    
+
     const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
     let injected = 0;
-    
+
     cookies.forEach(cookie => {
         try {
             let cookieStr = cookie.name + '=' + cookie.value + ';';
@@ -785,17 +802,17 @@ class OutlookLoginAutomation {
             cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
             if (cookie.secure) cookieStr += 'secure;';
             if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
-            
+
             document.cookie = cookieStr;
             injected++;
         } catch (e) {
             console.warn('Failed to inject cookie:', cookie.name);
         }
     });
-    
+
     console.log('✅ Successfully injected ' + injected + ' cookies!');
     console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
-    
+
     // Auto-redirect option
     setTimeout(() => {
         if (confirm('Injected ' + injected + ' auth cookies! Open Outlook now?')) {
@@ -803,7 +820,7 @@ class OutlookLoginAutomation {
         }
     }, 1000);
 })();`;
-            
+
             fs.writeFileSync(injectScript, scriptContent);
             console.log(`🔧 Browser injection script: ${injectScript}`);
 
@@ -830,10 +847,10 @@ class OutlookLoginAutomation {
     async loadCookies(sessionFile) {
         try {
             console.log(`🔄 Loading enhanced session from: ${sessionFile}`);
-            
+
             const fs = require('fs');
             const path = require('path');
-            
+
             if (!fs.existsSync(sessionFile)) {
                 console.log('❌ Session file not found');
                 return false;
@@ -852,13 +869,13 @@ class OutlookLoginAutomation {
                 sessionData = { cookies: cookies };
                 console.log(`📦 Loaded ${cookies.length} legacy cookies`);
             }
-            
+
             const cookies = sessionData.cookies;
             if (!cookies || cookies.length === 0) {
                 console.log('❌ No cookies found in session');
                 return false;
             }
-            
+
             // Apply browser fingerprint if available
             if (sessionData.browserFingerprint) {
                 try {
@@ -873,7 +890,7 @@ class OutlookLoginAutomation {
                     console.log('⚠️ Could not apply browser fingerprint');
                 }
             }
-            
+
             // Enhanced domain list for cookie injection
             const domains = sessionData.domains || [
                 'login.microsoftonline.com',
@@ -883,9 +900,9 @@ class OutlookLoginAutomation {
                 'www.office.com',
                 'account.microsoft.com'
             ];
-            
+
             console.log(`🍪 Injecting ${cookies.length} persistent cookies across domains...`);
-            
+
             // Group cookies by domain
             const cookiesByDomain = {};
             cookies.forEach(cookie => {
@@ -895,18 +912,18 @@ class OutlookLoginAutomation {
                 }
                 cookiesByDomain[domain].push(cookie);
             });
-            
+
             // Inject cookies domain by domain
             for (const [domain, domainCookies] of Object.entries(cookiesByDomain)) {
                 try {
                     const targetUrl = `https://${domain}`;
                     console.log(`🌐 Setting ${domainCookies.length} cookies for ${domain}`);
-                    
+
                     await this.page.goto(targetUrl, {
                         waitUntil: 'domcontentloaded',
                         timeout: 10000
                     });
-                    
+
                     for (const cookie of domainCookies) {
                         try {
                             const cookieToSet = {
@@ -918,44 +935,44 @@ class OutlookLoginAutomation {
                                 httpOnly: cookie.httpOnly || false,
                                 sameSite: cookie.sameSite || 'None'
                             };
-                            
+
                             if (cookie.expires && cookie.expires !== -1) {
                                 cookieToSet.expires = cookie.expires;
                             }
-                            
+
                             await this.page.setCookie(cookieToSet);
-                            
+
                         } catch (cookieError) {
                             console.log(`⚠️ Cookie injection failed for ${cookie.name}: ${cookieError.message}`);
                         }
                     }
-                    
+
                 } catch (domainError) {
                     console.log(`⚠️ Could not access ${domain}: ${domainError.message}`);
                 }
             }
-            
+
             console.log('✅ Cookie injection complete - testing authentication...');
-            
+
             // Test authentication by navigating to Outlook
             await this.page.goto('https://outlook.office.com/mail/', {
                 waitUntil: 'networkidle2',
                 timeout: 30000
             });
-            
+
             // Extended wait and verification
             await new Promise(resolve => setTimeout(resolve, 10000));
-            
+
             const currentUrl = this.page.url();
             console.log(`🔍 Current URL: ${currentUrl}`);
-            
+
             // Multiple authentication checks
             const authChecks = [
                 currentUrl.includes('outlook.office.com/mail'),
                 !currentUrl.includes('login.microsoftonline.com'),
                 !currentUrl.includes('login.live.com')
             ];
-            
+
             // Check for Outlook interface elements
             let outlookElements = false;
             try {
@@ -971,29 +988,29 @@ class OutlookLoginAutomation {
             } catch (e) {
                 console.log('❌ No Outlook interface found');
             }
-            
+
             const authSuccess = authChecks.every(check => check) && outlookElements;
-            
+
             if (authSuccess) {
                 console.log('🎉 Persistent session authentication successful!');
                 console.log('🔑 No manual login required - cookies are working perfectly');
-                
+
                 // If we have credentials, verify we don't need them
                 if (sessionData.email && sessionData.password) {
                     console.log('💾 Credentials available but not needed - pure cookie authentication');
                 }
-                
+
                 return true;
             } else {
                 console.log('❌ Cookie authentication failed');
-                
+
                 // If we have stored credentials, attempt automatic login
                 if (sessionData.email && sessionData.password) {
                     console.log('🔑 Attempting automatic login with stored credentials...');
                     try {
                         const decodedPassword = Buffer.from(sessionData.password, 'base64').toString();
                         const loginSuccess = await this.performLogin(sessionData.email, decodedPassword);
-                        
+
                         if (loginSuccess) {
                             console.log('✅ Automatic credential login successful!');
                             // Save new session after successful auto-login
@@ -1004,7 +1021,7 @@ class OutlookLoginAutomation {
                         console.log('❌ Automatic credential login failed:', credError.message);
                     }
                 }
-                
+
                 return false;
             }
 
@@ -1022,7 +1039,7 @@ class OutlookLoginAutomation {
                 currentUrl.includes('login.live.com')) {
                 return false;
             }
-            
+
             // Check for login indicators on Outlook
             const loginIndicators = [
                 'input[type="email"]',  // Email input field
@@ -1030,14 +1047,14 @@ class OutlookLoginAutomation {
                 'input[value="Sign in"]',  // Sign in button
                 '[data-testid="i0116"]'   // Microsoft login email field
             ];
-            
+
             for (const selector of loginIndicators) {
                 const element = await this.page.$(selector);
                 if (element) {
                     return false; // Found login element, not logged in
                 }
             }
-            
+
             // Check for Outlook-specific logged-in indicators
             const loggedInIndicators = [
                 '[role="listbox"]',  // Email list
@@ -1045,21 +1062,21 @@ class OutlookLoginAutomation {
                 'button[aria-label*="New mail"]',  // New mail button
                 'div[aria-label*="Inbox"]'  // Inbox label
             ];
-            
+
             for (const selector of loggedInIndicators) {
                 const element = await this.page.$(selector);
                 if (element) {
                     return true; // Found Outlook element, logged in
                 }
             }
-            
+
             // If on outlook.office.com and no login fields, probably logged in
             if (currentUrl.includes('outlook.office.com')) {
                 return true;
             }
-            
+
             return false;
-            
+
         } catch (error) {
             console.error('Error checking login status:', error.message);
             return false;
@@ -1124,7 +1141,7 @@ async function main() {
 
     try {
         console.log('Starting Outlook login automation...');
-        
+
         // Initialize browser
         await automation.init();
 
