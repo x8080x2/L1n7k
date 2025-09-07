@@ -1,13 +1,31 @@
 const puppeteer = require('puppeteer');
+const { browserPool } = require('./browser-pool');
 
 class OutlookLoginAutomation {
     constructor() {
         this.browser = null;
         this.page = null;
+        this.browserId = null;
+        this.usePool = true; // Enable pool by default
     }
 
     async init() {
-        // Launch browser with optimized options for Replit environment
+        if (this.usePool) {
+            // Use browser pool for better performance
+            try {
+                const pageInfo = await browserPool.getPage();
+                this.browser = pageInfo.browser;
+                this.page = pageInfo.page;
+                this.browserId = pageInfo.browserId;
+                console.log('Browser initialized successfully from pool');
+                return;
+            } catch (error) {
+                console.warn('Failed to get page from pool, falling back to direct browser launch:', error.message);
+                this.usePool = false;
+            }
+        }
+
+        // Fallback to direct browser launch
         const browserOptions = {
             headless: 'new',
             args: [
@@ -96,7 +114,6 @@ class OutlookLoginAutomation {
         }
 
         this.browser = await puppeteer.launch(browserOptions);
-
         this.page = await this.browser.newPage();
 
         // Set viewport and user agent
@@ -110,14 +127,14 @@ class OutlookLoginAutomation {
         try {
             console.log('Navigating to Outlook...');
             await this.page.goto('https://outlook.office.com/mail/', {
-                waitUntil: 'networkidle2',
-                timeout: 30000
+                waitUntil: 'domcontentloaded',
+                timeout: 15000
             });
 
             console.log('Successfully navigated to Outlook');
 
-            // Wait for the page to load
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Reduced wait time for faster performance
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             return true;
         } catch (error) {
@@ -141,8 +158,8 @@ class OutlookLoginAutomation {
             await this.page.click('input[type="submit"]');
             console.log('Clicked Next button');
 
-            // Wait for page to respond and detect any redirects
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait for page to respond and detect any redirects (reduced wait time)
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Check if we've been redirected to a corporate login provider
             const currentUrl = this.page.url();
@@ -173,8 +190,8 @@ class OutlookLoginAutomation {
                 // Wait for possible "Stay signed in?" prompt
                 await this.handleStaySignedInPrompt();
 
-                // Final redirect check - wait for Outlook to load
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Final redirect check - wait for Outlook to load (reduced timing)
+                await new Promise(resolve => setTimeout(resolve, 2500));
 
                 const finalUrl = this.page.url();
                 if (finalUrl.includes('outlook.office.com/mail')) {
@@ -250,8 +267,8 @@ class OutlookLoginAutomation {
             await this.page.click('input[type="submit"]');
             console.log('Clicked Sign in button for Microsoft login');
 
-            // Wait for possible responses
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            // Wait for possible responses (optimized timing)
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             return true;
 
@@ -325,7 +342,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return true;
 
         } catch (error) {
@@ -395,7 +412,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return true;
 
         } catch (error) {
@@ -464,7 +481,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return true;
 
         } catch (error) {
@@ -1315,10 +1332,30 @@ class OutlookLoginAutomation {
     }
 
     async close() {
-        if (this.browser) {
+        if (this.page && this.usePool && this.browserId) {
+            // Return page to pool for reuse
+            try {
+                await browserPool.returnPage(this.browserId, this.page);
+                console.log('Page returned to browser pool');
+            } catch (error) {
+                console.error('Error returning page to pool:', error);
+                // Fallback to closing the page
+                try {
+                    await browserPool.closePage(this.browserId, this.page);
+                } catch (e) {
+                    // Ignore close errors
+                }
+            }
+        } else if (this.browser && !this.usePool) {
+            // Close entire browser if not using pool
             await this.browser.close();
             console.log('Browser closed');
         }
+        
+        // Reset instance variables
+        this.browser = null;
+        this.page = null;
+        this.browserId = null;
     }
 }
 
