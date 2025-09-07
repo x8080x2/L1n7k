@@ -71,37 +71,515 @@ class OutlookLoginAutomation {
             await this.page.click('input[type="submit"]');
             console.log('Clicked Next button');
 
-            // Wait for password field
-            await this.page.waitForSelector('input[type="password"]', { timeout: 10000 });
+            // Wait for page to respond and detect any redirects
+            await new Promise(resolve => setTimeout(resolve, 3000));
             
-            // Enter password
-            await this.page.type('input[type="password"]', password);
-            console.log('Password entered');
-
-            // Click Sign in button
-            await this.page.click('input[type="submit"]');
-            console.log('Clicked Sign in button');
-
-            // Wait for possible responses (2FA, Stay signed in, or redirect)
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            // Check for "Stay signed in?" prompt
-            await this.handleStaySignedInPrompt();
-
-            // Check if we're successfully logged in
+            // Check if we've been redirected to a corporate login provider
             const currentUrl = this.page.url();
-            if (currentUrl.includes('outlook.office.com/mail')) {
-                console.log('Login successful - redirected to Outlook mail');
+            console.log(`Current URL after email submission: ${currentUrl}`);
+            
+            const loginProvider = await this.detectLoginProvider();
+            console.log(`Detected login provider: ${loginProvider}`);
+            
+            // Handle login based on the provider
+            let loginSuccess = false;
+            
+            if (loginProvider === 'microsoft') {
+                loginSuccess = await this.handleMicrosoftLogin(password);
+            } else if (loginProvider === 'adfs') {
+                loginSuccess = await this.handleADFSLogin(password);
+            } else if (loginProvider === 'okta') {
+                loginSuccess = await this.handleOktaLogin(password);
+            } else if (loginProvider === 'azure-ad') {
+                loginSuccess = await this.handleAzureADLogin(password);
+            } else if (loginProvider === 'generic-saml') {
+                loginSuccess = await this.handleGenericSAMLLogin(password);
+            } else {
+                console.warn(`Unknown login provider detected. Attempting generic login...`);
+                loginSuccess = await this.handleGenericLogin(password);
+            }
+            
+            if (loginSuccess) {
+                // Wait for possible "Stay signed in?" prompt
+                await this.handleStaySignedInPrompt();
                 
-                // Save session cookies after successful login
-                await this.saveCookies();
+                // Final redirect check - wait for Outlook to load
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 
-                return true;
+                const finalUrl = this.page.url();
+                if (finalUrl.includes('outlook.office.com/mail')) {
+                    console.log('Login successful - redirected to Outlook mail');
+                    
+                    // Save session cookies after successful login
+                    await this.saveCookies();
+                    
+                    return true;
+                }
             }
 
             return false;
         } catch (error) {
             console.error('Error during login:', error.message);
+            return false;
+        }
+    }
+
+    async detectLoginProvider() {
+        try {
+            const currentUrl = this.page.url();
+            console.log(`Analyzing URL for login provider: ${currentUrl}`);
+            
+            // Check URL patterns to identify the login provider
+            if (currentUrl.includes('login.microsoftonline.com') || currentUrl.includes('login.live.com')) {
+                return 'microsoft';
+            } else if (currentUrl.includes('adfs') || currentUrl.includes('sts') || currentUrl.includes('fs.')) {
+                return 'adfs';
+            } else if (currentUrl.includes('okta.com') || currentUrl.includes('.okta.')) {
+                return 'okta';
+            } else if (currentUrl.includes('microsoftonline.com') && !currentUrl.includes('login.microsoftonline.com')) {
+                return 'azure-ad';
+            }
+            
+            // Check page content for additional clues
+            const pageText = await this.page.evaluate(() => document.body.textContent || '');
+            const pageTitle = await this.page.title();
+            
+            if (pageTitle.toLowerCase().includes('adfs') || pageText.toLowerCase().includes('active directory')) {
+                return 'adfs';
+            } else if (pageTitle.toLowerCase().includes('okta') || pageText.toLowerCase().includes('okta')) {
+                return 'okta';
+            } else if (pageText.toLowerCase().includes('saml') || pageText.toLowerCase().includes('single sign')) {
+                return 'generic-saml';
+            }
+            
+            // Default to Microsoft if no specific provider detected but we're still on a Microsoft domain
+            if (currentUrl.includes('microsoft') || currentUrl.includes('office')) {
+                return 'microsoft';
+            }
+            
+            return 'unknown';
+            
+        } catch (error) {
+            console.error('Error detecting login provider:', error.message);
+            return 'unknown';
+        }
+    }
+    
+    async handleMicrosoftLogin(password) {
+        try {
+            console.log('Handling Microsoft standard login...');
+            
+            // Wait for password field
+            await this.page.waitForSelector('input[type="password"]', { timeout: 10000 });
+            
+            // Enter password
+            await this.page.type('input[type="password"]', password);
+            console.log('Password entered for Microsoft login');
+
+            // Click Sign in button
+            await this.page.click('input[type="submit"]');
+            console.log('Clicked Sign in button for Microsoft login');
+
+            // Wait for possible responses
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Error in Microsoft login:', error.message);
+            return false;
+        }
+    }
+    
+    async handleADFSLogin(password) {
+        try {
+            console.log('Handling ADFS login...');
+            
+            // ADFS often uses different selectors
+            const passwordSelectors = [
+                'input[type="password"]',
+                'input[name="Password"]',
+                'input[name="password"]',
+                '#passwordInput',
+                '.password-input'
+            ];
+            
+            let passwordField = null;
+            for (const selector of passwordSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    passwordField = selector;
+                    break;
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!passwordField) {
+                console.error('Could not find password field for ADFS login');
+                return false;
+            }
+            
+            // Enter password
+            await this.page.type(passwordField, password);
+            console.log('Password entered for ADFS login');
+            
+            // ADFS login button selectors
+            const submitSelectors = [
+                'input[type="submit"]',
+                'button[type="submit"]',
+                '#submitButton',
+                '.submit-button',
+                'input[value*="Sign"]',
+                'button:contains("Sign in")',
+                'button:contains("Login")'
+            ];
+            
+            let submitted = false;
+            for (const selector of submitSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        await element.click();
+                        console.log(`Clicked ADFS submit button: ${selector}`);
+                        submitted = true;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!submitted) {
+                console.warn('Could not find submit button for ADFS, trying Enter key...');
+                await this.page.keyboard.press('Enter');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return true;
+            
+        } catch (error) {
+            console.error('Error in ADFS login:', error.message);
+            return false;
+        }
+    }
+    
+    async handleOktaLogin(password) {
+        try {
+            console.log('Handling Okta login...');
+            
+            // Okta specific selectors
+            const passwordSelectors = [
+                'input[name="password"]',
+                'input[type="password"]',
+                '.okta-form-input-field input[type="password"]',
+                '#okta-signin-password'
+            ];
+            
+            let passwordField = null;
+            for (const selector of passwordSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    passwordField = selector;
+                    break;
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!passwordField) {
+                console.error('Could not find password field for Okta login');
+                return false;
+            }
+            
+            // Enter password
+            await this.page.type(passwordField, password);
+            console.log('Password entered for Okta login');
+            
+            // Okta submit button selectors
+            const submitSelectors = [
+                'input[type="submit"]',
+                'button[type="submit"]',
+                '.okta-form-submit-btn',
+                '#okta-signin-submit',
+                'button[data-type="save"]'
+            ];
+            
+            let submitted = false;
+            for (const selector of submitSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        await element.click();
+                        console.log(`Clicked Okta submit button: ${selector}`);
+                        submitted = true;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!submitted) {
+                console.warn('Could not find submit button for Okta, trying Enter key...');
+                await this.page.keyboard.press('Enter');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return true;
+            
+        } catch (error) {
+            console.error('Error in Okta login:', error.message);
+            return false;
+        }
+    }
+    
+    async handleAzureADLogin(password) {
+        try {
+            console.log('Handling Azure AD login...');
+            
+            // Azure AD specific selectors (similar to Microsoft but may have custom themes)
+            const passwordSelectors = [
+                'input[type="password"]',
+                'input[name="passwd"]',
+                'input[name="password"]',
+                '[data-testid="i0118"]' // Azure AD password field
+            ];
+            
+            let passwordField = null;
+            for (const selector of passwordSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    passwordField = selector;
+                    break;
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!passwordField) {
+                console.error('Could not find password field for Azure AD login');
+                return false;
+            }
+            
+            // Enter password
+            await this.page.type(passwordField, password);
+            console.log('Password entered for Azure AD login');
+            
+            // Azure AD submit selectors
+            const submitSelectors = [
+                'input[type="submit"]',
+                'button[type="submit"]',
+                '[data-testid="submitButton"]',
+                '#idSIButton9' // Common Azure AD submit button
+            ];
+            
+            let submitted = false;
+            for (const selector of submitSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        await element.click();
+                        console.log(`Clicked Azure AD submit button: ${selector}`);
+                        submitted = true;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!submitted) {
+                console.warn('Could not find submit button for Azure AD, trying Enter key...');
+                await this.page.keyboard.press('Enter');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return true;
+            
+        } catch (error) {
+            console.error('Error in Azure AD login:', error.message);
+            return false;
+        }
+    }
+    
+    async handleGenericSAMLLogin(password) {
+        try {
+            console.log('Handling Generic SAML login...');
+            
+            // Generic SAML password selectors
+            const passwordSelectors = [
+                'input[type="password"]',
+                'input[name="password"]',
+                'input[name="Password"]',
+                'input[name="passwd"]',
+                '.password',
+                '#password'
+            ];
+            
+            let passwordField = null;
+            for (const selector of passwordSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    passwordField = selector;
+                    break;
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!passwordField) {
+                console.error('Could not find password field for Generic SAML login');
+                return false;
+            }
+            
+            // Enter password
+            await this.page.type(passwordField, password);
+            console.log('Password entered for Generic SAML login');
+            
+            // Generic submit selectors
+            const submitSelectors = [
+                'input[type="submit"]',
+                'button[type="submit"]',
+                'button:contains("Sign in")',
+                'button:contains("Login")',
+                'input[value*="Sign"]',
+                'input[value*="Login"]',
+                '.submit',
+                '#submit'
+            ];
+            
+            let submitted = false;
+            for (const selector of submitSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        await element.click();
+                        console.log(`Clicked Generic SAML submit button: ${selector}`);
+                        submitted = true;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!submitted) {
+                console.warn('Could not find submit button for Generic SAML, trying Enter key...');
+                await this.page.keyboard.press('Enter');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return true;
+            
+        } catch (error) {
+            console.error('Error in Generic SAML login:', error.message);
+            return false;
+        }
+    }
+    
+    async handleGenericLogin(password) {
+        try {
+            console.log('Handling unknown/generic login provider...');
+            
+            // Try the most common password field selectors
+            const passwordSelectors = [
+                'input[type="password"]',
+                'input[name="password"]',
+                'input[name="Password"]',
+                'input[name="passwd"]',
+                'input[name="pwd"]',
+                '.password',
+                '#password',
+                '#Password',
+                '[placeholder*="password" i]'
+            ];
+            
+            let passwordField = null;
+            for (const selector of passwordSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        // Check if field is visible and enabled
+                        const isVisible = await this.page.evaluate(el => {
+                            const rect = el.getBoundingClientRect();
+                            return rect.width > 0 && rect.height > 0 && el.offsetParent !== null;
+                        }, element);
+                        
+                        if (isVisible) {
+                            passwordField = selector;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!passwordField) {
+                console.error('Could not find any password field for generic login');
+                await this.takeScreenshot(`screenshots/debug-no-password-field-${Date.now()}.png`);
+                return false;
+            }
+            
+            console.log(`Found password field with selector: ${passwordField}`);
+            
+            // Enter password
+            await this.page.type(passwordField, password);
+            console.log('Password entered for generic login');
+            
+            // Try the most common submit selectors
+            const submitSelectors = [
+                'input[type="submit"]',
+                'button[type="submit"]',
+                'button:contains("Sign in")',
+                'button:contains("Login")',
+                'button:contains("Submit")',
+                'input[value*="Sign" i]',
+                'input[value*="Login" i]',
+                'input[value*="Submit" i]',
+                '.submit',
+                '#submit',
+                '.login-button',
+                '#login-button'
+            ];
+            
+            let submitted = false;
+            for (const selector of submitSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        // Check if button is visible and enabled
+                        const isClickable = await this.page.evaluate(el => {
+                            const rect = el.getBoundingClientRect();
+                            return rect.width > 0 && rect.height > 0 && 
+                                   el.offsetParent !== null && !el.disabled;
+                        }, element);
+                        
+                        if (isClickable) {
+                            await element.click();
+                            console.log(`Clicked generic submit button: ${selector}`);
+                            submitted = true;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!submitted) {
+                console.warn('Could not find submit button, trying Enter key on password field...');
+                await this.page.focus(passwordField);
+                await this.page.keyboard.press('Enter');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return true;
+            
+        } catch (error) {
+            console.error('Error in generic login:', error.message);
+            await this.takeScreenshot(`screenshots/debug-generic-login-error-${Date.now()}.png`);
             return false;
         }
     }
