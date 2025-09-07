@@ -673,7 +673,10 @@
                 const response = await fetch(`${API_BASE}/api/continue-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({ 
+                        password: password,
+                        sessionId: currentSessionId 
+                    })
                 });
 
                 const data = await response.json();
