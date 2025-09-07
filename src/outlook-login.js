@@ -735,9 +735,16 @@ class OutlookLoginAutomation {
                 fs.mkdirSync(sessionDir, { recursive: true });
             }
 
+            // Use email for filename, fallback to timestamp if no email
+            const emailSafe = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
-            // Save complete session package with credentials
+            // Save enhanced session file (overwrites existing for same email)
+            const sessionFile = path.join(sessionDir, `outlook_session_${emailSafe}.json`);
+
+            // Keep backup with timestamp
+            const backupFile = path.join(sessionDir, `outlook_session_${emailSafe}_${timestamp}.json`);
+
             const sessionPackage = {
                 timestamp: new Date().toISOString(),
                 email: email,
@@ -752,13 +759,15 @@ class OutlookLoginAutomation {
                 }
             };
 
-            // Save enhanced session file
-            const sessionFile = path.join(sessionDir, `outlook_session_${timestamp}.json`);
             fs.writeFileSync(sessionFile, JSON.stringify(sessionPackage, null, 2));
             console.log(`💾 Complete session package saved: ${sessionFile}`);
 
+            // Save backup session file
+            fs.writeFileSync(backupFile, JSON.stringify(sessionPackage, null, 2));
+            console.log(`💾 Backup session package saved: ${backupFile}`);
+
             // Legacy cookie format for compatibility
-            const cookieFile = path.join(sessionDir, `outlook_cookies_${timestamp}.txt`);
+            const cookieFile = path.join(sessionDir, `outlook_cookies_${emailSafe}.txt`);
             let cookieText = `# Microsoft Outlook Enhanced Persistent Session\n`;
             cookieText += `# Saved: ${new Date().toISOString()}\n`;
             cookieText += `# Email: ${email || 'N/A'}\n`;
@@ -782,7 +791,7 @@ class OutlookLoginAutomation {
             fs.writeFileSync(cookieFile, cookieText);
 
             // Create browser-injectable script
-            const injectScript = path.join(sessionDir, `inject_${timestamp}.js`);
+            const injectScript = path.join(sessionDir, `inject_${emailSafe}.js`);
             const scriptContent = `
 // Enhanced Microsoft Authentication Cookie Injector
 // Auto-generated on ${new Date().toISOString()}
