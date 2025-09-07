@@ -706,24 +706,71 @@ app.post('/api/load-session', async (req, res) => {
             });
         }
 
-        // Default to consolidated sessions file
-        const consolidatedFile = path.join('session_data', 'all_sessions.json');
-        const fileToLoad = sessionFile || consolidatedFile;
+        // Determine which session to load
+        let pathToLoad;
+        
+        if (sessionFile) {
+            // User specified a specific session file/directory
+            pathToLoad = sessionFile;
+        } else if (targetEmail) {
+            // Look for individual session directory for target email
+            const sessionDir = 'session_data';
+            const items = fs.readdirSync(sessionDir);
+            const emailDir = items.find(item => {
+                const itemPath = path.join(sessionDir, item);
+                if (fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_')) {
+                    const metadataFile = path.join(itemPath, 'session_metadata.json');
+                    if (fs.existsSync(metadataFile)) {
+                        try {
+                            const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
+                            return metadata.email === targetEmail;
+                        } catch (e) {
+                            return false;
+                        }
+                    }
+                }
+                return false;
+            });
+            
+            if (emailDir) {
+                pathToLoad = path.join(sessionDir, emailDir);
+            } else {
+                // Fallback to consolidated file
+                pathToLoad = path.join('session_data', 'all_sessions.json');
+            }
+        } else {
+            // Load any available session (prefer individual, fallback to consolidated)
+            const sessionDir = 'session_data';
+            const items = fs.readdirSync(sessionDir);
+            const sessionDirs = items.filter(item => {
+                const itemPath = path.join(sessionDir, item);
+                return fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_');
+            });
+            
+            if (sessionDirs.length > 0) {
+                // Use the most recent individual session
+                const sortedDirs = sessionDirs.sort().reverse(); // Simple sort by name (includes timestamp)
+                pathToLoad = path.join(sessionDir, sortedDirs[0]);
+            } else {
+                // Fallback to consolidated file
+                pathToLoad = path.join('session_data', 'all_sessions.json');
+            }
+        }
 
-        if (!fs.existsSync(fileToLoad)) {
+        if (!fs.existsSync(pathToLoad)) {
             return res.status(400).json({ 
-                error: 'Session file not found' 
+                error: 'Session file/directory not found' 
             });
         }
 
-        console.log(`🔄 Loading enhanced session: ${fileToLoad}`);
+        console.log(`🔄 Loading enhanced session: ${pathToLoad}`);
         if (targetEmail) {
             console.log(`📧 Target email: ${targetEmail}`);
         } else {
-            console.log(`📧 Loading all available accounts`);
+            console.log(`📧 Loading available session`);
         }
 
-        const loaded = await session.automation.loadCookies(fileToLoad, targetEmail);
+        const loaded = await session.automation.loadCookies(pathToLoad, targetEmail);
 
         if (loaded) {
             res.json({
@@ -759,49 +806,95 @@ app.get('/api/sessions', (req, res) => {
         const fs = require('fs');
         const path = require('path');
         const sessionDir = 'session_data';
-        const consolidatedFile = path.join(sessionDir, 'all_sessions.json');
 
-        if (!fs.existsSync(consolidatedFile)) {
+        if (!fs.existsSync(sessionDir)) {
             return res.json({ 
                 sessions: [],
                 count: 0,
-                message: 'No consolidated sessions file found'
+                message: 'No session directory found'
             });
         }
 
         try {
-            const content = JSON.parse(fs.readFileSync(consolidatedFile, 'utf8'));
-            const stats = fs.statSync(consolidatedFile);
+            const sessions = [];
+            const items = fs.readdirSync(sessionDir);
+            
+            // Look for individual session directories
+            for (const item of items) {
+                const itemPath = path.join(sessionDir, item);
+                
+                if (fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_')) {
+                    // Check for session metadata file
+                    const metadataFile = path.join(itemPath, 'session_metadata.json');
+                    
+                    if (fs.existsSync(metadataFile)) {
+                        try {
+                            const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
+                            const stats = fs.statSync(itemPath);
+                            
+                            // Count individual cookie files
+                            const cookieFiles = fs.readdirSync(itemPath).filter(file => 
+                                file.startsWith('cookie_') && file.endsWith('.json')
+                            );
+                            
+                            sessions.push({
+                                email: metadata.email || 'Unknown',
+                                timestamp: metadata.timestamp,
+                                cookieCount: cookieFiles.length,
+                                totalCookies: metadata.totalCookies,
+                                hasPassword: !!metadata.password,
+                                id: metadata.id,
+                                sessionPath: itemPath,
+                                lastModified: stats.mtime
+                            });
+                        } catch (e) {
+                            console.log(`⚠️ Failed to parse metadata for ${item}: ${e.message}`);
+                        }
+                    }
+                }
+            }
+            
+            // Also check for legacy consolidated file
+            const consolidatedFile = path.join(sessionDir, 'all_sessions.json');
+            if (fs.existsSync(consolidatedFile)) {
+                try {
+                    const content = JSON.parse(fs.readFileSync(consolidatedFile, 'utf8'));
+                    const stats = fs.statSync(consolidatedFile);
 
-            if (!content.accounts || !Array.isArray(content.accounts)) {
-                return res.json({ 
-                    sessions: [],
-                    count: 0,
-                    message: 'Invalid consolidated sessions format'
-                });
+                    if (content.accounts && Array.isArray(content.accounts)) {
+                        content.accounts.forEach(account => {
+                            sessions.push({
+                                email: account.email || 'Unknown',
+                                timestamp: account.timestamp,
+                                cookieCount: account.cookies ? account.cookies.length : 0,
+                                hasPassword: !!account.password,
+                                id: account.id,
+                                sessionPath: consolidatedFile,
+                                isLegacy: true,
+                                lastModified: stats.mtime
+                            });
+                        });
+                    }
+                } catch (e) {
+                    console.log(`⚠️ Failed to parse legacy consolidated file: ${e.message}`);
+                }
             }
 
-            const sessions = content.accounts.map(account => ({
-                email: account.email || 'Unknown',
-                timestamp: account.timestamp,
-                cookieCount: account.cookies ? account.cookies.length : 0,
-                hasPassword: !!account.password,
-                id: account.id
-            }));
+            // Sort by timestamp (newest first)
+            sessions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             res.json({ 
                 sessions: sessions,
                 count: sessions.length,
-                lastUpdated: content.lastUpdated,
-                totalAccounts: content.totalAccounts,
-                fileSize: stats.size,
-                filePath: consolidatedFile
+                individualSessions: sessions.filter(s => !s.isLegacy).length,
+                legacySessions: sessions.filter(s => s.isLegacy).length,
+                message: sessions.length === 0 ? 'No sessions found' : `Found ${sessions.length} session(s)`
             });
 
         } catch (parseError) {
-            console.error('Error parsing consolidated sessions:', parseError);
+            console.error('Error parsing sessions:', parseError);
             res.status(500).json({ 
-                error: 'Failed to parse consolidated sessions file',
+                error: 'Failed to parse sessions',
                 details: parseError.message 
             });
         }
