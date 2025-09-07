@@ -14,10 +14,47 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-// Store active automation instance (only one at a time)
-let currentAutomation = null;
-let currentSessionId = null;
-let isPreloaded = false;
+// Store multiple automation instances for concurrent users
+const activeSessions = new Map(); // sessionId -> { automation, isPreloaded, createdAt, email }
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
+
+// Cleanup expired sessions
+setInterval(() => {
+    const now = Date.now();
+    for (const [sessionId, session] of activeSessions.entries()) {
+        if (now - session.createdAt > SESSION_TIMEOUT) {
+            console.log(`🧹 Cleaning up expired session: ${sessionId}`);
+            try {
+                if (session.automation) {
+                    session.automation.close();
+                }
+            } catch (error) {
+                console.error(`Error closing expired session ${sessionId}:`, error);
+            }
+            activeSessions.delete(sessionId);
+        }
+    }
+}, 5 * 60 * 1000); // Check every 5 minutes
+
+// Helper function to get or create session
+function getOrCreateSession(sessionId = null) {
+    if (sessionId && activeSessions.has(sessionId)) {
+        return { sessionId, session: activeSessions.get(sessionId), isNew: false };
+    }
+    
+    // Create new session
+    const newSessionId = Date.now().toString();
+    const newSession = {
+        automation: null,
+        isPreloaded: false,
+        createdAt: Date.now(),
+        email: null
+    };
+    activeSessions.set(newSessionId, newSession);
+    
+    console.log(`📝 Created new session: ${newSessionId} (Total active: ${activeSessions.size})`);
+    return { sessionId: newSessionId, session: newSession, isNew: true };
+}
 
 // Routes
 
@@ -29,71 +66,60 @@ app.get('/api/health', (req, res) => {
 // Preload Outlook page
 app.post('/api/preload', async (req, res) => {
     try {
-        // If already preloaded or has active session, return status
-        if (isPreloaded && currentAutomation) {
+        const requestedSessionId = req.body.sessionId;
+        const { sessionId, session, isNew } = getOrCreateSession(requestedSessionId);
+
+        // If already preloaded for this session, return status
+        if (session.isPreloaded && session.automation) {
             return res.json({
                 status: 'already-loaded',
                 message: 'Outlook page is already loaded and ready',
-                sessionId: currentSessionId
+                sessionId: sessionId
             });
         }
 
-        // Close any existing automation
-        if (currentAutomation) {
-            console.log('Closing existing automation session...');
+        // Close any existing automation for this session
+        if (session.automation) {
+            console.log(`Closing existing automation for session ${sessionId}...`);
             try {
-                await currentAutomation.close();
+                await session.automation.close();
             } catch (error) {
                 console.error('Error closing existing session:', error);
             }
         }
 
         // Start new automation session for preloading
-        console.log('Preloading Outlook page...');
-        currentSessionId = Date.now().toString();
-        currentAutomation = new OutlookLoginAutomation();
+        console.log(`Preloading Outlook page for session ${sessionId}...`);
+        session.automation = new OutlookLoginAutomation();
 
         // Initialize browser
-        await currentAutomation.init();
+        await session.automation.init();
 
         // Automatic session loading disabled - always start fresh
         console.log('🔄 Starting fresh session (auto-restore disabled)...');
 
         // Navigate to Outlook (fallback if no session loaded)
-        const navigated = await currentAutomation.navigateToOutlook();
+        const navigated = await session.automation.navigateToOutlook();
         if (!navigated) {
-            await currentAutomation.close();
-            currentAutomation = null;
-            currentSessionId = null;
-            isPreloaded = false;
+            await session.automation.close();
+            session.automation = null;
+            session.isPreloaded = false;
             return res.status(500).json({ 
                 error: 'Failed to preload Outlook page' 
             });
         }
 
-        isPreloaded = true;
-        console.log('Outlook page preloaded successfully');
+        session.isPreloaded = true;
+        console.log(`Outlook page preloaded successfully for session ${sessionId}`);
 
         res.json({
             status: 'preloaded',
             message: 'Outlook page loaded and ready for email input',
-            sessionId: currentSessionId
+            sessionId: sessionId
         });
 
     } catch (error) {
         console.error('Error preloading Outlook:', error);
-
-        // Clean up on error
-        if (currentAutomation) {
-            try {
-                await currentAutomation.close();
-            } catch (closeError) {
-                console.error('Error closing automation on preload error:', closeError);
-            }
-            currentAutomation = null;
-            currentSessionId = null;
-            isPreloaded = false;
-        }
 
         res.status(500).json({ 
             error: 'Failed to preload Outlook',
@@ -105,7 +131,7 @@ app.post('/api/preload', async (req, res) => {
 // Process email login (uses preloaded page if available)
 app.post('/api/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, sessionId: requestedSessionId } = req.body;
 
         if (!email) {
             return res.status(400).json({ 
@@ -113,51 +139,52 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
+        const { sessionId, session, isNew } = getOrCreateSession(requestedSessionId);
+        session.email = email; // Store email in session
+
         // If not preloaded, start fresh session
-        if (!isPreloaded || !currentAutomation) {
-            console.log(`Starting fresh Puppeteer session for email: ${email}`);
+        if (!session.isPreloaded || !session.automation) {
+            console.log(`Starting fresh Puppeteer session for email: ${email} (Session: ${sessionId})`);
 
             // Close any existing automation
-            if (currentAutomation) {
+            if (session.automation) {
                 try {
-                    await currentAutomation.close();
+                    await session.automation.close();
                 } catch (error) {
                     console.error('Error closing existing session:', error);
                 }
             }
 
-            currentSessionId = Date.now().toString();
-            currentAutomation = new OutlookLoginAutomation();
+            session.automation = new OutlookLoginAutomation();
 
             // Initialize browser
-            await currentAutomation.init();
+            await session.automation.init();
 
             // Navigate to Outlook
-            const navigated = await currentAutomation.navigateToOutlook();
+            const navigated = await session.automation.navigateToOutlook();
             if (!navigated) {
-                await currentAutomation.close();
-                currentAutomation = null;
-                currentSessionId = null;
-                isPreloaded = false;
+                await session.automation.close();
+                session.automation = null;
+                session.isPreloaded = false;
                 return res.status(500).json({ 
                     error: 'Failed to navigate to Outlook' 
                 });
             }
 
-            isPreloaded = true;
+            session.isPreloaded = true;
         } else {
-            console.log(`Using preloaded Outlook page for email: ${email}`);
+            console.log(`Using preloaded Outlook page for email: ${email} (Session: ${sessionId})`);
         }
 
         // Take initial screenshot
-        await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-initial.png`);
+        await session.automation.takeScreenshot(`screenshots/session-${sessionId}-initial.png`);
 
         // Check if already logged in before trying to fill email
-        const isLoggedIn = await currentAutomation.isLoggedIn();
+        const isLoggedIn = await session.automation.isLoggedIn();
         if (isLoggedIn) {
             console.log('✅ User is already logged in to Outlook!');
             return res.json({
-                sessionId: currentSessionId,
+                sessionId: sessionId,
                 email: email,
                 loginComplete: true,
                 loginSuccess: true,
@@ -187,7 +214,7 @@ app.post('/api/login', async (req, res) => {
                     const newestCookieFile = path.join(cookiesDir, cookieFiles[0]);
                     console.log(`📄 Trying cookie authentication with: ${newestCookieFile}`);
 
-                    const cookieAuthSuccess = await currentAutomation.loadCookies(newestCookieFile);
+                    const cookieAuthSuccess = await session.automation.loadCookies(newestCookieFile);
                     if (cookieAuthSuccess) {
                         console.log('🎉 Cookie authentication successful! No password needed.');
                         loginSuccess = true;
@@ -201,28 +228,27 @@ app.post('/api/login', async (req, res) => {
             // If cookie auth failed, do full password login
             if (!loginSuccess) {
                 console.log('🔐 Performing full password login...');
-                loginSuccess = await currentAutomation.performLogin(email, password);
+                loginSuccess = await session.automation.performLogin(email, password);
                 authMethod = 'password';
                 
                 // If password login successful, save enhanced session with credentials
                 if (loginSuccess) {
                     console.log('💾 Saving enhanced session with credentials for future use...');
-                    await currentAutomation.saveCookies(email, password);
+                    await session.automation.saveCookies(email, password);
                     
                     // Close current session to restart fresh
                     console.log('🔄 Closing session to restart after cookie save...');
-                    await currentAutomation.close();
-                    currentAutomation = null;
-                    currentSessionId = null;
-                    isPreloaded = false;
+                    await session.automation.close();
+                    session.automation = null;
+                    session.isPreloaded = false;
                 }
             }
 
             // Take screenshot after login attempt
-            await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-login.png`);
+            await session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
 
             res.json({
-                sessionId: currentSessionId,
+                sessionId: sessionId,
                 email: email,
                 loginComplete: true,
                 loginSuccess: loginSuccess,
@@ -231,8 +257,8 @@ app.post('/api/login', async (req, res) => {
                     (authMethod === 'cookies' ? 'Login successful using saved cookies!' : 'Login successful with password! Enhanced session saved.') : 
                     'Login failed or additional authentication required',
                 screenshots: [
-                    `screenshots/session-${currentSessionId}-initial.png`,
-                    `screenshots/session-${currentSessionId}-login.png`
+                    `screenshots/session-${sessionId}-initial.png`,
+                    `screenshots/session-${sessionId}-login.png`
                 ]
             });
         } else {
@@ -253,16 +279,16 @@ app.post('/api/login', async (req, res) => {
 
             try {
                 // Wait for email input and fill it
-                await currentAutomation.page.waitForSelector('input[type="email"]', { timeout: 10000 });
-                await currentAutomation.page.type('input[type="email"]', email);
+                await session.automation.page.waitForSelector('input[type="email"]', { timeout: 10000 });
+                await session.automation.page.type('input[type="email"]', email);
                 console.log('Email entered successfully');
                 siteReport.emailFilled = true;
 
                 // Take screenshot showing email filled
-                await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-email-filled.png`);
+                await session.automation.takeScreenshot(`screenshots/session-${sessionId}-email-filled.png`);
 
                 // Click Next button
-                await currentAutomation.page.click('input[type="submit"]');
+                await session.automation.page.click('input[type="submit"]');
                 console.log('Clicked Next button');
                 siteReport.nextClicked = true;
 
@@ -270,13 +296,13 @@ app.post('/api/login', async (req, res) => {
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Get current page info
-                siteReport.pageUrl = currentAutomation.page.url();
-                siteReport.pageTitle = await currentAutomation.page.title();
+                siteReport.pageUrl = session.automation.page.url();
+                siteReport.pageTitle = await session.automation.page.title();
 
                 // Check for different scenarios
 
                 // Check for password field (account exists)
-                const passwordField = await currentAutomation.page.$('input[type="password"]');
+                const passwordField = await session.automation.page.$('input[type="password"]');
                 if (passwordField) {
                     siteReport.needsPassword = true;
                     siteReport.accountExists = true;
@@ -297,7 +323,7 @@ app.post('/api/login', async (req, res) => {
 
                 let foundAccountNotFoundError = false;
                 for (let selector of errorSelectors) {
-                    const errorElements = await currentAutomation.page.$$(selector);
+                    const errorElements = await session.automation.page.$$(selector);
                     for (let element of errorElements) {
                         try {
                             const errorText = await element.evaluate(el => el.textContent);
@@ -323,7 +349,7 @@ app.post('/api/login', async (req, res) => {
                     console.log('Account not found error detected - reloading Outlook page for retry...');
 
                     // Navigate back to Outlook to reset the form
-                    const reloaded = await currentAutomation.navigateToOutlook();
+                    const reloaded = await session.automation.navigateToOutlook();
                     if (!reloaded) {
                         siteReport.siteResponse = 'Failed to reload page after account error';
                     } else {
@@ -343,7 +369,7 @@ app.post('/api/login', async (req, res) => {
                 ];
 
                 for (let selector of mfaSelectors) {
-                    const mfaElement = await currentAutomation.page.$(selector);
+                    const mfaElement = await session.automation.page.$(selector);
                     if (mfaElement) {
                         siteReport.needsMFA = true;
                         siteReport.siteResponse = 'Multi-factor authentication required';
@@ -356,7 +382,7 @@ app.post('/api/login', async (req, res) => {
                 if (!siteReport.siteResponse) {
                     try {
                         // Look for main content or messages
-                        const mainContent = await currentAutomation.page.$eval('body', el => {
+                        const mainContent = await session.automation.page.$eval('body', el => {
                             // Remove scripts and styles
                             const scripts = el.querySelectorAll('script, style, noscript');
                             scripts.forEach(s => s.remove());
@@ -373,7 +399,7 @@ app.post('/api/login', async (req, res) => {
                 }
 
                 // Take screenshot after clicking Next
-                await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-after-next.png`);
+                await session.automation.takeScreenshot(`screenshots/session-${sessionId}-after-next.png`);
 
                 console.log('Site report:', JSON.stringify(siteReport, null, 2));
 
@@ -384,7 +410,7 @@ app.post('/api/login', async (req, res) => {
             }
 
             res.json({
-                sessionId: currentSessionId,
+                sessionId: sessionId,
                 email: email,
                 loginComplete: false,
                 siteReport: siteReport,
@@ -394,9 +420,9 @@ app.post('/api/login', async (req, res) => {
                     'Issues detected with email - see site report for details.' :
                     'Email processed - see site report for response.',
                 screenshots: [
-                    `screenshots/session-${currentSessionId}-initial.png`,
-                    `screenshots/session-${currentSessionId}-email-filled.png`,
-                    `screenshots/session-${currentSessionId}-after-next.png`
+                    `screenshots/session-${sessionId}-initial.png`,
+                    `screenshots/session-${sessionId}-email-filled.png`,
+                    `screenshots/session-${sessionId}-after-next.png`
                 ]
             });
         }
@@ -405,14 +431,14 @@ app.post('/api/login', async (req, res) => {
         console.error('Error during login process:', error);
 
         // Clean up on error
-        if (currentAutomation) {
+        if (session && session.automation) {
             try {
-                await currentAutomation.close();
+                await session.automation.close();
             } catch (closeError) {
                 console.error('Error closing automation on error:', closeError);
             }
-            currentAutomation = null;
-            currentSessionId = null;
+            session.automation = null;
+            session.isPreloaded = false;
         }
 
         res.status(500).json({ 
@@ -425,7 +451,7 @@ app.post('/api/login', async (req, res) => {
 // Continue with password (for cases where email was filled first)
 app.post('/api/continue-login', async (req, res) => {
     try {
-        const { password } = req.body;
+        const { password, sessionId: requestedSessionId } = req.body;
 
         if (!password) {
             return res.status(400).json({ 
@@ -433,7 +459,9 @@ app.post('/api/continue-login', async (req, res) => {
             });
         }
 
-        if (!currentAutomation) {
+        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        
+        if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session. Please start with email first.' 
             });
@@ -444,25 +472,25 @@ app.post('/api/continue-login', async (req, res) => {
         // Continue the login process with provider detection
         try {
             // Detect the current login provider
-            const loginProvider = await currentAutomation.detectLoginProvider();
+            const loginProvider = await session.automation.detectLoginProvider();
             console.log(`Detected login provider for password entry: ${loginProvider}`);
             
             // Handle password entry based on the provider
             let passwordSuccess = false;
             
             if (loginProvider === 'microsoft') {
-                passwordSuccess = await currentAutomation.handleMicrosoftLogin(password);
+                passwordSuccess = await session.automation.handleMicrosoftLogin(password);
             } else if (loginProvider === 'adfs') {
-                passwordSuccess = await currentAutomation.handleADFSLogin(password);
+                passwordSuccess = await session.automation.handleADFSLogin(password);
             } else if (loginProvider === 'okta') {
-                passwordSuccess = await currentAutomation.handleOktaLogin(password);
+                passwordSuccess = await session.automation.handleOktaLogin(password);
             } else if (loginProvider === 'azure-ad') {
-                passwordSuccess = await currentAutomation.handleAzureADLogin(password);
+                passwordSuccess = await session.automation.handleAzureADLogin(password);
             } else if (loginProvider === 'generic-saml') {
-                passwordSuccess = await currentAutomation.handleGenericSAMLLogin(password);
+                passwordSuccess = await session.automation.handleGenericSAMLLogin(password);
             } else {
                 console.warn(`Unknown login provider in continue-login. Attempting generic login...`);
-                passwordSuccess = await currentAutomation.handleGenericLogin(password);
+                passwordSuccess = await session.automation.handleGenericLogin(password);
             }
             
             if (!passwordSuccess) {
@@ -470,44 +498,43 @@ app.post('/api/continue-login', async (req, res) => {
             }
 
             // Handle "Stay signed in?" prompt
-            await currentAutomation.handleStaySignedInPrompt();
+            await session.automation.handleStaySignedInPrompt();
 
             // Wait a bit more after handling the prompt
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             // Take screenshot after login
-            await currentAutomation.takeScreenshot(`screenshots/session-${currentSessionId}-final.png`);
+            await session.automation.takeScreenshot(`screenshots/session-${sessionId}-final.png`);
 
             // Check if we're successfully logged in
-            const currentUrl = currentAutomation.page.url();
+            const currentUrl = session.automation.page.url();
             const loginSuccess = currentUrl.includes('outlook.office.com/mail');
 
             let responseMessage = '';
             if (loginSuccess) {
                 // Save enhanced session with email and password for future automatic login
                 console.log('💾 Saving enhanced session with full credentials...');
-                const email = req.body.email || 'unknown'; // You may need to store email in session
-                const sessionFile = await currentAutomation.saveCookies(email, password);
+                const email = session.email || 'unknown'; // Use stored email from session
+                const sessionFile = await session.automation.saveCookies(email, password);
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Enhanced session saved to: ${sessionFile}` :
                     'Login completed successfully!';
                 
                 // Close current session to restart fresh
                 console.log('🔄 Closing session to restart after cookie save...');
-                await currentAutomation.close();
-                currentAutomation = null;
-                currentSessionId = null;
-                isPreloaded = false;
+                await session.automation.close();
+                session.automation = null;
+                session.isPreloaded = false;
             } else {
                 responseMessage = 'Login may require additional verification';
             }
 
             res.json({
-                sessionId: currentSessionId,
+                sessionId: sessionId,
                 loginComplete: true,
                 loginSuccess: loginSuccess,
                 message: responseMessage,
-                screenshot: `screenshots/session-${currentSessionId}-final.png`
+                screenshot: `screenshots/session-${sessionId}-final.png`
             });
 
         } catch (error) {
@@ -530,17 +557,20 @@ app.post('/api/continue-login', async (req, res) => {
 // Take screenshot of current state
 app.post('/api/screenshot', async (req, res) => {
     try {
-        if (!currentAutomation) {
+        const { sessionId: requestedSessionId } = req.body;
+        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        
+        if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active automation session' 
             });
         }
 
-        const filename = `screenshots/session-${currentSessionId}-${Date.now()}.png`;
-        await currentAutomation.takeScreenshot(filename);
+        const filename = `screenshots/session-${sessionId}-${Date.now()}.png`;
+        await session.automation.takeScreenshot(filename);
 
         res.json({
-            sessionId: currentSessionId,
+            sessionId: sessionId,
             screenshot: filename,
             message: 'Screenshot taken successfully'
         });
@@ -557,16 +587,19 @@ app.post('/api/screenshot', async (req, res) => {
 // Check emails (if logged in)
 app.get('/api/emails', async (req, res) => {
     try {
-        if (!currentAutomation) {
+        const { sessionId: requestedSessionId } = req.query;
+        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        
+        if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active automation session' 
             });
         }
 
-        const emails = await currentAutomation.checkEmails();
+        const emails = await session.automation.checkEmails();
 
         res.json({
-            sessionId: currentSessionId,
+            sessionId: sessionId,
             emails,
             count: emails.length
         });
