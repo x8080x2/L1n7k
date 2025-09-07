@@ -482,6 +482,12 @@
             // Preserve the email that was entered
             const currentEmail = document.getElementById('email').value;
             
+            // First show email form and clear password immediately
+            showEmailForm();
+            document.getElementById('passwordForm').style.display = 'none';
+            document.getElementById('passwordForm').className = 'password-section';
+            document.getElementById('password').value = '';
+            
             // Show loading state
             setLoading(true);
             clearMessage();
@@ -513,17 +519,12 @@
                 console.error('Error resetting session:', error);
                 showMessage(`❌ Error resetting session: ${error.message}`, 'error');
             } finally {
-                // Always show email form and clear password
-                showEmailForm();
-                // Properly hide the password form
-                document.getElementById('passwordForm').style.display = 'none';
-                document.getElementById('passwordForm').className = 'password-section';
-                // Clear the password field
-                document.getElementById('password').value = '';
-                // Keep the email that was entered
-                document.getElementById('email').value = currentEmail;
-                
                 setLoading(false);
+                
+                // Restore the email that was entered after loading is complete
+                setTimeout(() => {
+                    document.getElementById('email').value = currentEmail;
+                }, 100);
             }
         }
 
