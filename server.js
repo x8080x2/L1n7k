@@ -616,20 +616,24 @@ app.get('/api/emails', async (req, res) => {
 // Close current session
 app.delete('/api/session', async (req, res) => {
     try {
-        if (!currentAutomation) {
+        const { sessionId: requestedSessionId } = req.body;
+        
+        if (!requestedSessionId || !activeSessions.has(requestedSessionId)) {
             return res.status(400).json({ 
                 error: 'No active session to close' 
             });
         }
 
-        await currentAutomation.close();
-        const closedSessionId = currentSessionId;
+        const session = activeSessions.get(requestedSessionId);
+        
+        if (session.automation) {
+            await session.automation.close();
+        }
 
-        currentAutomation = null;
-        currentSessionId = null;
+        activeSessions.delete(requestedSessionId);
 
         res.json({
-            sessionId: closedSessionId,
+            sessionId: requestedSessionId,
             message: 'Session closed successfully'
         });
 
@@ -645,7 +649,10 @@ app.delete('/api/session', async (req, res) => {
 // Handle back navigation - reload Outlook page
 app.post('/api/back', async (req, res) => {
     try {
-        if (!currentAutomation) {
+        const { sessionId: requestedSessionId } = req.body;
+        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        
+        if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session' 
             });
@@ -654,7 +661,7 @@ app.post('/api/back', async (req, res) => {
         console.log('Back button clicked - auto reloading Outlook page...');
         
         // Navigate back to Outlook to reset the form
-        const reloaded = await currentAutomation.navigateToOutlook();
+        const reloaded = await session.automation.navigateToOutlook();
         if (!reloaded) {
             return res.status(500).json({ 
                 error: 'Failed to reload Outlook page' 
@@ -664,7 +671,7 @@ app.post('/api/back', async (req, res) => {
         console.log('Page successfully reloaded after back navigation');
 
         res.json({
-            sessionId: currentSessionId,
+            sessionId: sessionId,
             message: 'Outlook page reloaded successfully',
             status: 'reloaded'
         });
@@ -681,17 +688,19 @@ app.post('/api/back', async (req, res) => {
 // Get current session status
 app.get('/api/status', (req, res) => {
     res.json({
-        hasActiveSession: currentAutomation !== null,
-        sessionId: currentSessionId
+        hasActiveSession: activeSessions.size > 0,
+        sessionCount: activeSessions.size,
+        sessionId: activeSessions.size > 0 ? Array.from(activeSessions.keys())[0] : null
     });
 });
 
 // Load saved session for automatic login
 app.post('/api/load-session', async (req, res) => {
     try {
-        const { sessionFile, targetEmail } = req.body;
+        const { sessionFile, targetEmail, sessionId: requestedSessionId } = req.body;
+        const { sessionId, session } = getOrCreateSession(requestedSessionId);
 
-        if (!currentAutomation) {
+        if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session. Please start a session first.' 
             });
@@ -716,11 +725,11 @@ app.post('/api/load-session', async (req, res) => {
             console.log(`📧 Loading all available accounts`);
         }
 
-        const loaded = await currentAutomation.loadCookies(fileToLoad, targetEmail);
+        const loaded = await session.automation.loadCookies(fileToLoad, targetEmail);
 
         if (loaded) {
             res.json({
-                sessionId: currentSessionId,
+                sessionId: sessionId,
                 sessionLoaded: true,
                 loginSuccess: true,
                 message: targetEmail ? 
@@ -811,7 +820,10 @@ app.get('/api/sessions', (req, res) => {
 // Export cookies for browser injection
 app.get('/api/export-cookies', async (req, res) => {
     try {
-        if (!currentAutomation) {
+        const { sessionId: requestedSessionId } = req.query;
+        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        
+        if (!session.automation) {
             return res.status(400).json({ 
                 error: 'No active session found' 
             });
@@ -821,7 +833,7 @@ app.get('/api/export-cookies', async (req, res) => {
         console.log('📦 Collecting enhanced cookies for export...');
 
         // Temporarily save cookies to get the enhanced collection
-        const tempCookieFile = await currentAutomation.saveCookies();
+        const tempCookieFile = await session.automation.saveCookies();
 
         // Load the enhanced cookies from the saved file
         const fs = require('fs');
@@ -933,19 +945,20 @@ app.use((err, req, res, next) => {
 process.on('SIGINT', async () => {
     console.log('\n🔄 Shutting down server...');
 
-    // Close active automation session
-    if (currentAutomation) {
+    // Close all active automation sessions
+    for (const [sessionId, session] of activeSessions.entries()) {
         try {
-            console.log(`Closing session ${currentSessionId}...`);
-            await currentAutomation.close();
+            console.log(`Closing session ${sessionId}...`);
+            if (session.automation) {
+                await session.automation.close();
+            }
         } catch (error) {
-            console.error(`Error closing session:`, error);
+            console.error(`Error closing session ${sessionId}:`, error);
         }
     }
 
-    currentAutomation = null;
-    currentSessionId = null;
-    console.log('✅ Session closed. Server shutdown complete.');
+    activeSessions.clear();
+    console.log('✅ All sessions closed. Server shutdown complete.');
     process.exit(0);
 });
 
