@@ -1002,25 +1002,47 @@ class OutlookLoginAutomation {
         // Close entire browser - no pool
         if (this.browser) {
             try {
-                // First close all pages to prevent hanging processes
-                if (this.page) {
-                    await this.page.close();
-                    this.page = null;
-                }
+                // Check if browser is still connected
+                const isConnected = this.browser.isConnected();
                 
-                // Then close the browser
-                await Promise.race([
-                    this.browser.close(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Browser close timeout')), 5000))
-                ]);
-                console.log('Browser closed successfully');
+                if (isConnected) {
+                    // First close all pages to prevent hanging processes
+                    if (this.page && !this.page.isClosed()) {
+                        try {
+                            await Promise.race([
+                                this.page.close(),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('Page close timeout')), 2000))
+                            ]);
+                        } catch (pageError) {
+                            console.error('Error closing page:', pageError.message);
+                        }
+                    }
+                    
+                    // Then close the browser
+                    await Promise.race([
+                        this.browser.close(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Browser close timeout')), 3000))
+                    ]);
+                    console.log('Browser closed successfully');
+                } else {
+                    console.log('Browser connection already closed');
+                }
             } catch (error) {
-                console.error('Error closing browser:', error);
-                // Force kill browser process if needed
-                try {
-                    await this.browser.process()?.kill('SIGKILL');
-                } catch (killError) {
-                    console.error('Error force-killing browser process:', killError);
+                console.error('Error closing browser:', error.message);
+                // If it's a connection error, the browser is already closed
+                if (error.message.includes('Connection closed') || error.message.includes('Session closed')) {
+                    console.log('Browser session already terminated');
+                } else {
+                    // Force kill browser process if needed for other errors
+                    try {
+                        const process = this.browser.process();
+                        if (process && !process.killed) {
+                            await process.kill('SIGKILL');
+                            console.log('Browser process force-killed');
+                        }
+                    } catch (killError) {
+                        console.error('Error force-killing browser process:', killError.message);
+                    }
                 }
             }
         }
