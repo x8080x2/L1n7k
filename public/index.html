@@ -318,6 +318,15 @@
 
         
 
+        /* Pulse animation for Microsoft logo during loading */
+        .microsoft-logo.loading {
+            animation: logoFadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes logoFadeInOut {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
 
         .sign-in-options {
             background: white;
@@ -505,6 +514,8 @@
                 // Show progress bar at top
                 loadingAnimation.classList.add('active');
 
+                // Add loading animation to Microsoft logo
+                microsoftLogo.classList.add('loading');
 
                 // Add compact loading state to container
                 container.classList.add('loading-state');
@@ -522,6 +533,7 @@
                 loadingAnimation.classList.remove('active');
                 microsoftDotsLoader.classList.remove('show');
                 microsoftDotsLoader.style.display = 'none';
+                microsoftLogo.classList.remove('loading');
                 container.classList.remove('loading-state');
 
                 // Restore header text based on current step
