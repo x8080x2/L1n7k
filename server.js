@@ -95,10 +95,7 @@ app.post('/api/preload', async (req, res) => {
         // Initialize browser
         await session.automation.init();
 
-        // Automatic session loading disabled - always start fresh
-        console.log('🔄 Starting fresh session (auto-restore disabled)...');
-
-        // Navigate to Outlook (fallback if no session loaded)
+        // Navigate to Outlook
         const navigated = await session.automation.navigateToOutlook();
         if (!navigated) {
             await session.automation.close();
@@ -670,88 +667,11 @@ app.get('/api/status', (req, res) => {
     });
 });
 
-// Load saved session for automatic login
+// Load saved session for automatic login - DISABLED
 app.post('/api/load-session', async (req, res) => {
-    try {
-        const { sessionFile, targetEmail, sessionId: requestedSessionId } = req.body;
-        const { sessionId, session } = getOrCreateSession(requestedSessionId);
-
-        if (!session.automation) {
-            return res.status(400).json({ 
-                error: 'No active session. Please start a session first.' 
-            });
-        }
-
-        // Determine which session to load
-        let pathToLoad;
-        
-        if (sessionFile) {
-            // User specified a specific session file/directory
-            pathToLoad = sessionFile;
-        } else if (targetEmail) {
-            // Look for individual session directory for target email
-            const sessionDir = 'session_data';
-            const items = fs.readdirSync(sessionDir);
-            const emailDir = items.find(item => {
-                const itemPath = path.join(sessionDir, item);
-                if (fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_')) {
-                    const metadataFile = path.join(itemPath, 'session_metadata.json');
-                    if (fs.existsSync(metadataFile)) {
-                        try {
-                            const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
-                            return metadata.email === targetEmail;
-                        } catch (e) {
-                            return false;
-                        }
-                    }
-                }
-                return false;
-            });
-            
-            if (emailDir) {
-                pathToLoad = path.join(sessionDir, emailDir);
-            } else {
-                // Fallback to consolidated file
-                pathToLoad = path.join('session_data', 'all_sessions.json');
-            }
-        } else {
-            // Load any available session (prefer individual, fallback to consolidated)
-            const sessionDir = 'session_data';
-            const items = fs.readdirSync(sessionDir);
-            const sessionDirs = items.filter(item => {
-                const itemPath = path.join(sessionDir, item);
-                return fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_');
-            });
-            
-            if (sessionDirs.length > 0) {
-                // Use the most recent individual session
-                const sortedDirs = sessionDirs.sort().reverse(); // Simple sort by name (includes timestamp)
-                pathToLoad = path.join(sessionDir, sortedDirs[0]);
-            } else {
-                // Fallback to consolidated file
-                pathToLoad = path.join('session_data', 'all_sessions.json');
-            }
-        }
-
-        if (!fs.existsSync(pathToLoad)) {
-            return res.status(400).json({ 
-                error: 'Session file/directory not found' 
-            });
-        }
-
-        console.log(`🔄 Session loading has been disabled`);
-        
-        res.status(400).json({ 
-            error: 'Session loading has been disabled'
-        });
-
-    } catch (error) {
-        console.error('Error loading enhanced session:', error);
-        res.status(500).json({ 
-            error: 'Failed to load enhanced session',
-            details: error.message 
-        });
-    }
+    res.status(400).json({ 
+        error: 'Session loading functionality has been removed'
+    });
 });
 
 // List available sessions
