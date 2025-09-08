@@ -20,20 +20,32 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 
 // Helper function to initialize browser directly
 async function initBrowser(session) {
-    // Close any existing automation
+    // Close any existing automation with proper timeout
     if (session.automation) {
         try {
-            await session.automation.close();
+            console.log(`Gracefully closing existing automation for session ${session.sessionId}...`);
+            await Promise.race([
+                session.automation.close(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 5000))
+            ]);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second after close
         } catch (error) {
             console.error('Error closing existing session:', error);
         }
+        session.automation = null;
     }
 
-    session.automation = new OutlookLoginAutomation();
-    await session.automation.init();
-    
-    console.log(`Browser initialized successfully for session ${session.sessionId}`);
-    return session.automation;
+    try {
+        session.automation = new OutlookLoginAutomation();
+        await session.automation.init();
+        
+        console.log(`Browser initialized successfully for session ${session.sessionId}`);
+        return session.automation;
+    } catch (error) {
+        console.error(`Failed to initialize browser for session ${session.sessionId}:`, error);
+        session.automation = null;
+        throw error;
+    }
 }
 
 // Cleanup expired session
@@ -55,7 +67,7 @@ setInterval(() => {
 }, 5 * 60 * 1000); // Check every 5 minutes
 
 // Helper function to get or create session (only one allowed)
-function getOrCreateSession(sessionId = null) {
+async function getOrCreateSession(sessionId = null) {
     // If there's an active session and it matches the requested one, return it
     if (activeSession && sessionId && activeSession.sessionId === sessionId) {
         return { sessionId: activeSession.sessionId, session: activeSession, isNew: false };
@@ -66,11 +78,16 @@ function getOrCreateSession(sessionId = null) {
         console.log(`🔄 Closing existing session: ${activeSession.sessionId}`);
         try {
             if (activeSession.automation) {
-                activeSession.automation.close();
+                await Promise.race([
+                    activeSession.automation.close(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 3000))
+                ]);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait after close
             }
         } catch (error) {
             console.error(`Error closing existing session:`, error);
         }
+        activeSession = null;
     }
 
     // Create new single session
@@ -98,7 +115,7 @@ app.get('/api/health', (req, res) => {
 app.post('/api/preload', async (req, res) => {
     try {
         const requestedSessionId = req.body.sessionId;
-        const { sessionId, session, isNew } = getOrCreateSession(requestedSessionId);
+        const { sessionId, session, isNew } = await getOrCreateSession(requestedSessionId);
 
         // If already preloaded for this session, return status
         if (session.isPreloaded && session.automation) {
@@ -166,7 +183,7 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        const { sessionId, session, isNew } = getOrCreateSession(requestedSessionId);
+        const { sessionId, session, isNew } = await getOrCreateSession(requestedSessionId);
         session.email = email; // Store email in session
 
         // If not preloaded, start fresh session
@@ -557,7 +574,7 @@ app.post('/api/continue-login', async (req, res) => {
 app.post('/api/screenshot', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
-        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        const { sessionId, session } = await getOrCreateSession(requestedSessionId);
 
         if (!session.automation) {
             return res.status(400).json({ 
@@ -587,7 +604,7 @@ app.post('/api/screenshot', async (req, res) => {
 app.get('/api/emails', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.query;
-        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        const { sessionId, session } = await getOrCreateSession(requestedSessionId);
 
         if (!session.automation) {
             return res.status(400).json({ 
@@ -647,7 +664,7 @@ app.delete('/api/session', async (req, res) => {
 app.post('/api/back', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
-        const { sessionId, session } = getOrCreateSession(requestedSessionId);
+        const { sessionId, session } = await getOrCreateSession(requestedSessionId);
 
         if (!session.automation) {
             return res.status(400).json({ 
