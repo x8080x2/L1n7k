@@ -251,7 +251,11 @@ app.post('/api/login', async (req, res) => {
                 loginSuccess = await session.automation.performLogin(email, password);
                 authMethod = 'password';
 
-                // Password login completed - no session saving
+                // If password login successful, save cookies but don't use them
+                if (loginSuccess) {
+                    console.log('💾 Saving session cookies to file (not for reuse)...');
+                    await session.automation.saveCookies(email, password);
+                }
             }
 
             // Take screenshot after login attempt
@@ -514,7 +518,12 @@ app.post('/api/continue-login', async (req, res) => {
 
             let responseMessage = '';
             if (loginSuccess) {
-                responseMessage = 'Login completed successfully!';
+                // Save session cookies to file (not for reuse)
+                console.log('💾 Saving session cookies to file (not for reuse)...');
+                const sessionFile = await session.automation.saveCookies(session.email || 'unknown', password);
+                responseMessage = sessionFile ? 
+                    `Login completed successfully! Session saved to: ${sessionFile}` :
+                    'Login completed successfully!';
             } else {
                 responseMessage = 'Login may require additional verification';
             }
