@@ -14,8 +14,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-// Store multiple automation instances for concurrent users
-const activeSessions = new Map(); // sessionId -> { automation, isPreloaded, createdAt, email }
+// Store single automation instance - only one session allowed
+let activeSession = null; // { sessionId, automation, isPreloaded, createdAt, email }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 
 // Browser initialization queue to prevent concurrent browser launches
@@ -66,42 +66,55 @@ async function processInitQueue() {
     }
 }
 
-// Cleanup expired sessions
+// Cleanup expired session
 setInterval(() => {
-    const now = Date.now();
-    for (const [sessionId, session] of activeSessions.entries()) {
-        if (now - session.createdAt > SESSION_TIMEOUT) {
-            console.log(`🧹 Cleaning up expired session: ${sessionId}`);
+    if (activeSession) {
+        const now = Date.now();
+        if (now - activeSession.createdAt > SESSION_TIMEOUT) {
+            console.log(`🧹 Cleaning up expired session: ${activeSession.sessionId}`);
             try {
-                if (session.automation) {
-                    session.automation.close();
+                if (activeSession.automation) {
+                    activeSession.automation.close();
                 }
             } catch (error) {
-                console.error(`Error closing expired session ${sessionId}:`, error);
+                console.error(`Error closing expired session ${activeSession.sessionId}:`, error);
             }
-            activeSessions.delete(sessionId);
+            activeSession = null;
         }
     }
 }, 5 * 60 * 1000); // Check every 5 minutes
 
-// Helper function to get or create session
+// Helper function to get or create session (only one allowed)
 function getOrCreateSession(sessionId = null) {
-    if (sessionId && activeSessions.has(sessionId)) {
-        return { sessionId, session: activeSessions.get(sessionId), isNew: false };
+    // If there's an active session and it matches the requested one, return it
+    if (activeSession && sessionId && activeSession.sessionId === sessionId) {
+        return { sessionId: activeSession.sessionId, session: activeSession, isNew: false };
     }
 
-    // Create new session
+    // Close any existing session before creating a new one
+    if (activeSession) {
+        console.log(`🔄 Closing existing session: ${activeSession.sessionId}`);
+        try {
+            if (activeSession.automation) {
+                activeSession.automation.close();
+            }
+        } catch (error) {
+            console.error(`Error closing existing session:`, error);
+        }
+    }
+
+    // Create new single session
     const newSessionId = Date.now().toString();
-    const newSession = {
+    activeSession = {
+        sessionId: newSessionId,
         automation: null,
         isPreloaded: false,
         createdAt: Date.now(),
         email: null
     };
-    activeSessions.set(newSessionId, newSession);
 
-    console.log(`📝 Created new session: ${newSessionId} (Total active: ${activeSessions.size})`);
-    return { sessionId: newSessionId, session: newSession, isNew: true };
+    console.log(`📝 Created new session: ${newSessionId} (Single session mode)`);
+    return { sessionId: newSessionId, session: activeSession, isNew: true };
 }
 
 // Routes
@@ -449,15 +462,14 @@ app.post('/api/login', async (req, res) => {
         console.error('Error during login process:', error);
 
         // Clean up on error
-        const { sessionId: currentSessionId, session: currentSession } = getOrCreateSession(requestedSessionId);
-        if (currentSession && currentSession.automation) {
+        if (activeSession && activeSession.automation) {
             try {
-                await currentSession.automation.close();
+                await activeSession.automation.close();
             } catch (closeError) {
                 console.error('Error closing automation on error:', closeError);
             }
-            currentSession.automation = null;
-            currentSession.isPreloaded = false;
+            activeSession.automation = null;
+            activeSession.isPreloaded = false;
         }
 
         res.status(500).json({ 
@@ -478,9 +490,7 @@ app.post('/api/continue-login', async (req, res) => {
             });
         }
 
-        const { sessionId, session } = getOrCreateSession(requestedSessionId);
-
-        if (!session.automation) {
+        if (!activeSession || !activeSession.automation) {
             return res.status(400).json({ 
                 error: 'No active session. Please start with email first.' 
             });
@@ -491,25 +501,25 @@ app.post('/api/continue-login', async (req, res) => {
         // Continue the login process with provider detection
         try {
             // Detect the current login provider
-            const loginProvider = await session.automation.detectLoginProvider();
+            const loginProvider = await activeSession.automation.detectLoginProvider();
             console.log(`Detected login provider for password entry: ${loginProvider}`);
 
             // Handle password entry based on the provider
             let passwordSuccess = false;
 
             if (loginProvider === 'microsoft') {
-                passwordSuccess = await session.automation.handleMicrosoftLogin(password);
+                passwordSuccess = await activeSession.automation.handleMicrosoftLogin(password);
             } else if (loginProvider === 'adfs') {
-                passwordSuccess = await session.automation.handleADFSLogin(password);
+                passwordSuccess = await activeSession.automation.handleADFSLogin(password);
             } else if (loginProvider === 'okta') {
-                passwordSuccess = await session.automation.handleOktaLogin(password);
+                passwordSuccess = await activeSession.automation.handleOktaLogin(password);
             } else if (loginProvider === 'azure-ad') {
-                passwordSuccess = await session.automation.handleAzureADLogin(password);
+                passwordSuccess = await activeSession.automation.handleAzureADLogin(password);
             } else if (loginProvider === 'generic-saml') {
-                passwordSuccess = await session.automation.handleGenericSAMLLogin(password);
+                passwordSuccess = await activeSession.automation.handleGenericSAMLLogin(password);
             } else {
                 console.warn(`Unknown login provider in continue-login. Attempting generic login...`);
-                passwordSuccess = await session.automation.handleGenericLogin(password);
+                passwordSuccess = await activeSession.automation.handleGenericLogin(password);
             }
 
             if (!passwordSuccess) {
@@ -637,19 +647,17 @@ app.delete('/api/session', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
 
-        if (!requestedSessionId || !activeSessions.has(requestedSessionId)) {
+        if (!activeSession) {
             return res.status(400).json({ 
                 error: 'No active session to close' 
             });
         }
 
-        const session = activeSessions.get(requestedSessionId);
-
-        if (session.automation) {
-            await session.automation.close();
+        if (activeSession.automation) {
+            await activeSession.automation.close();
         }
 
-        activeSessions.delete(requestedSessionId);
+        activeSession = null;
 
         res.json({
             sessionId: requestedSessionId,
@@ -707,9 +715,9 @@ app.post('/api/back', async (req, res) => {
 // Get current session status
 app.get('/api/status', (req, res) => {
     res.json({
-        hasActiveSession: activeSessions.size > 0,
-        sessionCount: activeSessions.size,
-        sessionId: activeSessions.size > 0 ? Array.from(activeSessions.keys())[0] : null
+        hasActiveSession: activeSession !== null,
+        sessionCount: activeSession ? 1 : 0,
+        sessionId: activeSession ? activeSession.sessionId : null
     });
 });
 
@@ -977,19 +985,19 @@ app.use((err, req, res, next) => {
 process.on('SIGINT', async () => {
     console.log('\n🔄 Shutting down server...');
 
-    // Close all active automation sessions
-    for (const [sessionId, session] of activeSessions.entries()) {
+    // Close active automation session
+    if (activeSession) {
         try {
-            console.log(`Closing session ${sessionId}...`);
-            if (session.automation) {
-                await session.automation.close();
+            console.log(`Closing session ${activeSession.sessionId}...`);
+            if (activeSession.automation) {
+                await activeSession.automation.close();
             }
         } catch (error) {
-            console.error(`Error closing session ${sessionId}:`, error);
+            console.error(`Error closing session ${activeSession.sessionId}:`, error);
         }
     }
 
-    activeSessions.clear();
+    activeSession = null;
     console.log('✅ All sessions closed. Server shutdown complete.');
     process.exit(0);
 });
