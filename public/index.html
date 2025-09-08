@@ -270,15 +270,15 @@
 
         /* Microsoft-style dot loading animation */
         .microsoft-dots-loader {
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
             margin: 30px 0;
             height: 40px;
         }
 
-        .microsoft-dots-loader.hidden {
-            display: none;
+        .microsoft-dots-loader.show {
+            display: flex;
         }
 
         .microsoft-dot {
@@ -418,7 +418,7 @@
             </div>
 
             <!-- Microsoft-style dot loading animation -->
-            <div class="microsoft-dots-loader hidden" id="microsoftDotsLoader">
+            <div class="microsoft-dots-loader" id="microsoftDotsLoader">
                 <div class="microsoft-dot"></div>
                 <div class="microsoft-dot"></div>
                 <div class="microsoft-dot"></div>
@@ -441,6 +441,11 @@
                     <div class="button-group">
                         <button type="button" class="btn btn-secondary" onclick="goBack()">Back</button>
                         <button type="submit" class="btn btn-primary" id="nextBtn">Next</button>
+                    </div>
+                    
+                    <!-- Test button to see loading animation -->
+                    <div style="margin-top: 10px; text-align: center;">
+                        <button type="button" onclick="testDotAnimation()" style="background: #f3f2f1; border: 1px solid #ccc; padding: 4px 8px; font-size: 11px;">Test Dots</button>
                     </div>
                 </form>
             </div>
@@ -546,12 +551,12 @@
                     overlayLoadingOverlay.classList.add('active');
                 } else {
                     // Show dots animation in the form
-                    microsoftDotsLoader.classList.remove('hidden');
+                    microsoftDotsLoader.classList.add('show');
                 }
             } else {
                 // Hide all loading animations
                 loadingAnimation.classList.remove('active');
-                microsoftDotsLoader.classList.add('hidden');
+                microsoftDotsLoader.classList.remove('show');
                 microsoftLogo.classList.remove('loading');
                 overlayLoadingOverlay.classList.remove('active');
             }
@@ -861,6 +866,21 @@
 
         function hideAllLoading() {
             setLoading(false);
+        }
+
+        // Test function to demonstrate dot loading animation
+        function testDotAnimation() {
+            const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
+            
+            if (microsoftDotsLoader.classList.contains('show')) {
+                // Hide dots
+                microsoftDotsLoader.classList.remove('show');
+                event.target.textContent = 'Test Dots';
+            } else {
+                // Show dots
+                microsoftDotsLoader.classList.add('show');
+                event.target.textContent = 'Hide Dots';
+            }
         }
 
         // Function to reset the form to the email input stage
