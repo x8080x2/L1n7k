@@ -514,7 +514,9 @@
                 // Show progress bar at top
                 loadingAnimation.classList.add('active');
 
-                // Add loading animation to Microsoft logo
+                // ENSURE Microsoft logo is visible and add loading animation
+                microsoftLogo.style.display = 'block';
+                microsoftLogo.style.visibility = 'visible';
                 microsoftLogo.classList.add('loading');
 
                 // Add compact loading state to container
@@ -535,6 +537,10 @@
                 microsoftDotsLoader.style.display = 'none';
                 microsoftLogo.classList.remove('loading');
                 container.classList.remove('loading-state');
+                
+                // Keep Microsoft logo visible (don't hide it)
+                microsoftLogo.style.display = 'block';
+                microsoftLogo.style.visibility = 'visible';
 
                 // Restore header text based on current step
                 if (currentStep === 'email') {
