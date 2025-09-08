@@ -6,7 +6,7 @@ class OutlookLoginAutomation {
         this.browser = null;
         this.page = null;
         this.browserId = null;
-        this.usePool = options.usePool !== false; // Enable pool by default
+        this.usePool = false; // Disable browser pool for stability
         this.enableScreenshots = options.enableScreenshots !== false; // Enable screenshots by default
         this.screenshotQuality = options.screenshotQuality || 80; // Compress screenshots for faster I/O
     }
@@ -27,7 +27,7 @@ class OutlookLoginAutomation {
             }
         }
 
-        // Fallback to direct browser launch
+        // Private browser launch
         const browserOptions = {
             headless: 'new',
             args: [
@@ -43,6 +43,14 @@ class OutlookLoginAutomation {
                 '--disable-background-timer-throttling',
                 '--disable-backgrounding-occluded-windows',
                 '--disable-renderer-backgrounding',
+                // Privacy and incognito mode
+                '--incognito',
+                '--private',
+                '--disable-session-crashed-bubble',
+                '--disable-infobars',
+                '--disable-notifications',
+                '--disable-save-password-bubble',
+                '--disable-password-manager-reauthentication',
                 // Performance optimizations
                 '--disable-features=TranslateUI',
                 '--disable-ipc-flooding-protection',
