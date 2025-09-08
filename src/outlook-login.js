@@ -10,50 +10,30 @@ class OutlookLoginAutomation {
 
     async init() {
 
-        // Private browser launch
+        // Private browser launch with minimal args for stability
         const browserOptions = {
             headless: 'new',
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
                 '--disable-gpu',
+                '--no-first-run',
                 '--disable-extensions',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding',
-                // Privacy and incognito mode
-                '--incognito',
-                '--private',
-                '--disable-session-crashed-bubble',
                 '--disable-infobars',
                 '--disable-notifications',
-                '--disable-save-password-bubble',
-                '--disable-password-manager-reauthentication',
-                // Performance optimizations
-                '--disable-features=TranslateUI',
-                '--disable-ipc-flooding-protection',
                 '--disable-default-apps',
-                '--disable-component-extensions-with-background-pages',
                 '--disable-background-networking',
                 '--disable-sync',
-                '--disable-web-security',
                 '--no-default-browser-check',
-                '--no-pings',
-                '--disable-prompt-on-repost',
-                '--disable-hang-monitor',
-                '--disable-client-side-phishing-detection',
                 '--disable-popup-blocking',
-                '--disable-translate',
-                '--disable-logging',
-                '--disable-permissions-api',
-                '--aggressive-cache-discard',
-                '--memory-pressure-off'
-            ]
+                '--disable-translate'
+            ],
+            // More stable options for cloud environments
+            dumpio: false,
+            timeout: 30000,
+            ignoreHTTPSErrors: true,
+            defaultViewport: null
         };
 
         // Try to find Chromium dynamically for Replit environment
@@ -106,25 +86,39 @@ class OutlookLoginAutomation {
             console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
         }
 
-        // Launch browser with retries
+        // Debug browser environment first
+        console.log('Puppeteer version:', require('puppeteer').version || 'unknown');
+        console.log('Available browser options:', browserOptions);
+
+        // Launch browser with retries and better error handling
         let retries = 3;
         while (retries > 0) {
             try {
+                console.log(`Attempting to launch browser (attempt ${4-retries}/3)...`);
                 this.browser = await puppeteer.launch(browserOptions);
+                console.log('Browser launched successfully');
+                
+                // Wait a moment for browser to stabilize
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 break;
             } catch (error) {
                 retries--;
-                console.warn(`Browser launch attempt failed (${3-retries}/3):`, error.message);
+                console.warn(`Browser launch attempt failed (${4-retries}/3):`, error.message);
                 if (retries === 0) {
                     throw new Error(`Failed to launch browser after 3 attempts: ${error.message}`);
                 }
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retry
             }
         }
 
-        // Create new page with error handling
+        // Create new page with error handling and debugging
         try {
+            console.log('Creating new page...');
+            const pages = await this.browser.pages(); // Get existing pages first
+            console.log(`Browser has ${pages.length} existing pages`);
+            
             this.page = await this.browser.newPage();
+            console.log('New page created successfully');
             
             // Set viewport and user agent
             await this.page.setViewport({ width: 1280, height: 720 });
@@ -132,13 +126,16 @@ class OutlookLoginAutomation {
 
             console.log('Browser initialized successfully');
         } catch (error) {
+            console.error('Failed to create new page, error details:', error);
             if (this.browser) {
                 try {
+                    console.log('Attempting to close browser after page creation failure...');
                     await this.browser.close();
                 } catch (closeError) {
                     console.error('Error closing browser after page creation failure:', closeError);
                 }
             }
+            this.browser = null;
             throw new Error(`Failed to create new page: ${error.message}`);
         }
     }
