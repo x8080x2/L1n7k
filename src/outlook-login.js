@@ -31,7 +31,6 @@ class OutlookLoginAutomation {
             ],
             // More stable options for cloud environments
             dumpio: false,
-            timeout: 30000,
             ignoreHTTPSErrors: true,
             defaultViewport: null
         };
@@ -144,8 +143,7 @@ class OutlookLoginAutomation {
         try {
             console.log('Navigating to Outlook...');
             await this.page.goto('https://outlook.office.com/mail/', {
-                waitUntil: 'domcontentloaded',
-                timeout: 15000
+                waitUntil: 'domcontentloaded'
             });
 
             console.log('Successfully navigated to Outlook');
@@ -165,7 +163,7 @@ class OutlookLoginAutomation {
             console.log(`Attempting to login with email: ${email}`);
 
             // Wait for email input field
-            await this.page.waitForSelector('input[type="email"]', { timeout: 10000 });
+            await this.page.waitForSelector('input[type="email"]');
 
             // Enter email
             await this.page.type('input[type="email"]', email);
@@ -274,7 +272,7 @@ class OutlookLoginAutomation {
             console.log('Handling Microsoft standard login...');
 
             // Wait for password field
-            await this.page.waitForSelector('input[type="password"]', { timeout: 10000 });
+            await this.page.waitForSelector('input[type="password"]');
 
             // Enter password
             await this.page.type('input[type="password"]', password);
@@ -311,7 +309,7 @@ class OutlookLoginAutomation {
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
-                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    await this.page.waitForSelector(selector);
                     passwordField = selector;
                     break;
                 } catch (e) {
@@ -383,7 +381,7 @@ class OutlookLoginAutomation {
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
-                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    await this.page.waitForSelector(selector);
                     passwordField = selector;
                     break;
                 } catch (e) {
@@ -453,7 +451,7 @@ class OutlookLoginAutomation {
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
-                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    await this.page.waitForSelector(selector);
                     passwordField = selector;
                     break;
                 } catch (e) {
@@ -524,7 +522,7 @@ class OutlookLoginAutomation {
             let passwordField = null;
             for (const selector of passwordSelectors) {
                 try {
-                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    await this.page.waitForSelector(selector);
                     passwordField = selector;
                     break;
                 } catch (e) {
@@ -1009,20 +1007,14 @@ class OutlookLoginAutomation {
                     // First close all pages to prevent hanging processes
                     if (this.page && !this.page.isClosed()) {
                         try {
-                            await Promise.race([
-                                this.page.close(),
-                                new Promise((_, reject) => setTimeout(() => reject(new Error('Page close timeout')), 2000))
-                            ]);
+                            await this.page.close();
                         } catch (pageError) {
                             console.error('Error closing page:', pageError.message);
                         }
                     }
                     
                     // Then close the browser
-                    await Promise.race([
-                        this.browser.close(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Browser close timeout')), 3000))
-                    ]);
+                    await this.browser.close();
                     console.log('Browser closed successfully');
                 } else {
                     console.log('Browser connection already closed');
