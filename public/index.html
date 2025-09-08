@@ -506,6 +506,8 @@
             const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
             const microsoftLogo = document.querySelector('.microsoft-logo');
             const container = document.querySelector('.container');
+            const emailForm = document.getElementById('emailForm');
+            const passwordForm = document.getElementById('passwordForm');
 
             if (loading) {
                 // Show progress bar at top
@@ -519,6 +521,10 @@
 
                 // Show dots animation in the form
                 microsoftDotsLoader.classList.add('show');
+
+                // Hide forms during loading
+                emailForm.style.display = 'none';
+                passwordForm.style.display = 'none';
             } else {
                 // Hide all loading animations
                 loadingAnimation.classList.remove('active');
@@ -530,18 +536,15 @@
                 microsoftDotsLoader.style.display = '';
                 document.getElementById('backInfo').style.display = '';
                 document.getElementById('messageArea').style.display = '';
-            }
 
-            // Keep the form visible but disable inputs during loading
-            const emailForm = document.getElementById('emailForm');
-            const passwordForm = document.getElementById('passwordForm');
-
-            if (currentStep === 'email') {
-                emailForm.style.display = 'block';
-                passwordForm.style.display = 'none';
-            } else if (currentStep === 'password') {
-                emailForm.style.display = 'none';
-                passwordForm.style.display = 'block';
+                // Show the appropriate form based on current step
+                if (currentStep === 'email') {
+                    emailForm.style.display = 'block';
+                    passwordForm.style.display = 'none';
+                } else if (currentStep === 'password') {
+                    emailForm.style.display = 'none';
+                    passwordForm.style.display = 'block';
+                }
             }
 
             // Disable all buttons and inputs during loading
