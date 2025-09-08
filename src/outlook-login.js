@@ -201,24 +201,30 @@ class OutlookLoginAutomation {
                 loginSuccess = await this.handleGenericLogin(password);
             }
 
-            if (loginSuccess) {
-                // Wait for possible "Stay signed in?" prompt
-                await this.handleStaySignedInPrompt();
-
-                // Final redirect check - wait for Outlook to load (reduced timing)
-                await new Promise(resolve => setTimeout(resolve, 2500));
-
-                const finalUrl = this.page.url();
-                if (finalUrl.includes('outlook.office.com/mail')) {
-                    console.log('Login successful - redirected to Outlook mail');
-
-                    // Save session cookies after successful login
-                    await this.saveCookies();
-
-                    return true;
-                }
+            if (!loginSuccess) {
+                console.error('Password authentication failed - incorrect credentials provided');
+                await this.takeScreenshot(`screenshots/login-failed-${Date.now()}.png`);
+                return false;
             }
 
+            // Wait for possible "Stay signed in?" prompt
+            await this.handleStaySignedInPrompt();
+
+            // Final redirect check - wait for Outlook to load (reduced timing)
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+            const finalUrl = this.page.url();
+            if (finalUrl.includes('outlook.office.com/mail')) {
+                console.log('Login successful - redirected to Outlook mail');
+
+                // Save session cookies after successful login
+                await this.saveCookies();
+
+                return true;
+            }
+
+            console.error('Login process completed but did not redirect to Outlook mail - authentication may have failed');
+            await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`);
             return false;
         } catch (error) {
             console.error('Error during login:', error.message);
@@ -284,6 +290,56 @@ class OutlookLoginAutomation {
 
             // Wait for possible responses (optimized timing)
             await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Check for error messages after password submission
+            const errorSelectors = [
+                '[data-bind*="errorText"]',
+                '.alert-error',
+                '.error-message',
+                '[role="alert"]',
+                '.ms-TextField-errorMessage',
+                '.field-validation-error'
+            ];
+
+            let errorMessage = null;
+            for (const selector of errorSelectors) {
+                try {
+                    const errorElement = await this.page.$(selector);
+                    if (errorElement) {
+                        const text = await this.page.evaluate(el => el.textContent, errorElement);
+                        if (text && text.trim()) {
+                            errorMessage = text.trim();
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+
+            // Also check for common error text patterns on the page
+            const pageText = await this.page.evaluate(() => document.body.textContent || '');
+            const errorPatterns = [
+                'Your account or password is incorrect',
+                'password is incorrect',
+                'Sign-in was unsuccessful',
+                'The username or password is incorrect',
+                'Invalid credentials',
+                'Authentication failed'
+            ];
+
+            for (const pattern of errorPatterns) {
+                if (pageText.toLowerCase().includes(pattern.toLowerCase())) {
+                    errorMessage = pattern;
+                    break;
+                }
+            }
+
+            if (errorMessage) {
+                console.error(`Microsoft login failed: ${errorMessage}`);
+                await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`);
+                return false;
+            }
 
             return true;
 
