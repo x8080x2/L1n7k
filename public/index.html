@@ -442,11 +442,6 @@
                         <button type="button" class="btn btn-secondary" onclick="goBack()">Back</button>
                         <button type="submit" class="btn btn-primary" id="nextBtn">Next</button>
                     </div>
-                    
-                    <!-- Test button to see loading animation -->
-                    <div style="margin-top: 10px; text-align: center;">
-                        <button type="button" onclick="testDotAnimation()" style="background: #f3f2f1; border: 1px solid #ccc; padding: 4px 8px; font-size: 11px;">Test Dots</button>
-                    </div>
                 </form>
             </div>
 
@@ -868,20 +863,6 @@
             setLoading(false);
         }
 
-        // Test function to demonstrate dot loading animation
-        function testDotAnimation() {
-            const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
-            
-            if (microsoftDotsLoader.classList.contains('show')) {
-                // Hide dots
-                microsoftDotsLoader.classList.remove('show');
-                event.target.textContent = 'Test Dots';
-            } else {
-                // Show dots
-                microsoftDotsLoader.classList.add('show');
-                event.target.textContent = 'Hide Dots';
-            }
-        }
 
         // Function to reset the form to the email input stage
         function resetToEmailForm() {
