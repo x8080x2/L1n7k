@@ -17,6 +17,8 @@ app.use(express.static('public'));
 // Store single automation instance - only one session allowed
 let activeSession = null; // { sessionId, automation, isPreloaded, createdAt, email }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
+const OPERATION_TIMEOUT = 60 * 1000; // 1 minute for individual operations
+const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 minutes
 let sessionMutex = null; // Prevents race conditions in session management
 let initializingSession = false; // Prevents concurrent browser initialization
 
@@ -83,6 +85,33 @@ setInterval(async () => {
         }
     }
 }, 5 * 60 * 1000); // Check every 5 minutes
+
+// Health check for browser sessions
+setInterval(async () => {
+    if (activeSession && activeSession.automation && !sessionMutex && !initializingSession) {
+        try {
+            // Check if browser is still connected
+            const automation = activeSession.automation;
+            if (automation.browser && !automation.browser.isConnected()) {
+                console.log(`🔧 Detected disconnected browser for session ${activeSession.sessionId}`);
+                
+                // Clean up disconnected session
+                sessionMutex = Promise.resolve();
+                try {
+                    await automation.close();
+                    activeSession = null;
+                    console.log('Cleaned up disconnected browser session');
+                } catch (error) {
+                    console.error('Error cleaning up disconnected session:', error);
+                } finally {
+                    sessionMutex = null;
+                }
+            }
+        } catch (error) {
+            console.error('Health check error:', error);
+        }
+    }
+}, HEALTH_CHECK_INTERVAL);
 
 // Helper function to get or create session (only one allowed) - Thread-safe with mutex
 async function getOrCreateSession(sessionId = null) {
@@ -176,11 +205,25 @@ app.post('/api/preload', async (req, res) => {
         // Start new automation session for preloading
         console.log(`Preloading Outlook page for session ${sessionId}...`);
 
-        // Initialize browser directly with error handling
+        // Initialize browser directly with error handling and timeout
         try {
-            await initBrowser(session);
+            await Promise.race([
+                initBrowser(session),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Browser initialization timeout')), OPERATION_TIMEOUT))
+            ]);
         } catch (error) {
             console.error('Failed to initialize browser:', error);
+            
+            // Clean up on timeout or error
+            if (session.automation) {
+                try {
+                    await session.automation.close();
+                } catch (closeError) {
+                    console.error('Error cleaning up failed initialization:', closeError);
+                }
+                session.automation = null;
+            }
+            
             return res.status(500).json({ 
                 error: 'Failed to initialize browser',
                 details: error.message,
@@ -188,14 +231,31 @@ app.post('/api/preload', async (req, res) => {
             });
         }
 
-        // Navigate to Outlook
-        const navigated = await session.automation.navigateToOutlook();
-        if (!navigated) {
-            await session.automation.close();
+        // Navigate to Outlook with timeout
+        try {
+            const navigated = await Promise.race([
+                session.automation.navigateToOutlook(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), OPERATION_TIMEOUT))
+            ]);
+            
+            if (!navigated) {
+                throw new Error('Navigation failed');
+            }
+        } catch (error) {
+            console.error('Failed to navigate to Outlook:', error);
+            
+            // Clean up on navigation failure
+            try {
+                await session.automation.close();
+            } catch (closeError) {
+                console.error('Error cleaning up after navigation failure:', closeError);
+            }
             session.automation = null;
             session.isPreloaded = false;
+            
             return res.status(500).json({ 
-                error: 'Failed to preload Outlook page' 
+                error: 'Failed to preload Outlook page',
+                details: error.message
             });
         }
 

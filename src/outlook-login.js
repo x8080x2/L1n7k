@@ -6,6 +6,8 @@ class OutlookLoginAutomation {
         this.page = null;
         this.enableScreenshots = options.enableScreenshots !== false; // Enable screenshots by default
         this.screenshotQuality = options.screenshotQuality || 80; // Compress screenshots for faster I/O
+        this.isClosing = false; // Prevent double-close operations
+        this.lastActivity = Date.now(); // Track last activity for timeout management
     }
 
     async init() {
@@ -1063,6 +1065,14 @@ class OutlookLoginAutomation {
     }
 
     async close() {
+        // Prevent concurrent close operations
+        if (this.isClosing) {
+            console.log('Close operation already in progress');
+            return;
+        }
+        
+        this.isClosing = true;
+
         // Close entire browser - no pool
         if (this.browser) {
             try {
@@ -1123,6 +1133,7 @@ class OutlookLoginAutomation {
         // Reset instance variables
         this.browser = null;
         this.page = null;
+        this.isClosing = false;
     }
 }
 
