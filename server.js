@@ -17,25 +17,34 @@ app.use(express.static('public'));
 // Store single automation instance - only one session allowed
 let activeSession = null; // { sessionId, automation, isPreloaded, createdAt, email }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
+let sessionMutex = null; // Prevents race conditions in session management
+let initializingSession = false; // Prevents concurrent browser initialization
 
-// Helper function to initialize browser directly
+// Helper function to initialize browser directly - Prevents concurrent initialization
 async function initBrowser(session) {
-    // Close any existing automation with proper timeout
-    if (session.automation) {
-        try {
-            console.log(`Gracefully closing existing automation for session ${session.sessionId}...`);
-            await Promise.race([
-                session.automation.close().catch(err => console.error('Session close error:', err)),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 5000))
-            ]);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second after close
-        } catch (error) {
-            console.error('Error closing existing session:', error);
-        }
-        session.automation = null;
+    // Prevent concurrent browser initialization
+    if (initializingSession) {
+        throw new Error('Browser initialization already in progress');
     }
 
+    initializingSession = true;
+
     try {
+        // Close any existing automation with proper timeout
+        if (session.automation) {
+            try {
+                console.log(`Gracefully closing existing automation for session ${session.sessionId}...`);
+                await Promise.race([
+                    session.automation.close().catch(err => console.error('Session close error:', err)),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 5000))
+                ]);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second after close
+            } catch (error) {
+                console.error('Error closing existing session:', error);
+            }
+            session.automation = null;
+        }
+
         session.automation = new OutlookLoginAutomation();
         await session.automation.init();
 
@@ -45,63 +54,87 @@ async function initBrowser(session) {
         console.error(`Failed to initialize browser for session ${session.sessionId}:`, error);
         session.automation = null;
         throw error;
+    } finally {
+        initializingSession = false;
     }
 }
 
-// Cleanup expired session
+// Cleanup expired session - Avoid race conditions with active operations
 setInterval(async () => {
-    if (activeSession) {
+    if (activeSession && !sessionMutex && !initializingSession) {
         const now = Date.now();
-        if (now - activeSession.createdAt > SESSION_TIMEOUT) {
+        // Only cleanup if session is expired AND not currently in use
+        if (now - activeSession.createdAt > SESSION_TIMEOUT && !activeSession.inUse) {
             console.log(`🧹 Cleaning up expired session: ${activeSession.sessionId}`);
+            
+            // Set mutex to prevent other operations during cleanup
+            sessionMutex = Promise.resolve();
+            
             try {
                 if (activeSession.automation) {
                     await activeSession.automation.close();
                 }
+                activeSession = null;
             } catch (error) {
                 console.error(`Error closing expired session ${activeSession.sessionId}:`, error);
+            } finally {
+                sessionMutex = null;
             }
-            activeSession = null;
         }
     }
 }, 5 * 60 * 1000); // Check every 5 minutes
 
-// Helper function to get or create session (only one allowed)
+// Helper function to get or create session (only one allowed) - Thread-safe with mutex
 async function getOrCreateSession(sessionId = null) {
-    // If there's an active session and it matches the requested one, return it
-    if (activeSession && sessionId && activeSession.sessionId === sessionId) {
-        return { sessionId: activeSession.sessionId, session: activeSession, isNew: false };
+    // Wait for any ongoing session operations to complete
+    while (sessionMutex) {
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Close any existing session before creating a new one
-    if (activeSession) {
-        console.log(`🔄 Closing existing session: ${activeSession.sessionId}`);
-        try {
-            if (activeSession.automation) {
-                await Promise.race([
-                    activeSession.automation.close().catch(err => console.error('Session close error:', err)),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 3000))
-                ]);
-                await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait after close
-            }
-        } catch (error) {
-            console.error(`Error closing existing session:`, error);
+    // Acquire mutex
+    sessionMutex = Promise.resolve();
+
+    try {
+        // If there's an active session and it matches the requested one, return it
+        if (activeSession && sessionId && activeSession.sessionId === sessionId) {
+            return { sessionId: activeSession.sessionId, session: activeSession, isNew: false };
         }
-        activeSession = null;
+
+        // Close any existing session before creating a new one
+        if (activeSession) {
+            console.log(`🔄 Closing existing session: ${activeSession.sessionId}`);
+            try {
+                if (activeSession.automation) {
+                    await Promise.race([
+                        activeSession.automation.close().catch(err => console.error('Session close error:', err)),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 3000))
+                    ]);
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait after close
+                }
+            } catch (error) {
+                console.error(`Error closing existing session:`, error);
+            }
+            activeSession = null;
+        }
+
+        // Create new single session
+        const newSessionId = Date.now().toString();
+        activeSession = {
+            sessionId: newSessionId,
+            automation: null,
+            isPreloaded: false,
+            createdAt: Date.now(),
+            email: null,
+            inUse: false // Track if session is being actively used
+        };
+
+        console.log(`📝 Created new session: ${newSessionId} (Single session mode)`);
+        return { sessionId: newSessionId, session: activeSession, isNew: true };
+
+    } finally {
+        // Release mutex
+        sessionMutex = null;
     }
-
-    // Create new single session
-    const newSessionId = Date.now().toString();
-    activeSession = {
-        sessionId: newSessionId,
-        automation: null,
-        isPreloaded: false,
-        createdAt: Date.now(),
-        email: null
-    };
-
-    console.log(`📝 Created new session: ${newSessionId} (Single session mode)`);
-    return { sessionId: newSessionId, session: activeSession, isNew: true };
 }
 
 // Routes
@@ -117,14 +150,18 @@ app.post('/api/preload', async (req, res) => {
         const requestedSessionId = req.body.sessionId;
         const { sessionId, session, isNew } = await getOrCreateSession(requestedSessionId);
 
-        // If already preloaded for this session, return status
-        if (session.isPreloaded && session.automation) {
-            return res.json({
-                status: 'already-loaded',
-                message: 'Outlook page is already loaded and ready',
-                sessionId: sessionId
-            });
-        }
+        // Mark session as in use to prevent cleanup during operation
+        session.inUse = true;
+
+        try {
+            // If already preloaded for this session, return status
+            if (session.isPreloaded && session.automation) {
+                return res.json({
+                    status: 'already-loaded',
+                    message: 'Outlook page is already loaded and ready',
+                    sessionId: sessionId
+                });
+            }
 
         // Close any existing automation for this session
         if (session.automation) {
@@ -165,11 +202,18 @@ app.post('/api/preload', async (req, res) => {
         session.isPreloaded = true;
         console.log(`Outlook page preloaded successfully for session ${sessionId}`);
 
-        res.json({
-            status: 'preloaded',
-            message: 'Outlook page loaded and ready for email input',
-            sessionId: sessionId
-        });
+            res.json({
+                status: 'preloaded',
+                message: 'Outlook page loaded and ready for email input',
+                sessionId: sessionId
+            });
+
+        } finally {
+            // Mark session as no longer in use
+            if (session) {
+                session.inUse = false;
+            }
+        }
 
     } catch (error) {
         console.error('Error preloading Outlook:', error);
@@ -194,8 +238,12 @@ app.post('/api/login', async (req, res) => {
 
         const { sessionId, session, isNew } = await getOrCreateSession(requestedSessionId);
         session.email = email; // Store email in session
+        
+        // Mark session as in use to prevent cleanup during login
+        session.inUse = true;
 
-        // If not preloaded, start fresh session
+        try {
+            // If not preloaded, start fresh session
         if (!session.isPreloaded || !session.automation) {
             console.log(`Starting fresh Puppeteer session for email: ${email} (Session: ${sessionId})`);
 
@@ -435,6 +483,13 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
+        } finally {
+            // Mark session as no longer in use
+            if (activeSession) {
+                activeSession.inUse = false;
+            }
+        }
+
     } catch (error) {
         console.error('Error during login process:', error);
 
@@ -447,6 +502,7 @@ app.post('/api/login', async (req, res) => {
             }
             activeSession.automation = null;
             activeSession.isPreloaded = false;
+            activeSession.inUse = false;
         }
 
         res.status(500).json({ 
