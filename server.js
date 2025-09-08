@@ -236,20 +236,7 @@ app.post('/api/login', async (req, res) => {
             console.log(`Using preloaded Outlook page for email: ${email} (Session: ${sessionId})`);
         }
 
-        // Check if already logged in before trying to fill email
-        const isLoggedIn = await session.automation.isLoggedIn();
-        if (isLoggedIn) {
-            console.log('✅ User is already logged in to Outlook!');
-            return res.json({
-                sessionId: sessionId,
-                email: email,
-                loginComplete: true,
-                loginSuccess: true,
-                message: 'Already logged in! Redirecting to Outlook...',
-                alreadyLoggedIn: true,
-                authMethod: 'existing-session'
-            });
-        }
+        // Force fresh login - no checking for existing sessions
 
         // If password is provided, perform full login
         if (password) {
@@ -264,17 +251,7 @@ app.post('/api/login', async (req, res) => {
                 loginSuccess = await session.automation.performLogin(email, password);
                 authMethod = 'password';
 
-                // If password login successful, save enhanced session with credentials
-                if (loginSuccess) {
-                    console.log('💾 Saving enhanced session with credentials for future use...');
-                    await session.automation.saveCookies(email, password);
-
-                    // Close current session to restart fresh
-                    console.log('🔄 Closing session to restart after cookie save...');
-                    await session.automation.close();
-                    session.automation = null;
-                    session.isPreloaded = false;
-                }
+                // Password login completed - no session saving
             }
 
             // Take screenshot after login attempt
@@ -537,19 +514,7 @@ app.post('/api/continue-login', async (req, res) => {
 
             let responseMessage = '';
             if (loginSuccess) {
-                // Save enhanced session with email and password for future automatic login
-                console.log('💾 Saving enhanced session with full credentials...');
-                const email = session.email || 'unknown'; // Use stored email from session
-                const sessionFile = await session.automation.saveCookies(email, password);
-                responseMessage = sessionFile ? 
-                    `Login completed successfully! Enhanced session saved to: ${sessionFile}` :
-                    'Login completed successfully!';
-
-                // Close current session to restart fresh
-                console.log('🔄 Closing session to restart after cookie save...');
-                await session.automation.close();
-                session.automation = null;
-                session.isPreloaded = false;
+                responseMessage = 'Login completed successfully!';
             } else {
                 responseMessage = 'Login may require additional verification';
             }

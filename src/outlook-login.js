@@ -943,55 +943,8 @@ class OutlookLoginAutomation {
     
 
     async isLoggedIn() {
-        try {
-            // Check if we're on the login page (bad sign)
-            const currentUrl = this.page.url();
-            if (currentUrl.includes('login.microsoftonline.com') || 
-                currentUrl.includes('login.live.com')) {
-                return false;
-            }
-
-            // Check for login indicators on Outlook
-            const loginIndicators = [
-                'input[type="email"]',  // Email input field
-                'input[type="password"]',  // Password input field
-                'input[value="Sign in"]',  // Sign in button
-                '[data-testid="i0116"]'   // Microsoft login email field
-            ];
-
-            for (const selector of loginIndicators) {
-                const element = await this.page.$(selector);
-                if (element) {
-                    return false; // Found login element, not logged in
-                }
-            }
-
-            // Check for Outlook-specific logged-in indicators
-            const loggedInIndicators = [
-                '[role="listbox"]',  // Email list
-                '[data-testid="message-subject"]',  // Email subjects
-                'button[aria-label*="New mail"]',  // New mail button
-                'div[aria-label*="Inbox"]'  // Inbox label
-            ];
-
-            for (const selector of loggedInIndicators) {
-                const element = await this.page.$(selector);
-                if (element) {
-                    return true; // Found Outlook element, logged in
-                }
-            }
-
-            // If on outlook.office.com and no login fields, probably logged in
-            if (currentUrl.includes('outlook.office.com')) {
-                return true;
-            }
-
-            return false;
-
-        } catch (error) {
-            console.error('Error checking login status:', error.message);
-            return false;
-        }
+        // Always return false to force fresh authentication
+        return false;
     }
 
     async checkEmails() {
