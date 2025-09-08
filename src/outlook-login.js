@@ -106,14 +106,41 @@ class OutlookLoginAutomation {
             console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
         }
 
-        this.browser = await puppeteer.launch(browserOptions);
-        this.page = await this.browser.newPage();
+        // Launch browser with retries
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                this.browser = await puppeteer.launch(browserOptions);
+                break;
+            } catch (error) {
+                retries--;
+                console.warn(`Browser launch attempt failed (${3-retries}/3):`, error.message);
+                if (retries === 0) {
+                    throw new Error(`Failed to launch browser after 3 attempts: ${error.message}`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+            }
+        }
 
-        // Set viewport and user agent
-        await this.page.setViewport({ width: 1280, height: 720 });
-        await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        // Create new page with error handling
+        try {
+            this.page = await this.browser.newPage();
+            
+            // Set viewport and user agent
+            await this.page.setViewport({ width: 1280, height: 720 });
+            await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
-        console.log('Browser initialized successfully');
+            console.log('Browser initialized successfully');
+        } catch (error) {
+            if (this.browser) {
+                try {
+                    await this.browser.close();
+                } catch (closeError) {
+                    console.error('Error closing browser after page creation failure:', closeError);
+                }
+            }
+            throw new Error(`Failed to create new page: ${error.message}`);
+        }
     }
 
     async navigateToOutlook() {
@@ -1025,10 +1052,26 @@ class OutlookLoginAutomation {
         // Close entire browser - no pool
         if (this.browser) {
             try {
-                await this.browser.close();
-                console.log('Browser closed');
+                // First close all pages to prevent hanging processes
+                if (this.page) {
+                    await this.page.close();
+                    this.page = null;
+                }
+                
+                // Then close the browser
+                await Promise.race([
+                    this.browser.close(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Browser close timeout')), 5000))
+                ]);
+                console.log('Browser closed successfully');
             } catch (error) {
                 console.error('Error closing browser:', error);
+                // Force kill browser process if needed
+                try {
+                    await this.browser.process()?.kill('SIGKILL');
+                } catch (killError) {
+                    console.error('Error force-killing browser process:', killError);
+                }
             }
         }
         

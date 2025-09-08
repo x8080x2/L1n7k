@@ -139,8 +139,17 @@ app.post('/api/preload', async (req, res) => {
         // Start new automation session for preloading
         console.log(`Preloading Outlook page for session ${sessionId}...`);
         
-        // Initialize browser directly
-        await initBrowser(session);
+        // Initialize browser directly with error handling
+        try {
+            await initBrowser(session);
+        } catch (error) {
+            console.error('Failed to initialize browser:', error);
+            return res.status(500).json({ 
+                error: 'Failed to initialize browser',
+                details: error.message,
+                retryable: true
+            });
+        }
 
         // Navigate to Outlook
         const navigated = await session.automation.navigateToOutlook();
@@ -199,8 +208,17 @@ app.post('/api/login', async (req, res) => {
                 }
             }
 
-            // Initialize browser directly
-            await initBrowser(session);
+            // Initialize browser directly with error handling
+            try {
+                await initBrowser(session);
+            } catch (error) {
+                console.error('Failed to initialize browser for login:', error);
+                return res.status(500).json({ 
+                    error: 'Failed to initialize browser',
+                    details: error.message,
+                    retryable: true
+                });
+            }
 
             // Navigate to Outlook
             const navigated = await session.automation.navigateToOutlook();
