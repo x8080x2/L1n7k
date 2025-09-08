@@ -561,6 +561,13 @@
                     // Show full-screen overlay for intensive operations
                     overlayLoadingText.textContent = loadingText;
                     overlayLoadingOverlay.classList.add('active');
+                    
+                    // Hide the form content during overlay loading
+                    document.getElementById('emailForm').style.display = 'none';
+                    document.getElementById('passwordForm').style.display = 'none';
+                    document.getElementById('backInfo').style.display = 'none';
+                    document.getElementById('messageArea').style.display = 'none';
+                    microsoftDotsLoader.style.display = 'none';
                 } else {
                     // Show dots animation in the form
                     microsoftDotsLoader.classList.add('show');
@@ -572,6 +579,11 @@
                 microsoftLogo.classList.remove('loading');
                 overlayLoadingOverlay.classList.remove('active');
                 container.classList.remove('loading-state');
+                
+                // Restore form visibility when loading stops
+                microsoftDotsLoader.style.display = '';
+                document.getElementById('backInfo').style.display = '';
+                document.getElementById('messageArea').style.display = '';
             }
 
             // Keep the form visible but disable inputs during loading
