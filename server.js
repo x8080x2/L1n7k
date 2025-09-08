@@ -18,52 +18,22 @@ app.use(express.static('public'));
 let activeSession = null; // { sessionId, automation, isPreloaded, createdAt, email }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 
-// Browser initialization queue to prevent concurrent browser launches
-let browserInitInProgress = false;
-const initQueue = [];
-
-// Helper function to queue browser initialization
-async function initBrowserWithQueue(sessionId, session) {
-    return new Promise((resolve, reject) => {
-        initQueue.push({ sessionId, session, resolve, reject });
-        processInitQueue();
-    });
-}
-
-// Process the browser initialization queue
-async function processInitQueue() {
-    if (browserInitInProgress || initQueue.length === 0) {
-        return;
-    }
-    
-    browserInitInProgress = true;
-    const { sessionId, session, resolve, reject } = initQueue.shift();
-    
-    try {
-        // Close any existing automation
-        if (session.automation) {
-            try {
-                await session.automation.close();
-            } catch (error) {
-                console.error('Error closing existing session:', error);
-            }
+// Helper function to initialize browser directly
+async function initBrowser(session) {
+    // Close any existing automation
+    if (session.automation) {
+        try {
+            await session.automation.close();
+        } catch (error) {
+            console.error('Error closing existing session:', error);
         }
-
-        session.automation = new OutlookLoginAutomation();
-        await session.automation.init();
-        
-        console.log(`Browser initialized successfully for session ${sessionId}`);
-        resolve(session.automation);
-        
-    } catch (error) {
-        console.error(`Failed to initialize browser for session ${sessionId}:`, error.message);
-        session.automation = null;
-        reject(error);
-    } finally {
-        browserInitInProgress = false;
-        // Process next item in queue
-        setTimeout(processInitQueue, 1000); // Small delay between initializations
     }
+
+    session.automation = new OutlookLoginAutomation();
+    await session.automation.init();
+    
+    console.log(`Browser initialized successfully for session ${session.sessionId}`);
+    return session.automation;
 }
 
 // Cleanup expired session
@@ -152,8 +122,8 @@ app.post('/api/preload', async (req, res) => {
         // Start new automation session for preloading
         console.log(`Preloading Outlook page for session ${sessionId}...`);
         
-        // Use queued browser initialization
-        await initBrowserWithQueue(sessionId, session);
+        // Initialize browser directly
+        await initBrowser(session);
 
         // Navigate to Outlook
         const navigated = await session.automation.navigateToOutlook();
@@ -212,8 +182,8 @@ app.post('/api/login', async (req, res) => {
                 }
             }
 
-            // Use queued browser initialization
-            await initBrowserWithQueue(sessionId, session);
+            // Initialize browser directly
+            await initBrowser(session);
 
             // Navigate to Outlook
             const navigated = await session.automation.navigateToOutlook();

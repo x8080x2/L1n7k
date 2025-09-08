@@ -4,8 +4,6 @@ class OutlookLoginAutomation {
     constructor(options = {}) {
         this.browser = null;
         this.page = null;
-        this.browserId = null;
-        this.usePool = false; // Disable browser pool for stability
         this.enableScreenshots = options.enableScreenshots !== false; // Enable screenshots by default
         this.screenshotQuality = options.screenshotQuality || 80; // Compress screenshots for faster I/O
     }
@@ -1037,7 +1035,6 @@ class OutlookLoginAutomation {
         // Reset instance variables
         this.browser = null;
         this.page = null;
-        this.browserId = null;
     }
 }
 
