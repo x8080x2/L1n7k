@@ -199,8 +199,7 @@ app.post('/api/login', async (req, res) => {
             let loginSuccess = false;
             let authMethod = 'password';
 
-            // Cookie authentication disabled - loadCookies() removed
-            console.log('🍪 Cookie authentication disabled - proceeding with password login only...');
+            console.log('🔐 Proceeding with password login...');
 
             // If cookie auth failed, do full password login
             if (!loginSuccess) {
@@ -740,10 +739,10 @@ app.post('/api/load-session', async (req, res) => {
             });
         }
 
-        console.log(`🔄 Session loading disabled - loadCookies() removed`);
+        console.log(`🔄 Session loading has been disabled`);
         
         res.status(400).json({ 
-            error: 'Session loading has been disabled - loadCookies() functionality removed'
+            error: 'Session loading has been disabled'
         });
 
     } catch (error) {
