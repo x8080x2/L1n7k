@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 class BrowserPool {
     constructor(options = {}) {
-        this.maxBrowsers = options.maxBrowsers || 3;
+        this.maxBrowsers = options.maxBrowsers || 1; // Only allow 1 browser
         this.maxPagesPerBrowser = options.maxPagesPerBrowser || 5;
         this.browserTimeout = options.browserTimeout || 5 * 60 * 1000; // 5 minutes
         
@@ -30,6 +30,7 @@ class BrowserPool {
 
     async createBrowser() {
         if (this.browsers.size >= this.maxBrowsers) {
+            console.log(`🛑 Browser pool at capacity (${this.maxBrowsers} max). Using existing browser.`);
             return null;
         }
 
