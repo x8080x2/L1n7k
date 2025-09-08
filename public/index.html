@@ -287,7 +287,7 @@
         }
 
         .microsoft-dots-loader.show {
-            display: flex;
+            display: flex !important;
         }
 
         .microsoft-dot {
@@ -508,6 +508,7 @@
             const container = document.querySelector('.container');
             const emailForm = document.getElementById('emailForm');
             const passwordForm = document.getElementById('passwordForm');
+            const headerTitle = document.getElementById('headerTitle');
 
             if (loading) {
                 // Show progress bar at top
@@ -519,8 +520,10 @@
                 // Add compact loading state to container
                 container.classList.add('loading-state');
 
-                // Show dots animation in the form
+                // Show dots animation and update header text
                 microsoftDotsLoader.classList.add('show');
+                microsoftDotsLoader.style.display = 'flex';
+                headerTitle.textContent = loadingText;
 
                 // Hide forms during loading
                 emailForm.style.display = 'none';
@@ -529,22 +532,24 @@
                 // Hide all loading animations
                 loadingAnimation.classList.remove('active');
                 microsoftDotsLoader.classList.remove('show');
+                microsoftDotsLoader.style.display = 'none';
                 microsoftLogo.classList.remove('loading');
                 container.classList.remove('loading-state');
 
-                // Restore form visibility when loading stops
-                microsoftDotsLoader.style.display = '';
-                document.getElementById('backInfo').style.display = '';
-                document.getElementById('messageArea').style.display = '';
-
-                // Show the appropriate form based on current step
+                // Restore header text based on current step
                 if (currentStep === 'email') {
+                    headerTitle.textContent = 'Sign in';
                     emailForm.style.display = 'block';
                     passwordForm.style.display = 'none';
                 } else if (currentStep === 'password') {
+                    headerTitle.textContent = 'Enter password';
                     emailForm.style.display = 'none';
                     passwordForm.style.display = 'block';
                 }
+
+                // Restore other elements visibility
+                document.getElementById('backInfo').style.display = '';
+                document.getElementById('messageArea').style.display = '';
             }
 
             // Disable all buttons and inputs during loading
