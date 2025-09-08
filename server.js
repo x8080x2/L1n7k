@@ -973,15 +973,19 @@ app.use((err, req, res, next) => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('\n🔄 Shutting down server...');
+// Graceful shutdown handling for multiple signals
+const gracefulShutdown = async (signal) => {
+    console.log(`\n🔄 Received ${signal}. Shutting down server...`);
 
     // Close active automation session
     if (activeSession) {
         try {
             console.log(`Closing session ${activeSession.sessionId}...`);
             if (activeSession.automation) {
-                await activeSession.automation.close();
+                await Promise.race([
+                    activeSession.automation.close(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Shutdown timeout')), 5000))
+                ]);
             }
         } catch (error) {
             console.error(`Error closing session ${activeSession.sessionId}:`, error);
@@ -991,7 +995,11 @@ process.on('SIGINT', async () => {
     activeSession = null;
     console.log('✅ All sessions closed. Server shutdown complete.');
     process.exit(0);
-});
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGQUIT', gracefulShutdown);
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {

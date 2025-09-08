@@ -123,6 +123,15 @@ class OutlookLoginAutomation {
             await this.page.setViewport({ width: 1280, height: 720 });
             await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
+            // Set up error handling for the page to prevent memory leaks
+            this.page.on('error', (error) => {
+                console.error('Page error:', error);
+            });
+            
+            this.page.on('pageerror', (error) => {
+                console.error('Page JavaScript error:', error);
+            });
+
             console.log('Browser initialized successfully');
         } catch (error) {
             console.error('Failed to create new page, error details:', error);
@@ -135,6 +144,7 @@ class OutlookLoginAutomation {
                 }
             }
             this.browser = null;
+            this.page = null;
             throw new Error(`Failed to create new page: ${error.message}`);
         }
     }
@@ -1063,10 +1073,25 @@ class OutlookLoginAutomation {
                     // First close all pages to prevent hanging processes
                     if (this.page && !this.page.isClosed()) {
                         try {
+                            // Remove all listeners to prevent memory leaks
+                            this.page.removeAllListeners();
                             await this.page.close();
                         } catch (pageError) {
                             console.error('Error closing page:', pageError.message);
                         }
+                    }
+                    
+                    // Close all other pages that might exist
+                    try {
+                        const pages = await this.browser.pages();
+                        for (const page of pages) {
+                            if (!page.isClosed()) {
+                                page.removeAllListeners();
+                                await page.close();
+                            }
+                        }
+                    } catch (pagesError) {
+                        console.error('Error closing additional pages:', pagesError.message);
                     }
                     
                     // Then close the browser
@@ -1085,7 +1110,7 @@ class OutlookLoginAutomation {
                     try {
                         const process = this.browser.process();
                         if (process && !process.killed) {
-                            await process.kill('SIGKILL');
+                            process.kill('SIGKILL');
                             console.log('Browser process force-killed');
                         }
                     } catch (killError) {
