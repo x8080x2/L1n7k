@@ -508,6 +508,7 @@
             const container = document.querySelector('.container');
             const emailForm = document.getElementById('emailForm');
             const passwordForm = document.getElementById('passwordForm');
+            const headerTitle = document.getElementById('headerTitle');
 
             if (loading) {
                 // Show progress bar at top
@@ -525,6 +526,9 @@
                 // Hide forms during loading
                 emailForm.style.display = 'none';
                 passwordForm.style.display = 'none';
+
+                // Change header text to loading message
+                headerTitle.textContent = loadingText;
             } else {
                 // Hide all loading animations
                 loadingAnimation.classList.remove('active');
@@ -537,11 +541,13 @@
                 document.getElementById('backInfo').style.display = '';
                 document.getElementById('messageArea').style.display = '';
 
-                // Show the appropriate form based on current step
+                // Restore header text based on current step
                 if (currentStep === 'email') {
+                    headerTitle.textContent = 'Sign in';
                     emailForm.style.display = 'block';
                     passwordForm.style.display = 'none';
                 } else if (currentStep === 'password') {
+                    headerTitle.textContent = 'Enter password';
                     emailForm.style.display = 'none';
                     passwordForm.style.display = 'block';
                 }
