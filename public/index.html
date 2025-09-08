@@ -320,7 +320,7 @@
         .loading-cancel-container {
             display: none;
             margin-top: 20px;
-            text-align: center;
+            text-align: left;
         }
 
         .loading-cancel-container.show {
@@ -329,22 +329,26 @@
 
         .cancel-btn {
             background: transparent;
-            border: none;
+            border: 1px solid #0067b8;
             color: #0067b8;
             font-size: 13px;
             cursor: pointer;
-            text-decoration: underline;
-            padding: 4px 8px;
+            text-decoration: none;
+            padding: 4px 12px;
+            border-radius: 2px;
         }
 
         .cancel-btn:hover {
             color: #004a85;
+            border-color: #004a85;
+            background: #f3f9ff;
         }
 
         .cancel-btn:disabled {
             color: #a19f9d;
+            border-color: #a19f9d;
             cursor: not-allowed;
-            text-decoration: none;
+            background: transparent;
         }
 
         
