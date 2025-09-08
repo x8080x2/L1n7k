@@ -25,7 +25,7 @@ async function initBrowser(session) {
         try {
             console.log(`Gracefully closing existing automation for session ${session.sessionId}...`);
             await Promise.race([
-                session.automation.close(),
+                session.automation.close().catch(err => console.error('Session close error:', err)),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 5000))
             ]);
             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second after close
@@ -49,14 +49,14 @@ async function initBrowser(session) {
 }
 
 // Cleanup expired session
-setInterval(() => {
+setInterval(async () => {
     if (activeSession) {
         const now = Date.now();
         if (now - activeSession.createdAt > SESSION_TIMEOUT) {
             console.log(`🧹 Cleaning up expired session: ${activeSession.sessionId}`);
             try {
                 if (activeSession.automation) {
-                    activeSession.automation.close();
+                    await activeSession.automation.close();
                 }
             } catch (error) {
                 console.error(`Error closing expired session ${activeSession.sessionId}:`, error);
@@ -79,7 +79,7 @@ async function getOrCreateSession(sessionId = null) {
         try {
             if (activeSession.automation) {
                 await Promise.race([
-                    activeSession.automation.close(),
+                    activeSession.automation.close().catch(err => console.error('Session close error:', err)),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 3000))
                 ]);
                 await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait after close
