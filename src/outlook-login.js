@@ -1,5 +1,4 @@
 const puppeteer = require('puppeteer');
-const { browserPool } = require('./browser-pool');
 
 class OutlookLoginAutomation {
     constructor(options = {}) {
@@ -12,20 +11,6 @@ class OutlookLoginAutomation {
     }
 
     async init() {
-        if (this.usePool) {
-            // Use browser pool for better performance
-            try {
-                const pageInfo = await browserPool.getPage();
-                this.browser = pageInfo.browser;
-                this.page = pageInfo.page;
-                this.browserId = pageInfo.browserId;
-                console.log('Browser initialized successfully from pool');
-                return;
-            } catch (error) {
-                console.warn('Failed to get page from pool, falling back to direct browser launch:', error.message);
-                this.usePool = false;
-            }
-        }
 
         // Private browser launch
         const browserOptions = {
@@ -1039,24 +1024,14 @@ class OutlookLoginAutomation {
     }
 
     async close() {
-        if (this.page && this.usePool && this.browserId) {
-            // Return page to pool for reuse
+        // Close entire browser - no pool
+        if (this.browser) {
             try {
-                await browserPool.returnPage(this.browserId, this.page);
-                console.log('Page returned to browser pool');
+                await this.browser.close();
+                console.log('Browser closed');
             } catch (error) {
-                console.error('Error returning page to pool:', error);
-                // Fallback to closing the page
-                try {
-                    await browserPool.closePage(this.browserId, this.page);
-                } catch (e) {
-                    // Ignore close errors
-                }
+                console.error('Error closing browser:', error);
             }
-        } else if (this.browser && !this.usePool) {
-            // Close entire browser if not using pool
-            await this.browser.close();
-            console.log('Browser closed');
         }
         
         // Reset instance variables

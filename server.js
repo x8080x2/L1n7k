@@ -449,14 +449,15 @@ app.post('/api/login', async (req, res) => {
         console.error('Error during login process:', error);
 
         // Clean up on error
-        if (session && session.automation) {
+        const { sessionId: currentSessionId, session: currentSession } = getOrCreateSession(requestedSessionId);
+        if (currentSession && currentSession.automation) {
             try {
-                await session.automation.close();
+                await currentSession.automation.close();
             } catch (closeError) {
                 console.error('Error closing automation on error:', closeError);
             }
-            session.automation = null;
-            session.isPreloaded = false;
+            currentSession.automation = null;
+            currentSession.isPreloaded = false;
         }
 
         res.status(500).json({ 
