@@ -505,6 +505,7 @@
         let currentSessionId = null;
         let currentStep = 'email'; // 'email' or 'password'
         const API_BASE = '';
+        let preloadInProgress = false; // Prevent concurrent preload requests
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -705,13 +706,22 @@
         }
 
         async function preloadOutlook() {
+            // Prevent concurrent preload requests
+            if (preloadInProgress) {
+                console.log('Preload already in progress, skipping...');
+                return;
+            }
+
+            preloadInProgress = true;
+            
             try {
                 document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
                 // Removed preload info message
 
                 const response = await fetch(`${API_BASE}/api/preload`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(30000) // 30 second timeout
                 });
 
                 const data = await response.json();
@@ -736,6 +746,8 @@
                 document.getElementById('statusText').textContent = 'Backend online - Manual loading';
                 console.error('Preload failed:', error);
                 // Don't show error to user, just fallback to manual loading
+            } finally {
+                preloadInProgress = false;
             }
         }
 
@@ -937,8 +949,8 @@
             // Clear messages
             clearMessage();
 
-            // Preload a fresh session
-            preloadOutlook();
+            // Preload a fresh session with delay to avoid race conditions
+            setTimeout(() => preloadOutlook(), 1000);
         }
 
 
