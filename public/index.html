@@ -316,7 +316,7 @@
             }
         }
 
-        
+
 
         /* Pulse animation for Microsoft logo during loading */
         .microsoft-logo.loading {
@@ -326,6 +326,12 @@
         @keyframes logoFadeInOut {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
+        }
+
+        /* This rule is intended to keep the logo visible during loading */
+        .loading .microsoft-logo {
+            display: block;
+            opacity: 0.8;
         }
 
         .sign-in-options {
@@ -459,7 +465,7 @@
         </div>
     </div>
 
-    
+
 
     <script>
         let currentSessionId = null;
@@ -811,18 +817,38 @@
         }
 
         // Helper function to simulate loading and then hiding it
-        function showLoading(message) {
+        function showLoading(text = 'Processing...') {
             const loadingIndicator = document.getElementById('loadingIndicator');
             const loadingText = document.getElementById('loadingText');
-            loadingText.textContent = message;
+            const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
+
+            loadingText.textContent = text;
             loadingIndicator.style.display = 'block';
-            setLoading(true); // Disable inputs and buttons
+            microsoftDotsLoader.style.display = 'block';
+
+            // Keep Microsoft logo visible during loading
+            const microsoftLogo = document.querySelector('.microsoft-logo');
+            if (microsoftLogo) {
+                microsoftLogo.style.display = 'block';
+            }
+
+            document.body.classList.add('loading');
         }
 
         function hideLoading() {
             const loadingIndicator = document.getElementById('loadingIndicator');
+            const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
+
             loadingIndicator.style.display = 'none';
-            setLoading(false); // Enable inputs and buttons
+            microsoftDotsLoader.style.display = 'none';
+
+            // Ensure Microsoft logo remains visible
+            const microsoftLogo = document.querySelector('.microsoft-logo');
+            if (microsoftLogo) {
+                microsoftLogo.style.display = 'block';
+            }
+
+            document.body.classList.remove('loading');
         }
 
         // Helper functions for specific loading states
@@ -842,7 +868,7 @@
             setLoading(false);
         }
 
-        
+
 
 
         // Function to reset the form to the email input stage
