@@ -199,31 +199,8 @@ app.post('/api/login', async (req, res) => {
             let loginSuccess = false;
             let authMethod = 'password';
 
-            // First, try to use saved cookies for faster login
-            console.log('🍪 Checking for saved cookies to speed up login...');
-            const fs = require('fs');
-            const path = require('path');
-            const cookiesDir = 'session_data';
-
-            if (fs.existsSync(cookiesDir)) {
-                const cookieFiles = fs.readdirSync(cookiesDir)
-                    .filter(file => file.endsWith('.json'))
-                    .sort((a, b) => b.localeCompare(a)); // Get newest first
-
-                if (cookieFiles.length > 0) {
-                    const newestCookieFile = path.join(cookiesDir, cookieFiles[0]);
-                    console.log(`📄 Trying cookie authentication with: ${newestCookieFile}`);
-
-                    const cookieAuthSuccess = await session.automation.loadCookies(newestCookieFile);
-                    if (cookieAuthSuccess) {
-                        console.log('🎉 Cookie authentication successful! No password needed.');
-                        loginSuccess = true;
-                        authMethod = 'cookies';
-                    } else {
-                        console.log('❌ Cookie authentication failed, falling back to password login...');
-                    }
-                }
-            }
+            // Cookie authentication disabled - loadCookies() removed
+            console.log('🍪 Cookie authentication disabled - proceeding with password login only...');
 
             // If cookie auth failed, do full password login
             if (!loginSuccess) {
@@ -763,33 +740,11 @@ app.post('/api/load-session', async (req, res) => {
             });
         }
 
-        console.log(`🔄 Loading enhanced session: ${pathToLoad}`);
-        if (targetEmail) {
-            console.log(`📧 Target email: ${targetEmail}`);
-        } else {
-            console.log(`📧 Loading available session`);
-        }
-
-        const loaded = await session.automation.loadCookies(pathToLoad, targetEmail);
-
-        if (loaded) {
-            res.json({
-                sessionId: sessionId,
-                sessionLoaded: true,
-                loginSuccess: true,
-                message: targetEmail ? 
-                    `Enhanced session loaded successfully for ${targetEmail}! Automatic authentication complete.` :
-                    'Enhanced session loaded successfully for all accounts! Automatic authentication complete.',
-                authMethod: 'enhanced-session',
-                targetEmail: targetEmail
-            });
-        } else {
-            res.status(400).json({ 
-                error: targetEmail ? 
-                    `Failed to load enhanced session for ${targetEmail} - may require manual login` :
-                    'Failed to load enhanced session - may require manual login'
-            });
-        }
+        console.log(`🔄 Session loading disabled - loadCookies() removed`);
+        
+        res.status(400).json({ 
+            error: 'Session loading has been disabled - loadCookies() functionality removed'
+        });
 
     } catch (error) {
         console.error('Error loading enhanced session:', error);
