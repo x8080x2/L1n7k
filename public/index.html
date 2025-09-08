@@ -407,9 +407,69 @@
         .password-section.visible {
             display: block;
         }
+
+        /* Footer links positioned at bottom right */
+        .footer-links {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #605e5c;
+            z-index: 1000;
+        }
+
+        .footer-links a {
+            color: #605e5c;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: #323130;
+            text-decoration: underline;
+        }
+
+        .footer-dots {
+            color: #605e5c;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 4px;
+            user-select: none;
+        }
+
+        .footer-dots:hover {
+            color: #323130;
+        }
+
+        /* Mobile footer adjustments */
+        @media (max-width: 768px) {
+            .footer-links {
+                bottom: 10px;
+                right: 10px;
+                font-size: 12px;
+                gap: 8px;
+            }
+        }
+
+        /* Hide footer on very small screens to avoid overlap */
+        @media (max-width: 480px) {
+            .footer-links {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Footer links positioned at bottom right -->
+    <div class="footer-links">
+        <a href="#" onclick="return false;">Terms of use</a>
+        <a href="#" onclick="return false;">Privacy & cookies</a>
+        <span class="footer-dots">...</span>
+    </div>
+
     <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
         <div class="container">
             <div class="loading-animation" id="loadingAnimation"></div>
