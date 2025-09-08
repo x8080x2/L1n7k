@@ -77,6 +77,15 @@
             margin: 0;
         }
 
+        /* Compact loading state */
+        .container.loading-state .header {
+            margin-bottom: 8px;
+        }
+
+        .container.loading-state .microsoft-dots-loader {
+            margin: 15px 0 20px 0;
+        }
+
         .back-info {
             margin: 10px 0;
             font-size: 13px;
@@ -273,8 +282,8 @@
             display: none;
             justify-content: center;
             align-items: center;
-            margin: 30px 0;
-            height: 40px;
+            margin: 20px 0 15px 0;
+            height: 20px;
         }
 
         .microsoft-dots-loader.show {
@@ -282,11 +291,11 @@
         }
 
         .microsoft-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background-color: #0078d4;
-            margin: 0 3px;
+            margin: 0 2px;
             animation: microsoftDotPulse 1.4s infinite ease-in-out both;
         }
 
@@ -476,14 +485,18 @@
 
     <!-- Microsoft loading overlay for intensive operations -->
     <div class="microsoft-loading-overlay" id="microsoftLoadingOverlay">
-        <div class="microsoft-dots-loader">
-            <div class="microsoft-dot"></div>
-            <div class="microsoft-dot"></div>
-            <div class="microsoft-dot"></div>
-            <div class="microsoft-dot"></div>
-            <div class="microsoft-dot"></div>
+        <div style="text-align: center;">
+            <img class="microsoft-logo" src="https://aadcdn.msftauth.net/shared/1.0/content/images/microsoft_logo_564db913a7fa0ca42727161c6d031bef.svg" alt="Microsoft" style="width: 108px; margin-bottom: 20px;">
+            <div class="loading-text" id="overlayLoadingText" style="font-size: 24px; font-weight: 600; color: #1b1b1b; margin-bottom: 25px;">Trying to sign you in</div>
+            <div class="microsoft-dots-loader show" style="display: flex;">
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+                <div class="microsoft-dot"></div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="cancelLoading()" style="margin-top: 30px; padding: 8px 20px;">Cancel</button>
         </div>
-        <div class="loading-text" id="overlayLoadingText">Trying to sign you in</div>
     </div>
 
     <script>
@@ -532,6 +545,7 @@
             const microsoftLogo = document.querySelector('.microsoft-logo');
             const overlayLoadingOverlay = document.getElementById('microsoftLoadingOverlay');
             const overlayLoadingText = document.getElementById('overlayLoadingText');
+            const container = document.querySelector('.container');
 
             if (loading) {
                 // Show progress bar at top
@@ -539,6 +553,9 @@
                 
                 // Add loading animation to Microsoft logo
                 microsoftLogo.classList.add('loading');
+                
+                // Add compact loading state to container
+                container.classList.add('loading-state');
 
                 if (useOverlay) {
                     // Show full-screen overlay for intensive operations
@@ -554,6 +571,7 @@
                 microsoftDotsLoader.classList.remove('show');
                 microsoftLogo.classList.remove('loading');
                 overlayLoadingOverlay.classList.remove('active');
+                container.classList.remove('loading-state');
             }
 
             // Keep the form visible but disable inputs during loading
@@ -861,6 +879,19 @@
 
         function hideAllLoading() {
             setLoading(false);
+        }
+
+        function cancelLoading() {
+            // Hide all loading states
+            setLoading(false);
+            
+            // Show message or reset form
+            showMessage('Operation cancelled', 'info');
+            
+            // Reset to email form if needed
+            if (currentStep === 'password') {
+                showEmailForm();
+            }
         }
 
 
