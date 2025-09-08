@@ -1120,18 +1120,8 @@ async function main() {
         // Take initial screenshot
         await automation.takeScreenshot('outlook-initial.png');
 
-        // Note: For actual login, you would need to provide email and password
-        // This is just a demonstration of the navigation
-        console.log('\nREADY FOR LOGIN:');
-        console.log('The browser is now at Outlook login page.');
-        console.log('To perform actual login, you would call:');
-        console.log('await automation.performLogin("your-email@company.com", "your-password");');
-        console.log('');
-        console.log('For security reasons, credentials should be provided via environment variables.');
-
-        // Keep browser open for manual testing
-        console.log('Browser will remain open for 60 seconds for manual inspection...');
-        await new Promise(resolve => setTimeout(resolve, 60000));
+        console.log('Outlook automation is ready for API requests.');
+        console.log('Use the server endpoints to perform login operations.');
 
     } catch (error) {
         console.error('Automation failed:', error.message);
