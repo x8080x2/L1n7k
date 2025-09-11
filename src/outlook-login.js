@@ -222,8 +222,8 @@ class OutlookLoginAutomation {
             // Wait for possible "Stay signed in?" prompt
             await this.handleStaySignedInPrompt();
 
-            // Final redirect check - wait for Outlook to load (reduced timing)
-            await new Promise(resolve => setTimeout(resolve, 2500));
+            // Final redirect check - wait for Outlook to load (optimized timing)
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             const finalUrl = this.page.url();
             if (finalUrl.includes('outlook.office.com/mail')) {
@@ -249,32 +249,39 @@ class OutlookLoginAutomation {
             const currentUrl = this.page.url();
             console.log(`Analyzing URL for login provider: ${currentUrl}`);
 
-            // Check URL patterns to identify the login provider
+            // Optimized URL pattern matching (most common first)
             if (currentUrl.includes('login.microsoftonline.com') || currentUrl.includes('login.live.com')) {
                 return 'microsoft';
-            } else if (currentUrl.includes('adfs') || currentUrl.includes('sts') || currentUrl.includes('fs.')) {
-                return 'adfs';
-            } else if (currentUrl.includes('okta.com') || currentUrl.includes('.okta.')) {
-                return 'okta';
             } else if (currentUrl.includes('microsoftonline.com') && !currentUrl.includes('login.microsoftonline.com')) {
                 return 'azure-ad';
+            } else if (currentUrl.includes('okta.com') || currentUrl.includes('.okta.')) {
+                return 'okta';
+            } else if (currentUrl.includes('adfs') || currentUrl.includes('sts') || currentUrl.includes('fs.') || currentUrl.includes('/adfs/')) {
+                return 'adfs';
+            } else if (currentUrl.includes('microsoft') || currentUrl.includes('office')) {
+                return 'microsoft';
             }
 
-            // Check page content for additional clues
-            const pageText = await this.page.evaluate(() => document.body.textContent || '');
+            // Only check page content if URL patterns didn't match (fallback)
             const pageTitle = await this.page.title();
-
-            if (pageTitle.toLowerCase().includes('adfs') || pageText.toLowerCase().includes('active directory')) {
+            const titleLower = pageTitle.toLowerCase();
+            
+            if (titleLower.includes('adfs') || titleLower.includes('active directory')) {
                 return 'adfs';
-            } else if (pageTitle.toLowerCase().includes('okta') || pageText.toLowerCase().includes('okta')) {
+            } else if (titleLower.includes('okta')) {
                 return 'okta';
-            } else if (pageText.toLowerCase().includes('saml') || pageText.toLowerCase().includes('single sign')) {
+            } else if (titleLower.includes('saml') || titleLower.includes('single sign')) {
                 return 'generic-saml';
             }
 
-            // Default to Microsoft if no specific provider detected but we're still on a Microsoft domain
-            if (currentUrl.includes('microsoft') || currentUrl.includes('office')) {
-                return 'microsoft';
+            // Last resort: check limited page content
+            const pageText = await this.page.evaluate(() => {
+                const text = document.body.textContent || '';
+                return text.substring(0, 500).toLowerCase(); // Limit to first 500 chars for speed
+            });
+            
+            if (pageText.includes('saml') || pageText.includes('single sign')) {
+                return 'generic-saml';
             }
 
             return 'unknown';
