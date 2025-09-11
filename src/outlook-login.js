@@ -41,7 +41,7 @@ class OutlookLoginAutomation {
         try {
             const fs = require('fs');
             const { execSync } = require('child_process');
-            
+
             // Try to find chromium executable dynamically
             try {
                 const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
@@ -56,7 +56,7 @@ class OutlookLoginAutomation {
                     '/usr/bin/chromium',
                     '/usr/bin/chromium-browser'
                 ];
-                
+
                 for (const pathPattern of commonPaths) {
                     try {
                         if (pathPattern.includes('*')) {
@@ -77,12 +77,12 @@ class OutlookLoginAutomation {
                     }
                 }
             }
-            
+
             // If no custom path found, let Puppeteer use its bundled Chromium
             if (!browserOptions.executablePath) {
                 console.log('Using Puppeteer default Chromium (bundled)');
             }
-            
+
         } catch (error) {
             console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
         }
@@ -98,7 +98,7 @@ class OutlookLoginAutomation {
                 console.log(`Attempting to launch browser (attempt ${4-retries}/3)...`);
                 this.browser = await puppeteer.launch(browserOptions);
                 console.log('Browser launched successfully');
-                
+
                 // Wait a moment for browser to stabilize
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 break;
@@ -117,10 +117,10 @@ class OutlookLoginAutomation {
             console.log('Creating new page...');
             const pages = await this.browser.pages(); // Get existing pages first
             console.log(`Browser has ${pages.length} existing pages`);
-            
+
             this.page = await this.browser.newPage();
             console.log('New page created successfully');
-            
+
             // Set viewport and user agent
             await this.page.setViewport({ width: 1280, height: 720 });
             await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
@@ -129,7 +129,7 @@ class OutlookLoginAutomation {
             this.page.on('error', (error) => {
                 console.error('Page error:', error);
             });
-            
+
             this.page.on('pageerror', (error) => {
                 console.error('Page JavaScript error:', error);
             });
@@ -425,7 +425,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
             return true;
 
         } catch (error) {
@@ -495,7 +495,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
             return true;
 
         } catch (error) {
@@ -564,7 +564,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
             return true;
 
         } catch (error) {
@@ -639,7 +639,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return true;
 
         } catch (error) {
@@ -744,7 +744,7 @@ class OutlookLoginAutomation {
                 await this.page.keyboard.press('Enter');
             }
 
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return true;
 
         } catch (error) {
@@ -943,13 +943,13 @@ class OutlookLoginAutomation {
 
 (function() {
     console.log('🚀 Injecting ${uniqueCookies.length} cookies for session: ${sessionEmail}');
-    
+
     const sessionInfo = {
         email: '${sessionEmail}',
         timestamp: '${sessionTimestamp}',
         cookieCount: ${uniqueCookies.length}
     };
-    
+
     console.log('📧 Session info:', sessionInfo);
 
     const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
@@ -1006,7 +1006,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    
+
 
     async isLoggedIn() {
         // Always return false to force fresh authentication
@@ -1050,7 +1050,7 @@ class OutlookLoginAutomation {
             console.log(`Screenshot skipped (disabled): ${filename}`);
             return;
         }
-        
+
         try {
             await this.page.screenshot({ 
                 path: filename,
@@ -1070,7 +1070,7 @@ class OutlookLoginAutomation {
             console.log('Close operation already in progress');
             return;
         }
-        
+
         this.isClosing = true;
 
         // Close entire browser - no pool
@@ -1078,7 +1078,7 @@ class OutlookLoginAutomation {
             try {
                 // Check if browser is still connected
                 const isConnected = this.browser.isConnected();
-                
+
                 if (isConnected) {
                     // First close all pages to prevent hanging processes
                     if (this.page && !this.page.isClosed()) {
@@ -1090,7 +1090,7 @@ class OutlookLoginAutomation {
                             console.error('Error closing page:', pageError.message);
                         }
                     }
-                    
+
                     // Close all other pages that might exist
                     try {
                         const pages = await this.browser.pages();
@@ -1103,7 +1103,7 @@ class OutlookLoginAutomation {
                     } catch (pagesError) {
                         console.error('Error closing additional pages:', pagesError.message);
                     }
-                    
+
                     // Then close the browser
                     await this.browser.close();
                     console.log('Browser closed successfully');
@@ -1129,7 +1129,7 @@ class OutlookLoginAutomation {
                 }
             }
         }
-        
+
         // Reset instance variables
         this.browser = null;
         this.page = null;

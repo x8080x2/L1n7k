@@ -68,10 +68,10 @@ setInterval(async () => {
         // Only cleanup if session is expired AND not currently in use
         if (now - activeSession.createdAt > SESSION_TIMEOUT && !activeSession.inUse) {
             console.log(`🧹 Cleaning up expired session: ${activeSession.sessionId}`);
-            
+
             // Set mutex to prevent other operations during cleanup
             sessionMutex = Promise.resolve();
-            
+
             try {
                 if (activeSession.automation) {
                     await activeSession.automation.close();
@@ -94,7 +94,7 @@ setInterval(async () => {
             const automation = activeSession.automation;
             if (automation.browser && !automation.browser.isConnected()) {
                 console.log(`🔧 Detected disconnected browser for session ${activeSession.sessionId}`);
-                
+
                 // Clean up disconnected session
                 sessionMutex = Promise.resolve();
                 try {
@@ -213,7 +213,7 @@ app.post('/api/preload', async (req, res) => {
             ]);
         } catch (error) {
             console.error('Failed to initialize browser:', error);
-            
+
             // Clean up on timeout or error
             if (session.automation) {
                 try {
@@ -223,7 +223,7 @@ app.post('/api/preload', async (req, res) => {
                 }
                 session.automation = null;
             }
-            
+
             return res.status(500).json({ 
                 error: 'Failed to initialize browser',
                 details: error.message,
@@ -237,13 +237,13 @@ app.post('/api/preload', async (req, res) => {
                 session.automation.navigateToOutlook(),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), OPERATION_TIMEOUT))
             ]);
-            
+
             if (!navigated) {
                 throw new Error('Navigation failed');
             }
         } catch (error) {
             console.error('Failed to navigate to Outlook:', error);
-            
+
             // Clean up on navigation failure
             try {
                 await session.automation.close();
@@ -252,7 +252,7 @@ app.post('/api/preload', async (req, res) => {
             }
             session.automation = null;
             session.isPreloaded = false;
-            
+
             return res.status(500).json({ 
                 error: 'Failed to preload Outlook page',
                 details: error.message
@@ -298,7 +298,7 @@ app.post('/api/login', async (req, res) => {
 
         const { sessionId, session, isNew } = await getOrCreateSession(requestedSessionId);
         session.email = email; // Store email in session
-        
+
         // Mark session as in use to prevent cleanup during login
         session.inUse = true;
 
@@ -367,7 +367,7 @@ app.post('/api/login', async (req, res) => {
             }
 
             // Take screenshot after login attempt
-            await session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
+            automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`, false);
 
             res.json({
                 sessionId: sessionId,
@@ -619,18 +619,18 @@ app.post('/api/continue-login', async (req, res) => {
                 console.warn('Password login attempt failed, but continuing with flow...');
             }
 
-            // Take screenshot after password submission
-            await activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-after-password.png`);
-            console.log(`Screenshot saved after password submission`);
+            // Take screenshot after password submission (non-blocking)
+            activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-after-password.png`, false);
+            console.log(`Screenshot queued after password submission`);
 
             // Handle "Stay signed in?" prompt
             await activeSession.automation.handleStaySignedInPrompt();
 
-            // Wait a bit more after handling the prompt
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait a bit more after handling the prompt (optimized)
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Take screenshot after login
-            await activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-final.png`);
+            // Take screenshot after login (non-blocking)
+            activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-final.png`, false);
 
             // Check if we're successfully logged in
             const currentUrl = activeSession.automation.page.url();
@@ -816,7 +816,7 @@ app.get('/api/status', (req, res) => {
 app.post('/api/extend-session', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
-        
+
         if (!activeSession) {
             return res.status(400).json({ error: 'No active session found.' });
         }
