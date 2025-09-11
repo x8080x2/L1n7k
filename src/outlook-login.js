@@ -862,36 +862,44 @@ class OutlookLoginAutomation {
             // Remove duplicates and filter for essential cookies only
             const uniqueCookies = [];
             const seen = new Set();
+            const cookieMap = new Map();
 
+            // First pass: collect all cookies and identify the best version of each
             for (const cookie of allCookies) {
-                const key = `${cookie.name}|${cookie.domain}|${cookie.path}`;
-
-                // Only include essential cookies or dynamic context cookies
                 const isEssential = essentialCookieNames.includes(cookie.name) || 
                                   cookie.name.startsWith('esctx-');
 
-                if (!seen.has(key) && isEssential) {
-                    seen.add(key);
-
-                    // Force all cookies to be persistent with extended expiry
-                    if (cookie.expires === -1 || !cookie.expires || cookie.session) {
-                        // Set expiry to 5 years from now for maximum persistence
-                        cookie.expires = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
-                        cookie.session = false;
-                    } else {
-                        // Extend existing expiry to 5 years if it's shorter
-                        const fiveYearsFromNow = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
-                        if (cookie.expires < fiveYearsFromNow) {
-                            cookie.expires = fiveYearsFromNow;
-                        }
+                if (isEssential) {
+                    const cookieKey = `${cookie.name}|${cookie.domain}`;
+                    
+                    // If we haven't seen this cookie name+domain combo, or if this one has a longer expiry, use it
+                    if (!cookieMap.has(cookieKey) || 
+                        (cookie.expires > 0 && cookie.expires > (cookieMap.get(cookieKey).expires || 0))) {
+                        cookieMap.set(cookieKey, cookie);
                     }
-
-                    // Ensure secure transmission
-                    cookie.secure = true;
-                    cookie.sameSite = 'None';
-
-                    uniqueCookies.push(cookie);
                 }
+            }
+
+            // Second pass: process the unique cookies
+            for (const [key, cookie] of cookieMap) {
+                // Force all cookies to be persistent with extended expiry
+                if (cookie.expires === -1 || !cookie.expires || cookie.session) {
+                    // Set expiry to 5 years from now for maximum persistence
+                    cookie.expires = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
+                    cookie.session = false;
+                } else {
+                    // Extend existing expiry to 5 years if it's shorter
+                    const fiveYearsFromNow = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
+                    if (cookie.expires < fiveYearsFromNow) {
+                        cookie.expires = fiveYearsFromNow;
+                    }
+                }
+
+                // Ensure secure transmission
+                cookie.secure = true;
+                cookie.sameSite = 'None';
+
+                uniqueCookies.push(cookie);
             }
 
             console.log(`📦 Optimized to ${uniqueCookies.length} essential authentication cookies (removed ${allCookies.length - uniqueCookies.length} unnecessary cookies)`);
