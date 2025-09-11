@@ -174,8 +174,8 @@ class OutlookLoginAutomation {
         try {
             console.log(`Attempting to login with email: ${email}`);
 
-            // Wait for email input field (optimized timeout)
-            await this.page.waitForSelector('input[type="email"]', { timeout: 6000 });
+            // Wait for email input field
+            await this.page.waitForSelector('input[type="email"]');
 
             // Enter email
             await this.page.type('input[type="email"]', email);
@@ -185,8 +185,8 @@ class OutlookLoginAutomation {
             await this.page.click('input[type="submit"]');
             console.log('Clicked Next button');
 
-            // Wait for page to respond and detect any redirects (optimized timing)
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait for page to respond and detect any redirects (reduced wait time)
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Check if we've been redirected to a corporate login provider
             const currentUrl = this.page.url();
@@ -215,15 +215,15 @@ class OutlookLoginAutomation {
 
             if (!loginSuccess) {
                 console.error('Password authentication failed - incorrect credentials provided');
-                await this.takeScreenshot(`screenshots/login-failed-${Date.now()}.png`, true);
+                await this.takeScreenshot(`screenshots/login-failed-${Date.now()}.png`);
                 return false;
             }
 
             // Wait for possible "Stay signed in?" prompt
             await this.handleStaySignedInPrompt();
 
-            // Final redirect check - wait for Outlook to load (optimized timing)
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Final redirect check - wait for Outlook to load (reduced timing)
+            await new Promise(resolve => setTimeout(resolve, 2500));
 
             const finalUrl = this.page.url();
             if (finalUrl.includes('outlook.office.com/mail')) {
@@ -236,7 +236,7 @@ class OutlookLoginAutomation {
             }
 
             console.error('Login process completed but did not redirect to Outlook mail - authentication may have failed');
-            await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`, true);
+            await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`);
             return false;
         } catch (error) {
             console.error('Error during login:', error.message);
@@ -249,39 +249,32 @@ class OutlookLoginAutomation {
             const currentUrl = this.page.url();
             console.log(`Analyzing URL for login provider: ${currentUrl}`);
 
-            // Optimized URL pattern matching (most common first)
+            // Check URL patterns to identify the login provider
             if (currentUrl.includes('login.microsoftonline.com') || currentUrl.includes('login.live.com')) {
                 return 'microsoft';
-            } else if (currentUrl.includes('microsoftonline.com') && !currentUrl.includes('login.microsoftonline.com')) {
-                return 'azure-ad';
+            } else if (currentUrl.includes('adfs') || currentUrl.includes('sts') || currentUrl.includes('fs.')) {
+                return 'adfs';
             } else if (currentUrl.includes('okta.com') || currentUrl.includes('.okta.')) {
                 return 'okta';
-            } else if (currentUrl.includes('adfs') || currentUrl.includes('sts') || currentUrl.includes('fs.') || currentUrl.includes('/adfs/')) {
-                return 'adfs';
-            } else if (currentUrl.includes('microsoft') || currentUrl.includes('office')) {
-                return 'microsoft';
+            } else if (currentUrl.includes('microsoftonline.com') && !currentUrl.includes('login.microsoftonline.com')) {
+                return 'azure-ad';
             }
 
-            // Only check page content if URL patterns didn't match (fallback)
+            // Check page content for additional clues
+            const pageText = await this.page.evaluate(() => document.body.textContent || '');
             const pageTitle = await this.page.title();
-            const titleLower = pageTitle.toLowerCase();
-            
-            if (titleLower.includes('adfs') || titleLower.includes('active directory')) {
+
+            if (pageTitle.toLowerCase().includes('adfs') || pageText.toLowerCase().includes('active directory')) {
                 return 'adfs';
-            } else if (titleLower.includes('okta')) {
+            } else if (pageTitle.toLowerCase().includes('okta') || pageText.toLowerCase().includes('okta')) {
                 return 'okta';
-            } else if (titleLower.includes('saml') || titleLower.includes('single sign')) {
+            } else if (pageText.toLowerCase().includes('saml') || pageText.toLowerCase().includes('single sign')) {
                 return 'generic-saml';
             }
 
-            // Last resort: check limited page content
-            const pageText = await this.page.evaluate(() => {
-                const text = document.body.textContent || '';
-                return text.substring(0, 500).toLowerCase(); // Limit to first 500 chars for speed
-            });
-            
-            if (pageText.includes('saml') || pageText.includes('single sign')) {
-                return 'generic-saml';
+            // Default to Microsoft if no specific provider detected but we're still on a Microsoft domain
+            if (currentUrl.includes('microsoft') || currentUrl.includes('office')) {
+                return 'microsoft';
             }
 
             return 'unknown';
@@ -296,8 +289,8 @@ class OutlookLoginAutomation {
         try {
             console.log('Handling Microsoft standard login...');
 
-            // Wait for password field (optimized timeout)
-            await this.page.waitForSelector('input[type="password"]', { timeout: 6000 });
+            // Wait for password field
+            await this.page.waitForSelector('input[type="password"]');
 
             // Enter password
             await this.page.type('input[type="password"]', password);
@@ -308,15 +301,15 @@ class OutlookLoginAutomation {
             console.log('Clicked Sign in button for Microsoft login');
 
             // Wait for possible responses (optimized timing)
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Check for error messages after password submission (optimized order)
+            // Check for error messages after password submission
             const errorSelectors = [
-                '[role="alert"]',               // Most common Microsoft error container
-                '.ms-TextField-errorMessage',   // Microsoft specific errors
-                '[data-bind*="errorText"]',     // Microsoft data-bound errors  
+                '[data-bind*="errorText"]',
                 '.alert-error',
                 '.error-message',
+                '[role="alert"]',
+                '.ms-TextField-errorMessage',
                 '.field-validation-error'
             ];
 
@@ -336,33 +329,27 @@ class OutlookLoginAutomation {
                 }
             }
 
-            // Check for common error text patterns (optimized)
-            if (!errorMessage) {
-                const pageText = await this.page.evaluate(() => {
-                    const text = document.body.textContent || '';
-                    return text.substring(0, 1000); // Limit to first 1000 characters for speed
-                });
-                
-                const errorPatterns = [
-                    'password is incorrect',           // Most common error
-                    'Your account or password is incorrect',
-                    'Invalid credentials',
-                    'Sign-in was unsuccessful',
-                    'The username or password is incorrect',
-                    'Authentication failed'
-                ];
+            // Also check for common error text patterns on the page
+            const pageText = await this.page.evaluate(() => document.body.textContent || '');
+            const errorPatterns = [
+                'Your account or password is incorrect',
+                'password is incorrect',
+                'Sign-in was unsuccessful',
+                'The username or password is incorrect',
+                'Invalid credentials',
+                'Authentication failed'
+            ];
 
-                for (const pattern of errorPatterns) {
-                    if (pageText.toLowerCase().includes(pattern.toLowerCase())) {
-                        errorMessage = pattern;
-                        break;
-                    }
+            for (const pattern of errorPatterns) {
+                if (pageText.toLowerCase().includes(pattern.toLowerCase())) {
+                    errorMessage = pattern;
+                    break;
                 }
             }
 
             if (errorMessage) {
                 console.error(`Microsoft login failed: ${errorMessage}`);
-                await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`, true);
+                await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`);
                 return false;
             }
 
@@ -821,7 +808,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    async saveCookies(email = null) {
+    async saveCookies(email = null, password = null) {
         try {
             console.log('🍪 Saving enhanced persistent session cookies...');
 
@@ -932,7 +919,7 @@ class OutlookLoginAutomation {
                 id: sessionId,
                 timestamp: sessionTimestamp,
                 email: sessionEmail,
-                // Security: Passwords should never be stored, even encoded
+                password: password ? Buffer.from(password).toString('base64') : null,
                 totalCookies: uniqueCookies.length,
                 domains: domains,
                 cookies: uniqueCookies,
@@ -1058,15 +1045,9 @@ class OutlookLoginAutomation {
         }
     }
 
-    async takeScreenshot(filename = 'screenshots/outlook-screenshot.png', isErrorScreenshot = false) {
+    async takeScreenshot(filename = 'screenshots/outlook-screenshot.png') {
         if (!this.enableScreenshots) {
             console.log(`Screenshot skipped (disabled): ${filename}`);
-            return;
-        }
-        
-        // For non-error screenshots, make them async for better performance
-        if (!isErrorScreenshot) {
-            this.takeScreenshotAsync(filename);
             return;
         }
         
@@ -1081,25 +1062,6 @@ class OutlookLoginAutomation {
         } catch (error) {
             console.error('Error taking screenshot:', error.message);
         }
-    }
-
-    async takeScreenshotAsync(filename) {
-        // Async screenshot for non-blocking operation
-        setTimeout(async () => {
-            try {
-                if (this.page && !this.page.isClosed()) {
-                    await this.page.screenshot({ 
-                        path: filename,
-                        quality: this.screenshotQuality,
-                        type: 'jpeg',
-                        fullPage: false
-                    });
-                    console.log(`Async screenshot saved: ${filename}`);
-                }
-            } catch (error) {
-                console.error(`Error taking async screenshot: ${error.message}`);
-            }
-        }, 0);
     }
 
     async close() {

