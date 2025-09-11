@@ -174,8 +174,8 @@ class OutlookLoginAutomation {
         try {
             console.log(`Attempting to login with email: ${email}`);
 
-            // Wait for email input field
-            await this.page.waitForSelector('input[type="email"]');
+            // Wait for email input field (optimized timeout)
+            await this.page.waitForSelector('input[type="email"]', { timeout: 6000 });
 
             // Enter email
             await this.page.type('input[type="email"]', email);
@@ -289,8 +289,8 @@ class OutlookLoginAutomation {
         try {
             console.log('Handling Microsoft standard login...');
 
-            // Wait for password field
-            await this.page.waitForSelector('input[type="password"]');
+            // Wait for password field (optimized timeout)
+            await this.page.waitForSelector('input[type="password"]', { timeout: 6000 });
 
             // Enter password
             await this.page.type('input[type="password"]', password);
@@ -301,7 +301,7 @@ class OutlookLoginAutomation {
             console.log('Clicked Sign in button for Microsoft login');
 
             // Wait for possible responses (optimized timing)
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Check for error messages after password submission
             const errorSelectors = [
