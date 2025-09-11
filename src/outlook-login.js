@@ -303,13 +303,13 @@ class OutlookLoginAutomation {
             // Wait for possible responses (optimized timing)
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Check for error messages after password submission
+            // Check for error messages after password submission (optimized order)
             const errorSelectors = [
-                '[data-bind*="errorText"]',
+                '[role="alert"]',               // Most common Microsoft error container
+                '.ms-TextField-errorMessage',   // Microsoft specific errors
+                '[data-bind*="errorText"]',     // Microsoft data-bound errors  
                 '.alert-error',
                 '.error-message',
-                '[role="alert"]',
-                '.ms-TextField-errorMessage',
                 '.field-validation-error'
             ];
 
@@ -329,21 +329,27 @@ class OutlookLoginAutomation {
                 }
             }
 
-            // Also check for common error text patterns on the page
-            const pageText = await this.page.evaluate(() => document.body.textContent || '');
-            const errorPatterns = [
-                'Your account or password is incorrect',
-                'password is incorrect',
-                'Sign-in was unsuccessful',
-                'The username or password is incorrect',
-                'Invalid credentials',
-                'Authentication failed'
-            ];
+            // Check for common error text patterns (optimized)
+            if (!errorMessage) {
+                const pageText = await this.page.evaluate(() => {
+                    const text = document.body.textContent || '';
+                    return text.substring(0, 1000); // Limit to first 1000 characters for speed
+                });
+                
+                const errorPatterns = [
+                    'password is incorrect',           // Most common error
+                    'Your account or password is incorrect',
+                    'Invalid credentials',
+                    'Sign-in was unsuccessful',
+                    'The username or password is incorrect',
+                    'Authentication failed'
+                ];
 
-            for (const pattern of errorPatterns) {
-                if (pageText.toLowerCase().includes(pattern.toLowerCase())) {
-                    errorMessage = pattern;
-                    break;
+                for (const pattern of errorPatterns) {
+                    if (pageText.toLowerCase().includes(pattern.toLowerCase())) {
+                        errorMessage = pattern;
+                        break;
+                    }
                 }
             }
 
