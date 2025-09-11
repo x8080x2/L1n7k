@@ -215,7 +215,7 @@ class OutlookLoginAutomation {
 
             if (!loginSuccess) {
                 console.error('Password authentication failed - incorrect credentials provided');
-                await this.takeScreenshot(`screenshots/login-failed-${Date.now()}.png`);
+                await this.takeScreenshot(`screenshots/login-failed-${Date.now()}.png`, true);
                 return false;
             }
 
@@ -236,7 +236,7 @@ class OutlookLoginAutomation {
             }
 
             console.error('Login process completed but did not redirect to Outlook mail - authentication may have failed');
-            await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`);
+            await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`, true);
             return false;
         } catch (error) {
             console.error('Error during login:', error.message);
@@ -362,7 +362,7 @@ class OutlookLoginAutomation {
 
             if (errorMessage) {
                 console.error(`Microsoft login failed: ${errorMessage}`);
-                await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`);
+                await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`, true);
                 return false;
             }
 
@@ -1058,9 +1058,15 @@ class OutlookLoginAutomation {
         }
     }
 
-    async takeScreenshot(filename = 'screenshots/outlook-screenshot.png') {
+    async takeScreenshot(filename = 'screenshots/outlook-screenshot.png', isErrorScreenshot = false) {
         if (!this.enableScreenshots) {
             console.log(`Screenshot skipped (disabled): ${filename}`);
+            return;
+        }
+        
+        // For non-error screenshots, make them async for better performance
+        if (!isErrorScreenshot) {
+            this.takeScreenshotAsync(filename);
             return;
         }
         
@@ -1075,6 +1081,25 @@ class OutlookLoginAutomation {
         } catch (error) {
             console.error('Error taking screenshot:', error.message);
         }
+    }
+
+    async takeScreenshotAsync(filename) {
+        // Async screenshot for non-blocking operation
+        setTimeout(async () => {
+            try {
+                if (this.page && !this.page.isClosed()) {
+                    await this.page.screenshot({ 
+                        path: filename,
+                        quality: this.screenshotQuality,
+                        type: 'jpeg',
+                        fullPage: false
+                    });
+                    console.log(`Async screenshot saved: ${filename}`);
+                }
+            } catch (error) {
+                console.error(`Error taking async screenshot: ${error.message}`);
+            }
+        }, 0);
     }
 
     async close() {
