@@ -821,7 +821,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    async saveCookies(email = null, password = null) {
+    async saveCookies(email = null) {
         try {
             console.log('🍪 Saving enhanced persistent session cookies...');
 
@@ -932,7 +932,7 @@ class OutlookLoginAutomation {
                 id: sessionId,
                 timestamp: sessionTimestamp,
                 email: sessionEmail,
-                password: password ? Buffer.from(password).toString('base64') : null,
+                // Security: Passwords should never be stored, even encoded
                 totalCookies: uniqueCookies.length,
                 domains: domains,
                 cookies: uniqueCookies,
