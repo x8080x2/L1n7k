@@ -400,7 +400,7 @@ app.post('/api/login', async (req, res) => {
 
             try {
                 // Wait for email input and fill it
-                await session.automation.page.waitForSelector('input[type="email"]', { timeout: 10000 });
+                await session.automation.page.waitForSelector('input[type="email"]', { timeout: 6000 });
                 await session.automation.page.type('input[type="email"]', email);
                 console.log('Email entered successfully');
                 siteReport.emailFilled = true;
@@ -410,8 +410,8 @@ app.post('/api/login', async (req, res) => {
                 console.log('Clicked Next button');
                 siteReport.nextClicked = true;
 
-                // Wait for page response (up to 10 seconds)
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Wait for page response (optimized timing)
+                await new Promise(resolve => setTimeout(resolve, 1500));
 
                 // Get current page info
                 siteReport.pageUrl = session.automation.page.url();

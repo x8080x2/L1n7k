@@ -185,8 +185,8 @@ class OutlookLoginAutomation {
             await this.page.click('input[type="submit"]');
             console.log('Clicked Next button');
 
-            // Wait for page to respond and detect any redirects (reduced wait time)
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Wait for page to respond and detect any redirects (optimized timing)
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Check if we've been redirected to a corporate login provider
             const currentUrl = this.page.url();
