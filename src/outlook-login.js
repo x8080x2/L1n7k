@@ -121,13 +121,9 @@ class OutlookLoginAutomation {
             console.log('Error finding Chromium path:', error.message);
         }
 
-            // If no custom path found, let Puppeteer use its bundled Chromium
-            if (!browserOptions.executablePath) {
-                console.log('Using Puppeteer default Chromium (bundled)');
-            }
-
-        } catch (error) {
-            console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
+        // If no custom path found, let Puppeteer use its bundled Chromium
+        if (!browserOptions.executablePath) {
+            console.log('Using Puppeteer default Chromium (bundled)');
         }
 
         // Debug browser environment first
