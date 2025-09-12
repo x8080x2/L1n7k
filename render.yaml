@@ -4,22 +4,20 @@ services:
     runtime: node
     plan: starter
     region: oregon
-    buildCommand: npm install
+    buildCommand: npm install && PUPPETEER_CACHE_DIR=/opt/render/.cache/puppeteer npx puppeteer browsers install chrome@stable
     startCommand: npm start
     autoDeploy: false
-    domains:
-      - outlook-automation.onrender.com
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "5000"
-      - key: PUPPETEER_SKIP_DOWNLOAD
-        value: "false"
       - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/project/src/.cache/puppeteer
+        value: /opt/render/.cache/puppeteer
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome
     disk:
       name: render-disk
-      mountPath: /opt/render/project/src/.cache
+      mountPath: /opt/render/.cache
       sizeGB: 1
     healthCheckPath: /api/health

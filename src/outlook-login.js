@@ -44,13 +44,33 @@ class OutlookLoginAutomation {
             const { execSync } = require('child_process');
             const path = require('path');
 
-            // Priority 0: Check for environment variable override first (for Render deployment)
+            // Priority 0: Check for environment variable overrides first (for Render deployment)
             if (process.env.CHROMIUM_PATH) {
                 if (fs.existsSync(process.env.CHROMIUM_PATH)) {
                     browserOptions.executablePath = process.env.CHROMIUM_PATH;
                     console.log(`Using environment Chromium path: ${process.env.CHROMIUM_PATH}`);
                 } else {
                     console.warn(`CHROMIUM_PATH environment variable set but path does not exist: ${process.env.CHROMIUM_PATH}`);
+                }
+            } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+                // Handle glob patterns in PUPPETEER_EXECUTABLE_PATH for Render
+                const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+                if (execPath.includes('*')) {
+                    try {
+                        const globCommand = `ls -d ${execPath} 2>/dev/null | head -1`;
+                        const foundPath = execSync(globCommand, { encoding: 'utf8' }).trim();
+                        if (foundPath && fs.existsSync(foundPath)) {
+                            browserOptions.executablePath = foundPath;
+                            console.log(`Using expanded PUPPETEER_EXECUTABLE_PATH: ${foundPath}`);
+                        } else {
+                            console.log(`No Chrome found at glob pattern: ${execPath}`);
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to expand PUPPETEER_EXECUTABLE_PATH glob: ${execPath}`);
+                    }
+                } else if (fs.existsSync(execPath)) {
+                    browserOptions.executablePath = execPath;
+                    console.log(`Using PUPPETEER_EXECUTABLE_PATH: ${execPath}`);
                 }
             }
 

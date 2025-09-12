@@ -1,0 +1,115 @@
+    at async /opt/render/project/src/server.js:241:13
+    at async initBrowser (/opt/render/project/src/server.js:52:9)
+    at OutlookLoginAutomation.init (/opt/render/project/src/src/outlook-login.js:165:27)
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Failed to initialize browser: Error: Failed to launch browser after 3 attempts: Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+    at async /opt/render/project/src/server.js:241:13
+    at async initBrowser (/opt/render/project/src/server.js:52:9)
+    at OutlookLoginAutomation.init (/opt/render/project/src/src/outlook-login.js:165:27)
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Failed to initialize browser for session 1757701160017_i5s7k: Error: Failed to launch browser after 3 attempts: Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Browser launch attempt failed (4/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+Attempting to launch browser (attempt 3/3)...
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Browser launch attempt failed (3/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+Attempting to launch browser (attempt 2/3)...
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Browser launch attempt failed (2/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+Attempting to launch browser (attempt 1/3)...
+}
+  defaultViewport: null
+  ignoreHTTPSErrors: true,
+  dumpio: false,
+  ],
+    '--disable-translate'
+    '--disable-popup-blocking',
+    '--no-default-browser-check',
+    '--disable-sync',
+    '--disable-background-networking',
+    '--disable-default-apps',
+    '--disable-notifications',
+    '--disable-infobars',
+    '--disable-extensions',
+    '--no-first-run',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--disable-setuid-sandbox',
+    '--no-sandbox',
+  args: [
+  headless: 'new',
+Available browser options: {
+Puppeteer version: unknown
+Using Puppeteer default Chromium (bundled)
+System chromium not available, trying other methods...
+Preloading Outlook page for session 1757701160017_i5s7k...
+📝 Created new session: 1757701160017_i5s7k (1/100 sessions active)
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://l1n7k.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Your service is live 🎉
+🌐 Frontend available at http://localhost:5000/
+📧 API endpoints available at http://localhost:5000/api/
+🚀 Outlook Automation Backend running on port 5000
+> node server.js
+> workspace@1.0.0 start
+==> Running 'npm start'
+     ==> Deploying...
+✅ All sessions closed. Server shutdown complete.
+🔄 Received SIGTERM. Shutting down server...
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://l1n7k.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Your service is live 🎉
+🌐 Frontend available at http://localhost:10000/
+📧 API endpoints available at http://localhost:10000/api/
+🚀 Outlook Automation Backend running on port 10000
+> node server.js
+> workspace@1.0.0 start
+==> Running 'npm start'
+✅ All sessions closed. Server shutdown complete.
+🔄 Received SIGTERM. Shutting down server...
+     ==> Deploying...
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://l1n7k.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Your service is live 🎉
+🌐 Frontend available at http://localhost:10000/
+📧 API endpoints available at http://localhost:10000/api/
+🚀 Outlook Automation Backend running on port 10000
+==> Running 'node server.js'
+     ==> Deploying...
+✅ All sessions closed. Server shutdown complete.
+🔄 Received SIGTERM. Shutting down server...
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://l1n7k.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Your service is live 🎉
+🌐 Frontend available at http://localhost:10000/
+📧 API endpoints available at http://localhost:10000/api/
+🚀 Outlook Automation Backend running on port 10000
+==> Running 'node server.js'
+     ==> Deploying...
+Node.js v22.16.0
