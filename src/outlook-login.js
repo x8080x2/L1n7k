@@ -44,12 +44,21 @@ class OutlookLoginAutomation {
             const { execSync } = require('child_process');
             const path = require('path');
 
+            // Platform-specific Chrome detection with better error handling
+            const platform = process.platform;
+            const isRender = process.env.RENDER || process.env.RENDER_SERVICE_ID;
+            const isHeroku = process.env.DYNO;
+            const isRailway = process.env.RAILWAY_ENVIRONMENT;
+            const isReplit = process.env.REPLIT_ENVIRONMENT || process.env.REPL_ID;
+            
+            console.log(`Detected platform - OS: ${platform}, Render: ${!!isRender}, Heroku: ${!!isHeroku}, Railway: ${!!isRailway}, Replit: ${!!isReplit}`);
+
             // First, try to use Puppeteer's installed Chrome (for Render and other platforms)
             try {
                 const puppeteer = require('puppeteer');
-                if (puppeteer.executablePath) {
+                if (typeof puppeteer.executablePath === 'function') {
                     const puppeteerChrome = puppeteer.executablePath();
-                    if (fs.existsSync(puppeteerChrome)) {
+                    if (puppeteerChrome && fs.existsSync(puppeteerChrome)) {
                         browserOptions.executablePath = puppeteerChrome;
                         console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
                     }
@@ -73,18 +82,48 @@ class OutlookLoginAutomation {
 
             // If still not found, try common paths including Render cache
             if (!browserOptions.executablePath) {
-                const commonPaths = [
-                    // Render Puppeteer cache paths
-                    '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
-                    '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
-                    // Nix store paths (Replit)
-                    '/nix/store/*/bin/chromium',
-                    // Standard Linux paths
-                    '/usr/bin/chromium',
-                    '/usr/bin/chromium-browser',
-                    '/usr/bin/google-chrome',
-                    '/usr/bin/google-chrome-stable'
-                ];
+                let commonPaths = [];
+                
+                // Platform-specific paths
+                if (isRender) {
+                    commonPaths = [
+                        '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
+                        '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+                        '/usr/bin/google-chrome-stable',
+                        '/usr/bin/google-chrome',
+                        '/usr/bin/chromium-browser',
+                        '/usr/bin/chromium'
+                    ];
+                } else if (isHeroku) {
+                    commonPaths = [
+                        '/app/.chrome-for-testing/chrome-linux64/chrome',
+                        '/app/.apt/usr/bin/google-chrome-stable',
+                        '/usr/bin/google-chrome-stable',
+                        '/usr/bin/google-chrome'
+                    ];
+                } else if (isRailway) {
+                    commonPaths = [
+                        '/usr/bin/google-chrome-stable',
+                        '/usr/bin/google-chrome',
+                        '/usr/bin/chromium-browser',
+                        '/usr/bin/chromium'
+                    ];
+                } else if (isReplit) {
+                    commonPaths = [
+                        '/nix/store/*/bin/chromium',
+                        '/usr/bin/chromium',
+                        '/usr/bin/chromium-browser'
+                    ];
+                } else {
+                    // Generic paths for other platforms
+                    commonPaths = [
+                        '/usr/bin/google-chrome-stable',
+                        '/usr/bin/google-chrome',
+                        '/usr/bin/chromium-browser',
+                        '/usr/bin/chromium',
+                        '/nix/store/*/bin/chromium'
+                    ];
+                }
 
                 for (const pathPattern of commonPaths) {
                     try {

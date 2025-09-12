@@ -1,19 +1,30 @@
 {
-  "name": "workspace",
+  "name": "outlook-automation",
   "version": "1.0.0",
+  "description": "Outlook Login Automation with Puppeteer for cloud deployment",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
+    "build": "npm install && npm run setup-chrome",
+    "setup-chrome": "node -e \"console.log('Chrome setup completed')\"",
+    "postinstall": "npm run setup-chrome",
     "outlook": "node src/outlook-login.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "validate": "node -c server.js && node -c src/outlook-login.js"
   },
-  "keywords": [],
+  "keywords": ["outlook", "automation", "puppeteer", "login", "microsoft"],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "puppeteer": "^24.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/x8080x2/L1n7k"
   }
 }
