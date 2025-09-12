@@ -66,7 +66,7 @@ class ChromeSetup {
         
         // Render uses the build command to install Chrome
         const renderPaths = [
-            '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+            '/opt/render/.cache/puppeteer',
             '/usr/bin/google-chrome-stable',
             '/usr/bin/google-chrome'
         ];

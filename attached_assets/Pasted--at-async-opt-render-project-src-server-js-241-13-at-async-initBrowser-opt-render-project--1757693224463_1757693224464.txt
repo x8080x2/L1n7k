@@ -1,0 +1,32 @@
+    at async /opt/render/project/src/server.js:241:13
+    at async initBrowser (/opt/render/project/src/server.js:52:9)
+    at OutlookLoginAutomation.init (/opt/render/project/src/src/outlook-login.js:236:27)
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Failed to initialize browser: Error: Failed to launch browser after 3 attempts: Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+    at async /opt/render/project/src/server.js:241:13
+    at async initBrowser (/opt/render/project/src/server.js:52:9)
+    at OutlookLoginAutomation.init (/opt/render/project/src/src/outlook-login.js:236:27)
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Failed to initialize browser for session 1757693072850_vz5o6: Error: Failed to launch browser after 3 attempts: Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Browser launch attempt failed (4/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+Attempting to launch browser (attempt 3/3)...
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Browser launch attempt failed (3/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+Attempting to launch browser (attempt 2/3)...
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+ 2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+Browser launch attempt failed (2/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+Attempting to launch browser (attempt 1/3)...
+}
+  defaultViewport: null
+  ignoreHTTPSErrors: 

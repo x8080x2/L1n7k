@@ -1,0 +1,50 @@
+2025-09-12T16:04:32.88284216Z   headless: 'new',
+2025-09-12T16:04:32.882846291Z   args: [
+2025-09-12T16:04:32.882849981Z     '--no-sandbox',
+2025-09-12T16:04:32.882853511Z     '--disable-setuid-sandbox',
+2025-09-12T16:04:32.882857231Z     '--disable-dev-shm-usage',
+2025-09-12T16:04:32.882860861Z     '--disable-gpu',
+2025-09-12T16:04:32.882864401Z     '--no-first-run',
+2025-09-12T16:04:32.882867811Z     '--disable-extensions',
+2025-09-12T16:04:32.882871091Z     '--disable-infobars',
+2025-09-12T16:04:32.882874461Z     '--disable-notifications',
+2025-09-12T16:04:32.882877851Z     '--disable-default-apps',
+2025-09-12T16:04:32.882881681Z     '--disable-background-networking',
+2025-09-12T16:04:32.882885161Z     '--disable-sync',
+2025-09-12T16:04:32.882888792Z     '--no-default-browser-check',
+2025-09-12T16:04:32.882892372Z     '--disable-popup-blocking',
+2025-09-12T16:04:32.882895802Z     '--disable-translate'
+2025-09-12T16:04:32.882899212Z   ],
+2025-09-12T16:04:32.882902692Z   dumpio: false,
+2025-09-12T16:04:32.882906072Z   ignoreHTTPSErrors: true,
+2025-09-12T16:04:32.882909382Z   defaultViewport: null
+2025-09-12T16:04:32.882912762Z }
+2025-09-12T16:04:32.882916362Z Attempting to launch browser (attempt 1/3)...
+2025-09-12T16:04:32.884375112Z Browser launch attempt failed (2/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+2025-09-12T16:04:32.884391202Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-09-12T16:04:32.884395202Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-09-12T16:04:32.884398162Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-09-12T16:04:35.884881378Z Attempting to launch browser (attempt 2/3)...
+2025-09-12T16:04:35.885405058Z Browser launch attempt failed (3/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+2025-09-12T16:04:35.885456229Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-09-12T16:04:35.88546118Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-09-12T16:04:35.88546536Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-09-12T16:04:38.885820623Z Attempting to launch browser (attempt 3/3)...
+2025-09-12T16:04:38.886786912Z Browser launch attempt failed (4/3): Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+2025-09-12T16:04:38.886799702Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-09-12T16:04:38.886804783Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-09-12T16:04:38.886822173Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-09-12T16:04:38.887199491Z Failed to initialize browser for session 1757693072850_vz5o6: Error: Failed to launch browser after 3 attempts: Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+2025-09-12T16:04:38.887206771Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-09-12T16:04:38.887210541Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-09-12T16:04:38.887216201Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-09-12T16:04:38.887219081Z     at OutlookLoginAutomation.init (/opt/render/project/src/src/outlook-login.js:236:27)
+2025-09-12T16:04:38.887222301Z     at async initBrowser (/opt/render/project/src/server.js:52:9)
+2025-09-12T16:04:38.887225431Z     at async /opt/render/project/src/server.js:241:13
+2025-09-12T16:04:38.887352884Z Failed to initialize browser: Error: Failed to launch browser after 3 attempts: Could not find Chrome (ver. 140.0.7339.80). This can occur if either
+2025-09-12T16:04:38.887359284Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-09-12T16:04:38.887362854Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-09-12T16:04:38.887365594Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-09-12T16:04:38.887368244Z     at OutlookLoginAutomation.init (/opt/render/project/src/src/outlook-login.js:236:27)
+2025-09-12T16:04:38.887370974Z     at async initBrowser (/opt/render/project/src/server.js:52:9)
+2025-09-12T16:04:38.887374484Z     at async /opt/render/project/src/server.js:241:13
