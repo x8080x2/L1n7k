@@ -511,11 +511,6 @@
                 <button type="button" class="cancel-btn" onclick="cancelLoading()">Cancel</button>
             </div>
 
-            <!-- Stop button -->
-            <div style="margin-top: 20px; text-align: center;">
-                <button type="button" class="btn btn-secondary" onclick="stopServer()" style="background-color: #d13438; color: white;">Stop Server</button>
-            </div>
-
             <!-- Email form - Initially hidden until backend is ready -->
             <div id="emailForm" style="display: none;">
                 <form onsubmit="startLogin(event)">
@@ -715,24 +710,6 @@
             // Cancel loading and return to the current form
             setLoading(false);
             clearMessage();
-        }
-
-        function stopServer() {
-            if (confirm('Are you sure you want to stop the server? This will terminate all running processes.')) {
-                fetch(`${API_BASE}/api/stop`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    showMessage(data.message || 'Server stop command sent', 'info');
-                })
-                .catch(error => {
-                    showMessage('Failed to stop server: ' + error.message, 'error');
-                });
-            }
 
             // If we're in password step, go back to email
             if (currentStep === 'password') {
