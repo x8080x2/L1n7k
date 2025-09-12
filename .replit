@@ -27,7 +27,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm start"
+args = "bash -c \"pkill node || true; node server.js\""
 waitForPort = 5000
 
 [[ports]]
