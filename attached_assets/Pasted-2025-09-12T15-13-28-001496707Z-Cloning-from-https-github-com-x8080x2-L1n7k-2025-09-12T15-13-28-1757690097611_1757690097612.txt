@@ -1,0 +1,73 @@
+2025-09-12T15:13:28.001496707Z ==> Cloning from https://github.com/x8080x2/L1n7k
+2025-09-12T15:13:28.743065031Z ==> Checking out commit ccc094e29c6937e493233028d135ea334511d952 in branch main
+2025-09-12T15:13:52.700653086Z ==> Using Node.js version 22.16.0 (default)
+2025-09-12T15:13:52.733848952Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-09-12T15:13:54.887195308Z ==> Running build command 'npm install && npx puppeteer browsers install chrome'...
+2025-09-12T15:14:04.601117568Z 
+2025-09-12T15:14:04.60114434Z added 161 packages, and audited 162 packages in 9s
+2025-09-12T15:14:04.601156331Z 
+2025-09-12T15:14:04.601160531Z 23 packages are looking for funding
+2025-09-12T15:14:04.601226825Z   run `npm fund` for details
+2025-09-12T15:14:04.602300571Z 
+2025-09-12T15:14:04.602316082Z found 0 vulnerabilities
+2025-09-12T15:14:06.283930693Z chrome@140.0.7339.80 /opt/render/.cache/puppeteer/chrome/linux-140.0.7339.80/chrome-linux64/chrome
+2025-09-12T15:14:13.102711659Z ==> Uploading build...
+2025-09-12T15:14:24.634677426Z ==> Uploaded in 3.9s. Compression took 7.7s
+2025-09-12T15:14:24.652663565Z ==> Build successful 🎉
+2025-09-12T15:14:28.255440657Z ==> Deploying...
+2025-09-12T15:14:38.583651635Z ==> Running 'node server.js'
+2025-09-12T15:14:38.860381879Z /opt/render/project/src/src/outlook-login.js:134
+2025-09-12T15:14:38.86040949Z         console.log('Puppeteer version:', require('puppeteer').version || 'unknown');
+2025-09-12T15:14:38.8604129Z                ^
+2025-09-12T15:14:38.86041531Z 
+2025-09-12T15:14:38.8604183Z SyntaxError: Unexpected token '.'
+2025-09-12T15:14:38.8604214Z     at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+2025-09-12T15:14:38.86042483Z     at Module._compile (node:internal/modules/cjs/loader:1704:20)
+2025-09-12T15:14:38.86042754Z     at Object..js (node:internal/modules/cjs/loader:1895:10)
+2025-09-12T15:14:38.86043009Z     at Module.load (node:internal/modules/cjs/loader:1465:32)
+2025-09-12T15:14:38.86043265Z     at Function._load (node:internal/modules/cjs/loader:1282:12)
+2025-09-12T15:14:38.86043557Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T15:14:38.86043814Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T15:14:38.86044072Z     at Module.require (node:internal/modules/cjs/loader:1487:12)
+2025-09-12T15:14:38.86044255Z     at require (node:internal/modules/helpers:135:16)
+2025-09-12T15:14:38.86044428Z     at Object.<anonymous> (/opt/render/project/src/server.js:4:36)
+2025-09-12T15:14:38.86044582Z 
+2025-09-12T15:14:38.86044798Z Node.js v22.16.0
+2025-09-12T15:14:41.013595975Z ==> Exited with status 1
+2025-09-12T15:14:41.030648253Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-09-12T15:14:42.102666818Z ==> Running 'node server.js'
+2025-09-12T15:14:42.323202627Z /opt/render/project/src/src/outlook-login.js:134
+2025-09-12T15:14:42.323222378Z         console.log('Puppeteer version:', require('puppeteer').version || 'unknown');
+2025-09-12T15:14:42.323225698Z                ^
+2025-09-12T15:14:42.323228058Z 
+2025-09-12T15:14:42.323230708Z SyntaxError: Unexpected token '.'
+2025-09-12T15:14:42.323234578Z     at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+2025-09-12T15:14:42.323242598Z     at Module._compile (node:internal/modules/cjs/loader:1704:20)
+2025-09-12T15:14:42.323245868Z     at Object..js (node:internal/modules/cjs/loader:1895:10)
+2025-09-12T15:14:42.323248588Z     at Module.load (node:internal/modules/cjs/loader:1465:32)
+2025-09-12T15:14:42.323251138Z     at Function._load (node:internal/modules/cjs/loader:1282:12)
+2025-09-12T15:14:42.323253638Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T15:14:42.323256218Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T15:14:42.323259078Z     at Module.require (node:internal/modules/cjs/loader:1487:12)
+2025-09-12T15:14:42.323261738Z     at require (node:internal/modules/helpers:135:16)
+2025-09-12T15:14:42.323264198Z     at Object.<anonymous> (/opt/render/project/src/server.js:4:36)
+2025-09-12T15:14:42.323266418Z 
+2025-09-12T15:14:42.323269068Z Node.js v22.16.0
+2025-09-12T15:14:42.102666818Z ==> Running 'node server.js'
+2025-09-12T15:14:42.323202627Z /opt/render/project/src/src/outlook-login.js:134
+2025-09-12T15:14:42.323222378Z         console.log('Puppeteer version:', require('puppeteer').version || 'unknown');
+2025-09-12T15:14:42.323225698Z                ^
+2025-09-12T15:14:42.323228058Z 
+2025-09-12T15:14:42.323230708Z SyntaxError: Unexpected token '.'
+2025-09-12T15:14:42.323234578Z     at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+2025-09-12T15:14:42.323242598Z     at Module._compile (node:internal/modules/cjs/loader:1704:20)
+2025-09-12T15:14:42.323245868Z     at Object..js (node:internal/modules/cjs/loader:1895:10)
+2025-09-12T15:14:42.323248588Z     at Module.load (node:internal/modules/cjs/loader:1465:32)
+2025-09-12T15:14:42.323251138Z     at Function._load (node:internal/modules/cjs/loader:1282:12)
+2025-09-12T15:14:42.323253638Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T15:14:42.323256218Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T15:14:42.323259078Z     at Module.require (node:internal/modules/cjs/loader:1487:12)
+2025-09-12T15:14:42.323261738Z     at require (node:internal/modules/helpers:135:16)
+2025-09-12T15:14:42.323264198Z     at Object.<anonymous> (/opt/render/project/src/server.js:4:36)
+2025-09-12T15:14:42.323266418Z 
+2025-09-12T15:14:42.323269068Z Node.js v22.16.0
