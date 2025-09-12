@@ -58,18 +58,47 @@ class OutlookLoginAutomation {
                 browserOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
                 console.log(`Using environment Chrome: ${process.env.CHROME_EXECUTABLE_PATH}`);
             } else {
-                // Try to use Puppeteer's installed Chrome (for Render and other platforms)
-                try {
-                const puppeteer = require('puppeteer');
-                if (typeof puppeteer.executablePath === 'function') {
-                    const puppeteerChrome = puppeteer.executablePath();
-                    if (puppeteerChrome && fs.existsSync(puppeteerChrome)) {
-                        browserOptions.executablePath = puppeteerChrome;
-                        console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
+                // For Render, prioritize the cache path over Puppeteer's executablePath
+                if (isRender) {
+                    console.log('Render detected - searching for Chrome in cache...');
+                    try {
+                        const renderCachePaths = [
+                            '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+                            '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome'
+                        ];
+                        
+                        for (const pathPattern of renderCachePaths) {
+                            try {
+                                const foundPaths = execSync(`ls -d ${pathPattern} 2>/dev/null || echo ""`, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
+                                if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
+                                    browserOptions.executablePath = foundPaths[0];
+                                    console.log(`Using Render cached Chrome: ${foundPaths[0]}`);
+                                    break;
+                                }
+                            } catch (e) {
+                                console.log(`Failed to check path pattern: ${pathPattern}`);
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Failed to search Render Chrome cache:', e.message);
                     }
                 }
-            } catch (e) {
-                console.log('Puppeteer executablePath not available, trying other methods...');
+
+                // If not found above, try to use Puppeteer's installed Chrome (for other platforms)
+                if (!browserOptions.executablePath) {
+                    try {
+                        const puppeteer = require('puppeteer');
+                        if (typeof puppeteer.executablePath === 'function') {
+                            const puppeteerChrome = puppeteer.executablePath();
+                            if (puppeteerChrome && fs.existsSync(puppeteerChrome)) {
+                                browserOptions.executablePath = puppeteerChrome;
+                                console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Puppeteer executablePath not available, trying other methods...');
+                    }
+                }
             }
 
             // If Puppeteer path didn't work, try system chromium
@@ -161,7 +190,6 @@ class OutlookLoginAutomation {
                     }
                 }
             }
-            } // Close the else block
         } catch (error) {
             console.log('Error finding Chromium path:', error.message);
         }
