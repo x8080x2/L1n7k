@@ -14,9 +14,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-// Store single automation instance - only one session allowed
-let activeSession = null; // { sessionId, automation, isPreloaded, createdAt, email }
+// Store multiple automation instances - allow concurrent sessions
+const activeSessions = new Map(); // sessionId -> { sessionId, automation, isPreloaded, createdAt, email }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
+const MAX_CONCURRENT_SESSIONS = 100; // Limit concurrent sessions
 const OPERATION_TIMEOUT = 60 * 1000; // 1 minute for individual operations
 const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 minutes
 let sessionMutex = null; // Prevents race conditions in session management
@@ -61,24 +62,36 @@ async function initBrowser(session) {
     }
 }
 
-// Cleanup expired session - Avoid race conditions with active operations
+// Cleanup expired sessions - Avoid race conditions with active operations
 setInterval(async () => {
-    if (activeSession && !sessionMutex && !initializingSession) {
+    if (!sessionMutex && !initializingSession && activeSessions.size > 0) {
         const now = Date.now();
-        // Only cleanup if session is expired AND not currently in use
-        if (now - activeSession.createdAt > SESSION_TIMEOUT && !activeSession.inUse) {
-            console.log(`🧹 Cleaning up expired session: ${activeSession.sessionId}`);
-
-            // Set mutex to prevent other operations during cleanup
+        const expiredSessions = [];
+        
+        // Find expired sessions that aren't in use
+        for (const [sessionId, session] of activeSessions) {
+            if (now - session.createdAt > SESSION_TIMEOUT && !session.inUse) {
+                expiredSessions.push(sessionId);
+            }
+        }
+        
+        // Clean up expired sessions
+        if (expiredSessions.length > 0) {
+            console.log(`🧹 Cleaning up ${expiredSessions.length} expired sessions`);
             sessionMutex = Promise.resolve();
 
             try {
-                if (activeSession.automation) {
-                    await activeSession.automation.close();
+                for (const sessionId of expiredSessions) {
+                    const session = activeSessions.get(sessionId);
+                    if (session?.automation) {
+                        try {
+                            await session.automation.close();
+                        } catch (error) {
+                            console.error(`Error closing expired session ${sessionId}:`, error);
+                        }
+                    }
+                    activeSessions.delete(sessionId);
                 }
-                activeSession = null;
-            } catch (error) {
-                console.error(`Error closing expired session ${activeSession.sessionId}:`, error);
             } finally {
                 sessionMutex = null;
             }
@@ -113,7 +126,7 @@ setInterval(async () => {
     }
 }, HEALTH_CHECK_INTERVAL);
 
-// Helper function to get or create session (only one allowed) - Thread-safe with mutex
+// Helper function to get or create session (multiple allowed) - Thread-safe with mutex
 async function getOrCreateSession(sessionId = null) {
     // Wait for any ongoing session operations to complete
     while (sessionMutex) {
@@ -124,41 +137,43 @@ async function getOrCreateSession(sessionId = null) {
     sessionMutex = Promise.resolve();
 
     try {
-        // If there's an active session and it matches the requested one, return it
-        if (activeSession && sessionId && activeSession.sessionId === sessionId) {
-            return { sessionId: activeSession.sessionId, session: activeSession, isNew: false };
+        // If specific session requested and exists, return it
+        if (sessionId && activeSessions.has(sessionId)) {
+            const session = activeSessions.get(sessionId);
+            return { sessionId: sessionId, session: session, isNew: false };
         }
 
-        // Close any existing session before creating a new one
-        if (activeSession) {
-            console.log(`🔄 Closing existing session: ${activeSession.sessionId}`);
+        // Check session limit
+        if (activeSessions.size >= MAX_CONCURRENT_SESSIONS) {
+            // Remove oldest session to make room
+            const oldestSessionId = activeSessions.keys().next().value;
+            const oldestSession = activeSessions.get(oldestSessionId);
+            console.log(`🗑️ Removing oldest session due to limit: ${oldestSessionId}`);
+            
             try {
-                if (activeSession.automation) {
-                    await Promise.race([
-                        activeSession.automation.close().catch(err => console.error('Session close error:', err)),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Close timeout')), 3000))
-                    ]);
-                    await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait after close
+                if (oldestSession.automation) {
+                    await oldestSession.automation.close();
                 }
             } catch (error) {
-                console.error(`Error closing existing session:`, error);
+                console.error('Error closing oldest session:', error);
             }
-            activeSession = null;
+            activeSessions.delete(oldestSessionId);
         }
 
-        // Create new single session
-        const newSessionId = Date.now().toString();
-        activeSession = {
+        // Create new session
+        const newSessionId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        const newSession = {
             sessionId: newSessionId,
             automation: null,
             isPreloaded: false,
             createdAt: Date.now(),
             email: null,
-            inUse: false // Track if session is being actively used
+            inUse: false
         };
 
-        console.log(`📝 Created new session: ${newSessionId} (Single session mode)`);
-        return { sessionId: newSessionId, session: activeSession, isNew: true };
+        activeSessions.set(newSessionId, newSession);
+        console.log(`📝 Created new session: ${newSessionId} (${activeSessions.size}/${MAX_CONCURRENT_SESSIONS} sessions active)`);
+        return { sessionId: newSessionId, session: newSession, isNew: true };
 
     } finally {
         // Release mutex
