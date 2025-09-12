@@ -1,0 +1,50 @@
+2025-09-12T12:41:43.75612224Z added 161 packages, and audited 162 packages in 20s
+2025-09-12T12:41:43.75613448Z 
+2025-09-12T12:41:43.75614574Z 23 packages are looking for funding
+2025-09-12T12:41:43.756187252Z   run `npm fund` for details
+2025-09-12T12:41:43.757092542Z 
+2025-09-12T12:41:43.757109242Z found 0 vulnerabilities
+2025-09-12T12:41:56.223265234Z ==> Uploading build...
+2025-09-12T12:42:01.553889449Z ==> Uploaded in 3.7s. Compression took 1.7s
+2025-09-12T12:42:01.567442562Z ==> Build successful 🎉
+2025-09-12T12:42:07.959218006Z ==> Deploying...
+2025-09-12T12:42:28.95885573Z ==> Running 'node index.js'
+2025-09-12T12:42:29.249380938Z node:internal/modules/cjs/loader:1404
+2025-09-12T12:42:29.249404058Z   throw err;
+2025-09-12T12:42:29.249407338Z   ^
+2025-09-12T12:42:29.249409989Z 
+2025-09-12T12:42:29.249414389Z Error: Cannot find module '/opt/render/project/src/index.js'
+2025-09-12T12:42:29.249418639Z     at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+2025-09-12T12:42:29.249421729Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)
+2025-09-12T12:42:29.249424379Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)
+2025-09-12T12:42:29.249426829Z     at Function._load (node:internal/modules/cjs/loader:1211:37)
+2025-09-12T12:42:29.249429339Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T12:42:29.249431809Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T12:42:29.249435739Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-09-12T12:42:29.249441069Z     at node:internal/main/run_main_module:36:49 {
+2025-09-12T12:42:29.249445319Z   code: 'MODULE_NOT_FOUND',
+2025-09-12T12:42:29.24944953Z   requireStack: []
+2025-09-12T12:42:29.249452799Z }
+2025-09-12T12:42:29.24945547Z 
+2025-09-12T12:42:29.24945865Z Node.js v22.16.0
+2025-09-12T12:42:30.183437654Z ==> Exited with status 1
+2025-09-12T12:42:30.199595222Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-09-12T12:42:34.40278419Z ==> Running 'node index.js'
+2025-09-12T12:42:34.604668294Z node:internal/modules/cjs/loader:1404
+2025-09-12T12:42:34.604714715Z   throw err;
+2025-09-12T12:42:34.604719195Z   ^
+2025-09-12T12:42:34.604722475Z 
+2025-09-12T12:42:34.604726235Z Error: Cannot find module '/opt/render/project/src/index.js'
+2025-09-12T12:42:34.604730405Z     at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+2025-09-12T12:42:34.604733845Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)
+2025-09-12T12:42:34.604737036Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)
+2025-09-12T12:42:34.604740376Z     at Function._load (node:internal/modules/cjs/loader:1211:37)
+2025-09-12T12:42:34.604743366Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T12:42:34.604746466Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T12:42:34.604750436Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-09-12T12:42:34.604756436Z     at node:internal/main/run_main_module:36:49 {
+2025-09-12T12:42:34.604760726Z   code: 'MODULE_NOT_FOUND',
+2025-09-12T12:42:34.604764636Z   requireStack: []
+2025-09-12T12:42:34.604767876Z }
+2025-09-12T12:42:34.604770817Z 
+2025-09-12T12:42:34.604773897Z Node.js v22.16.0
