@@ -109,6 +109,56 @@ class OutlookLoginAutomation {
                             }
                         } else if (fs.existsSync(pathPattern)) {
                             browserOptions.executablePath = pathPattern;
+                            console.log(`Using common path Chromium: ${pathPattern}`);
+                            break;
+                        }
+                    } catch (e) {
+                        // Continue to next path
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Error finding Chromium path:', error.message);
+        }
+
+            // If still not found, try common paths including Render cache
+            if (!browserOptions.executablePath) {
+                const commonPaths = [
+                    // Render Puppeteer cache paths
+                    '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
+                    '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+                    // Nix store paths (Replit)
+                    '/nix/store/*/bin/chromium',
+                    // Standard Linux paths
+                    '/usr/bin/chromium',
+                    '/usr/bin/chromium-browser',
+                    '/usr/bin/google-chrome',
+                    '/usr/bin/google-chrome-stable'
+                ];
+
+                for (const pathPattern of commonPaths) {
+                    try {
+                        if (pathPattern.includes('*')) {
+                            // Handle glob patterns for different environments
+                            let globCommand;
+                            if (pathPattern.includes('/opt/render/.cache/puppeteer/chrome/')) {
+                                // Render Puppeteer cache
+                                globCommand = `ls -d ${pathPattern} 2>/dev/null || true`;
+                            } else if (pathPattern.includes('/nix/store/')) {
+                                // Nix store (Replit)
+                                globCommand = `ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true`;
+                            }
+                            
+                            if (globCommand) {
+                                const foundPaths = execSync(globCommand, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
+                                if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
+                                    browserOptions.executablePath = foundPaths[0];
+                                    console.log(`Using glob-found Chromium: ${foundPaths[0]}`);
+                                    break;
+                                }
+                            }
+                        } else if (fs.existsSync(pathPattern)) {
+                            browserOptions.executablePath = pathPattern;
                             console.log(`Using system Chromium: ${pathPattern}`);
                             break;
                         }
