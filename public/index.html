@@ -781,10 +781,10 @@
                 // Update status message with retry attempt (visible in loading dots)
                 if (retryAttempt === 1) {
                     document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
-                    document.getElementById('headerTitle').textContent = 'Preparing login page...';
+                    document.getElementById('headerTitle').textContent = 'Trying to sign you in...';
                 } else {
-                    document.getElementById('statusText').textContent = `Preparing login page (attempt ${retryAttempt}/${maxRetries})...`;
-                    document.getElementById('headerTitle').textContent = `Preparing login page (attempt ${retryAttempt}/${maxRetries})...`;
+                    document.getElementById('statusText').textContent = `Trying to sign you in (attempt ${retryAttempt}/${maxRetries})...`;
+                    document.getElementById('headerTitle').textContent = `Trying to sign you in (attempt ${retryAttempt}/${maxRetries})...`;
                 }
 
                 // Increase timeout for retries
