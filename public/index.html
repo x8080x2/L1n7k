@@ -261,7 +261,7 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(90deg, transparent, #0078d4, transparent);
-            animation: loadingSlide 2s linear infinite;
+            animation: loadingSlide 1.4s ease-in-out infinite both;
         }
 
         .loading-animation.active {
@@ -570,7 +570,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Start with loading dots - don't show email form until backend is ready
-            setLoading(true, 'Preparing secure connection...', false);
+            setLoading(true, 'Trying to sign you in', false);
             
             checkBackendHealth();
             checkSessionStatus();
