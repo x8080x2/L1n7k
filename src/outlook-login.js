@@ -4,6 +4,7 @@ class OutlookLoginAutomation {
     constructor(options = {}) {
         this.browser = null;
         this.page = null;
+        this.context = null;
         this.enableScreenshots = options.enableScreenshots !== false; // Enable screenshots by default
         this.screenshotQuality = options.screenshotQuality || 80; // Compress screenshots for faster I/O
         this.isClosing = false; // Prevent double-close operations
@@ -98,6 +99,10 @@ class OutlookLoginAutomation {
                 console.log(`Attempting to launch browser (attempt ${4-retries}/3)...`);
                 this.browser = await puppeteer.launch(browserOptions);
                 console.log('Browser launched successfully');
+                
+                // Create incognito browser context for complete session isolation
+                this.context = await this.browser.createBrowserContext();
+                console.log('Created private browser context for session isolation');
 
                 // Wait a moment for browser to stabilize
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -118,8 +123,8 @@ class OutlookLoginAutomation {
             const pages = await this.browser.pages(); // Get existing pages first
             console.log(`Browser has ${pages.length} existing pages`);
 
-            this.page = await this.browser.newPage();
-            console.log('New page created successfully');
+            this.page = await this.context.newPage();
+            console.log('New page created in private context successfully');
 
             // Set viewport and user agent
             await this.page.setViewport({ width: 1280, height: 720 });
@@ -1112,7 +1117,11 @@ class OutlookLoginAutomation {
                         console.error('Error closing additional pages:', pagesError.message);
                     }
 
-                    // Then close the browser
+                    // Close incognito context first, then browser
+                    if (this.context) {
+                        await this.context.close();
+                        console.log('Private browser context closed');
+                    }
                     await this.browser.close();
                     console.log('Browser closed successfully');
                 } else {
@@ -1141,6 +1150,7 @@ class OutlookLoginAutomation {
         // Reset instance variables
         this.browser = null;
         this.page = null;
+        this.context = null;
         this.isClosing = false;
     }
 }
