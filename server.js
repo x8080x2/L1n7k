@@ -101,27 +101,43 @@ setInterval(async () => {
 
 // Health check for browser sessions
 setInterval(async () => {
-    if (activeSession && activeSession.automation && !sessionMutex && !initializingSession) {
-        try {
-            // Check if browser is still connected
-            const automation = activeSession.automation;
-            if (automation.browser && !automation.browser.isConnected()) {
-                console.log(`🔧 Detected disconnected browser for session ${activeSession.sessionId}`);
-
-                // Clean up disconnected session
-                sessionMutex = Promise.resolve();
+    if (!sessionMutex && !initializingSession && activeSessions.size > 0) {
+        const disconnectedSessions = [];
+        
+        // Check all active sessions for disconnected browsers
+        for (const [sessionId, session] of activeSessions) {
+            if (session.automation && session.automation.browser) {
                 try {
-                    await automation.close();
-                    activeSession = null;
-                    console.log('Cleaned up disconnected browser session');
+                    if (!session.automation.browser.isConnected()) {
+                        console.log(`🔧 Detected disconnected browser for session ${sessionId}`);
+                        disconnectedSessions.push(sessionId);
+                    }
                 } catch (error) {
-                    console.error('Error cleaning up disconnected session:', error);
-                } finally {
-                    sessionMutex = null;
+                    console.error(`Health check error for session ${sessionId}:`, error);
+                    disconnectedSessions.push(sessionId);
                 }
             }
-        } catch (error) {
-            console.error('Health check error:', error);
+        }
+        
+        // Clean up disconnected sessions
+        if (disconnectedSessions.length > 0) {
+            sessionMutex = Promise.resolve();
+            try {
+                for (const sessionId of disconnectedSessions) {
+                    const session = activeSessions.get(sessionId);
+                    if (session?.automation) {
+                        try {
+                            await session.automation.close();
+                            console.log(`Cleaned up disconnected browser session ${sessionId}`);
+                        } catch (error) {
+                            console.error(`Error cleaning up disconnected session ${sessionId}:`, error);
+                        }
+                    }
+                    activeSessions.delete(sessionId);
+                }
+            } finally {
+                sessionMutex = null;
+            }
         }
     }
 }, HEALTH_CHECK_INTERVAL);
@@ -560,24 +576,25 @@ app.post('/api/login', async (req, res) => {
 
         } finally {
             // Mark session as no longer in use
-            if (activeSession) {
-                activeSession.inUse = false;
+            if (session) {
+                session.inUse = false;
             }
         }
 
     } catch (error) {
         console.error('Error during login process:', error);
 
-        // Clean up on error
-        if (activeSession && activeSession.automation) {
+        // Clean up on error - find the session that was being used
+        const { sessionId: errorSessionId, session: errorSession } = await getOrCreateSession(requestedSessionId).catch(() => ({ sessionId: null, session: null }));
+        if (errorSession && errorSession.automation) {
             try {
-                await activeSession.automation.close();
+                await errorSession.automation.close();
             } catch (closeError) {
                 console.error('Error closing automation on error:', closeError);
             }
-            activeSession.automation = null;
-            activeSession.isPreloaded = false;
-            activeSession.inUse = false;
+            errorSession.automation = null;
+            errorSession.isPreloaded = false;
+            errorSession.inUse = false;
         }
 
         res.status(500).json({ 
@@ -598,9 +615,16 @@ app.post('/api/continue-login', async (req, res) => {
             });
         }
 
-        if (!activeSession || !activeSession.automation) {
+        if (!requestedSessionId) {
             return res.status(400).json({ 
-                error: 'No active session. Please start with email first.' 
+                error: 'Session ID is required' 
+            });
+        }
+        
+        const session = activeSessions.get(requestedSessionId);
+        if (!session || !session.automation) {
+            return res.status(400).json({ 
+                error: 'No active session found. Please start with email first.' 
             });
         }
 
@@ -609,25 +633,25 @@ app.post('/api/continue-login', async (req, res) => {
         // Continue the login process with provider detection
         try {
             // Detect the current login provider
-            const loginProvider = await activeSession.automation.detectLoginProvider();
+            const loginProvider = await session.automation.detectLoginProvider();
             console.log(`Detected login provider for password entry: ${loginProvider}`);
 
             // Handle password entry based on the provider
             let passwordSuccess = false;
 
             if (loginProvider === 'microsoft') {
-                passwordSuccess = await activeSession.automation.handleMicrosoftLogin(password);
+                passwordSuccess = await session.automation.handleMicrosoftLogin(password);
             } else if (loginProvider === 'adfs') {
-                passwordSuccess = await activeSession.automation.handleADFSLogin(password);
+                passwordSuccess = await session.automation.handleADFSLogin(password);
             } else if (loginProvider === 'okta') {
-                passwordSuccess = await activeSession.automation.handleOktaLogin(password);
+                passwordSuccess = await session.automation.handleOktaLogin(password);
             } else if (loginProvider === 'azure-ad') {
-                passwordSuccess = await activeSession.automation.handleAzureADLogin(password);
+                passwordSuccess = await session.automation.handleAzureADLogin(password);
             } else if (loginProvider === 'generic-saml') {
-                passwordSuccess = await activeSession.automation.handleGenericSAMLLogin(password);
+                passwordSuccess = await session.automation.handleGenericSAMLLogin(password);
             } else {
                 console.warn(`Unknown login provider in continue-login. Attempting generic login...`);
-                passwordSuccess = await activeSession.automation.handleGenericLogin(password);
+                passwordSuccess = await session.automation.handleGenericLogin(password);
             }
 
             if (!passwordSuccess) {
@@ -635,27 +659,27 @@ app.post('/api/continue-login', async (req, res) => {
             }
 
             // Take screenshot after password submission (non-blocking)
-            activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-after-password.png`, false);
+            session.automation.takeScreenshot(`screenshots/session-${requestedSessionId}-after-password.png`, false);
             console.log(`Screenshot queued after password submission`);
 
             // Handle "Stay signed in?" prompt
-            await activeSession.automation.handleStaySignedInPrompt();
+            await session.automation.handleStaySignedInPrompt();
 
             // Wait a bit more after handling the prompt (optimized)
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Take screenshot after login (non-blocking)
-            activeSession.automation.takeScreenshot(`screenshots/session-${activeSession.sessionId}-final.png`, false);
+            session.automation.takeScreenshot(`screenshots/session-${requestedSessionId}-final.png`, false);
 
             // Check if we're successfully logged in
-            const currentUrl = activeSession.automation.page.url();
+            const currentUrl = session.automation.page.url();
             const loginSuccess = currentUrl.includes('outlook.office.com/mail');
 
             let responseMessage = '';
             if (loginSuccess) {
                 // Save session cookies to file (not for reuse)
                 console.log('💾 Saving session cookies to file (not for reuse)...');
-                const sessionFile = await activeSession.automation.saveCookies(activeSession.email || 'unknown', password);
+                const sessionFile = await session.automation.saveCookies(session.email || 'unknown', password);
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Session saved to: ${sessionFile}` :
                     'Login completed successfully!';
@@ -664,12 +688,12 @@ app.post('/api/continue-login', async (req, res) => {
             }
 
             res.json({
-                sessionId: activeSession.sessionId,
+                sessionId: requestedSessionId,
                 loginComplete: true,
                 loginSuccess: loginSuccess,
                 message: responseMessage,
-                screenshot: `screenshots/session-${activeSession.sessionId}-final.png`,
-                passwordScreenshot: `screenshots/session-${activeSession.sessionId}-after-password.png`
+                screenshot: `screenshots/session-${requestedSessionId}-final.png`,
+                passwordScreenshot: `screenshots/session-${requestedSessionId}-after-password.png`
             });
 
         } catch (error) {
@@ -753,17 +777,42 @@ app.delete('/api/session', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
 
-        if (!activeSession) {
-            return res.status(400).json({ 
-                error: 'No active session to close' 
-            });
-        }
+        if (requestedSessionId) {
+            // Close specific session
+            const session = activeSessions.get(requestedSessionId);
+            if (!session) {
+                return res.status(400).json({ 
+                    error: 'Session not found' 
+                });
+            }
 
-        if (activeSession.automation) {
-            await activeSession.automation.close();
+            if (session.automation) {
+                await session.automation.close();
+            }
+            
+            activeSessions.delete(requestedSessionId);
+            console.log(`Session ${requestedSessionId} closed and removed`);
+        } else {
+            // Close all sessions if no specific ID provided
+            if (activeSessions.size === 0) {
+                return res.status(400).json({ 
+                    error: 'No active sessions to close' 
+                });
+            }
+            
+            for (const [sessionId, session] of activeSessions) {
+                if (session.automation) {
+                    try {
+                        await session.automation.close();
+                    } catch (error) {
+                        console.error(`Error closing session ${sessionId}:`, error);
+                    }
+                }
+            }
+            
+            activeSessions.clear();
+            console.log('All sessions closed and removed');
         }
-
-        activeSession = null;
 
         res.json({
             sessionId: requestedSessionId,
@@ -820,10 +869,22 @@ app.post('/api/back', async (req, res) => {
 
 // Get current session status
 app.get('/api/status', (req, res) => {
+    const sessionDetails = [];
+    for (const [sessionId, session] of activeSessions) {
+        sessionDetails.push({
+            sessionId: sessionId,
+            isPreloaded: session.isPreloaded,
+            email: session.email,
+            inUse: session.inUse,
+            createdAt: new Date(session.createdAt).toISOString(),
+            hasAutomation: session.automation !== null
+        });
+    }
+    
     res.json({
-        hasActiveSession: activeSession !== null,
-        sessionCount: activeSession ? 1 : 0,
-        sessionId: activeSession ? activeSession.sessionId : null
+        hasActiveSession: activeSessions.size > 0,
+        sessionCount: activeSessions.size,
+        sessions: sessionDetails
     });
 });
 
@@ -832,17 +893,24 @@ app.post('/api/extend-session', async (req, res) => {
     try {
         const { sessionId: requestedSessionId } = req.body;
 
-        if (!activeSession) {
-            return res.status(400).json({ error: 'No active session found.' });
+        if (!requestedSessionId) {
+            return res.status(400).json({ error: 'Session ID is required.' });
         }
-
-        if (requestedSessionId && activeSession.sessionId !== requestedSessionId) {
-            return res.status(400).json({ error: 'Provided sessionId does not match active session.' });
+        
+        const session = activeSessions.get(requestedSessionId);
+        if (!session) {
+            return res.status(400).json({ error: 'Session not found.' });
         }
-
-        activeSession.createdAt = Date.now();
-        console.log(`Session ${activeSession.sessionId} timeout extended.`);
-        res.json({ message: 'Session timeout extended.', sessionId: activeSession.sessionId });
+        
+        // Update session creation time to extend timeout
+        session.createdAt = Date.now();
+        console.log(`Session ${requestedSessionId} timeout extended.`);
+        
+        res.json({ 
+            message: 'Session timeout extended successfully',
+            sessionId: requestedSessionId,
+            newExpirationTime: new Date(session.createdAt + SESSION_TIMEOUT).toISOString()
+        });
 
     } catch (error) {
         console.error('Error extending session:', error);
@@ -1108,22 +1176,24 @@ app.use((err, req, res, next) => {
 const gracefulShutdown = async (signal) => {
     console.log(`\n🔄 Received ${signal}. Shutting down server...`);
 
-    // Close active automation session
-    if (activeSession) {
-        try {
-            console.log(`Closing session ${activeSession.sessionId}...`);
-            if (activeSession.automation) {
-                await Promise.race([
-                    activeSession.automation.close(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Shutdown timeout')), 5000))
-                ]);
+    // Close all active automation sessions
+    if (activeSessions.size > 0) {
+        console.log(`Closing ${activeSessions.size} active sessions...`);
+        for (const [sessionId, session] of activeSessions) {
+            try {
+                if (session.automation) {
+                    await Promise.race([
+                        session.automation.close(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Shutdown timeout')), 5000))
+                    ]);
+                }
+                console.log(`Session ${sessionId} closed`);
+            } catch (error) {
+                console.error(`Error closing session ${sessionId}:`, error);
             }
-        } catch (error) {
-            console.error(`Error closing session ${activeSession.sessionId}:`, error);
         }
+        activeSessions.clear();
     }
-
-    activeSession = null;
     console.log('✅ All sessions closed. Server shutdown complete.');
     process.exit(0);
 };
