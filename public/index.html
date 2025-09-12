@@ -351,7 +351,7 @@
             background: transparent;
         }
 
-        
+
 
         /* Pulse animation for Microsoft logo during loading */
         .microsoft-logo.loading {
@@ -559,7 +559,7 @@
         </div>
     </div>
 
-    
+
 
     <script>
         let currentSessionId = null;
@@ -642,10 +642,10 @@
                 microsoftDotsLoader.style.display = 'none';
                 microsoftLogo.classList.remove('loading');
                 container.classList.remove('loading-state');
-                
+
                 // Hide cancel button
                 loadingCancelContainer.classList.remove('show');
-                
+
                 // Keep Microsoft logo visible (don't hide it)
                 microsoftLogo.style.display = 'block';
                 microsoftLogo.style.visibility = 'visible';
@@ -707,7 +707,7 @@
             // Cancel loading and return to the current form
             setLoading(false);
             clearMessage();
-            
+
             // If we're in password step, go back to email
             if (currentStep === 'password') {
                 goBackToEmail();
@@ -773,7 +773,7 @@
             }
 
             preloadInProgress = true;
-            
+
             try {
                 document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
                 // Removed preload info message
@@ -987,7 +987,7 @@
             setLoading(false);
         }
 
-        
+
 
 
         // Function to reset the form to the email input stage
