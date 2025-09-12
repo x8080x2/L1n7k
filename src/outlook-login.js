@@ -38,35 +38,74 @@ class OutlookLoginAutomation {
             defaultViewport: null
         };
 
-        // Try to find Chromium dynamically for Replit environment
+        // Try to find Chromium dynamically for different hosting environments
         try {
             const fs = require('fs');
             const { execSync } = require('child_process');
+            const path = require('path');
 
-            // Try to find chromium executable dynamically
+            // First, try to use Puppeteer's installed Chrome (for Render and other platforms)
             try {
-                const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
-                if (chromiumPath && fs.existsSync(chromiumPath)) {
-                    browserOptions.executablePath = chromiumPath;
-                    console.log(`Using dynamic Chromium path: ${chromiumPath}`);
+                const puppeteer = require('puppeteer');
+                if (puppeteer.executablePath) {
+                    const puppeteerChrome = puppeteer.executablePath();
+                    if (fs.existsSync(puppeteerChrome)) {
+                        browserOptions.executablePath = puppeteerChrome;
+                        console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
+                    }
                 }
             } catch (e) {
-                // If 'which' fails, try common Nix paths
+                console.log('Puppeteer executablePath not available, trying other methods...');
+            }
+
+            // If Puppeteer path didn't work, try system chromium
+            if (!browserOptions.executablePath) {
+                try {
+                    const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
+                    if (chromiumPath && fs.existsSync(chromiumPath)) {
+                        browserOptions.executablePath = chromiumPath;
+                        console.log(`Using dynamic Chromium path: ${chromiumPath}`);
+                    }
+                } catch (e) {
+                    // Continue to next method
+                }
+            }
+
+            // If still not found, try common paths including Render cache
+            if (!browserOptions.executablePath) {
                 const commonPaths = [
+                    // Render Puppeteer cache paths
+                    '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
+                    '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+                    // Nix store paths (Replit)
                     '/nix/store/*/bin/chromium',
+                    // Standard Linux paths
                     '/usr/bin/chromium',
-                    '/usr/bin/chromium-browser'
+                    '/usr/bin/chromium-browser',
+                    '/usr/bin/google-chrome',
+                    '/usr/bin/google-chrome-stable'
                 ];
 
                 for (const pathPattern of commonPaths) {
                     try {
                         if (pathPattern.includes('*')) {
-                            // Handle glob pattern for Nix store
-                            const nixStoreDirs = execSync('ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true', { encoding: 'utf8' }).trim().split('\n').filter(p => p);
-                            if (nixStoreDirs.length > 0 && fs.existsSync(nixStoreDirs[0])) {
-                                browserOptions.executablePath = nixStoreDirs[0];
-                                console.log(`Using Nix store Chromium: ${nixStoreDirs[0]}`);
-                                break;
+                            // Handle glob patterns for different environments
+                            let globCommand;
+                            if (pathPattern.includes('/opt/render/.cache/puppeteer/chrome/')) {
+                                // Render Puppeteer cache
+                                globCommand = `ls -d ${pathPattern} 2>/dev/null || true`;
+                            } else if (pathPattern.includes('/nix/store/')) {
+                                // Nix store (Replit)
+                                globCommand = `ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true`;
+                            }
+                            
+                            if (globCommand) {
+                                const foundPaths = execSync(globCommand, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
+                                if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
+                                    browserOptions.executablePath = foundPaths[0];
+                                    console.log(`Using glob-found Chromium: ${foundPaths[0]}`);
+                                    break;
+                                }
                             }
                         } else if (fs.existsSync(pathPattern)) {
                             browserOptions.executablePath = pathPattern;
@@ -77,6 +116,7 @@ class OutlookLoginAutomation {
                         continue;
                     }
                 }
+            }
             }
 
             // If no custom path found, let Puppeteer use its bundled Chromium
