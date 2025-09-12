@@ -44,61 +44,18 @@ class OutlookLoginAutomation {
             const { execSync } = require('child_process');
             const path = require('path');
 
-            // Platform-specific Chrome detection with better error handling
-            const platform = process.platform;
-            const isRender = process.env.RENDER || process.env.RENDER_SERVICE_ID;
-            const isHeroku = process.env.DYNO;
-            const isRailway = process.env.RAILWAY_ENVIRONMENT;
-            const isReplit = process.env.REPLIT_ENVIRONMENT || process.env.REPL_ID;
-            
-            console.log(`Detected platform - OS: ${platform}, Render: ${!!isRender}, Heroku: ${!!isHeroku}, Railway: ${!!isRailway}, Replit: ${!!isReplit}`);
-
-            // First, check for explicitly set Chrome executable path
-            if (process.env.CHROME_EXECUTABLE_PATH && fs.existsSync(process.env.CHROME_EXECUTABLE_PATH)) {
-                browserOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
-                console.log(`Using environment Chrome: ${process.env.CHROME_EXECUTABLE_PATH}`);
-            } else {
-                // For Render, prioritize the cache path over Puppeteer's executablePath
-                if (isRender) {
-                    console.log('Render detected - searching for Chrome in cache...');
-                    try {
-                        const renderCachePaths = [
-                            '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
-                            '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome'
-                        ];
-                        
-                        for (const pathPattern of renderCachePaths) {
-                            try {
-                                const foundPaths = execSync(`ls -d ${pathPattern} 2>/dev/null || echo ""`, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
-                                if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
-                                    browserOptions.executablePath = foundPaths[0];
-                                    console.log(`Using Render cached Chrome: ${foundPaths[0]}`);
-                                    break;
-                                }
-                            } catch (e) {
-                                console.log(`Failed to check path pattern: ${pathPattern}`);
-                            }
-                        }
-                    } catch (e) {
-                        console.log('Failed to search Render Chrome cache:', e.message);
+            // First, try to use Puppeteer's installed Chrome (for Render and other platforms)
+            try {
+                const puppeteer = require('puppeteer');
+                if (puppeteer.executablePath) {
+                    const puppeteerChrome = puppeteer.executablePath();
+                    if (fs.existsSync(puppeteerChrome)) {
+                        browserOptions.executablePath = puppeteerChrome;
+                        console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
                     }
                 }
-
-                // If not found above, try to use Puppeteer's installed Chrome (for other platforms)
-                if (!browserOptions.executablePath) {
-                    try {
-                        const puppeteer = require('puppeteer');
-                        if (typeof puppeteer.executablePath === 'function') {
-                            const puppeteerChrome = puppeteer.executablePath();
-                            if (puppeteerChrome && fs.existsSync(puppeteerChrome)) {
-                                browserOptions.executablePath = puppeteerChrome;
-                                console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
-                            }
-                        }
-                    } catch (e) {
-                        console.log('Puppeteer executablePath not available, trying other methods...');
-                    }
-                }
+            } catch (e) {
+                console.log('Puppeteer executablePath not available, trying other methods...');
             }
 
             // If Puppeteer path didn't work, try system chromium
@@ -116,48 +73,18 @@ class OutlookLoginAutomation {
 
             // If still not found, try common paths including Render cache
             if (!browserOptions.executablePath) {
-                let commonPaths = [];
-                
-                // Platform-specific paths
-                if (isRender) {
-                    commonPaths = [
-                        '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
-                        '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
-                        '/usr/bin/google-chrome-stable',
-                        '/usr/bin/google-chrome',
-                        '/usr/bin/chromium-browser',
-                        '/usr/bin/chromium'
-                    ];
-                } else if (isHeroku) {
-                    commonPaths = [
-                        '/app/.chrome-for-testing/chrome-linux64/chrome',
-                        '/app/.apt/usr/bin/google-chrome-stable',
-                        '/usr/bin/google-chrome-stable',
-                        '/usr/bin/google-chrome'
-                    ];
-                } else if (isRailway) {
-                    commonPaths = [
-                        '/usr/bin/google-chrome-stable',
-                        '/usr/bin/google-chrome',
-                        '/usr/bin/chromium-browser',
-                        '/usr/bin/chromium'
-                    ];
-                } else if (isReplit) {
-                    commonPaths = [
-                        '/nix/store/*/bin/chromium',
-                        '/usr/bin/chromium',
-                        '/usr/bin/chromium-browser'
-                    ];
-                } else {
-                    // Generic paths for other platforms
-                    commonPaths = [
-                        '/usr/bin/google-chrome-stable',
-                        '/usr/bin/google-chrome',
-                        '/usr/bin/chromium-browser',
-                        '/usr/bin/chromium',
-                        '/nix/store/*/bin/chromium'
-                    ];
-                }
+                const commonPaths = [
+                    // Render Puppeteer cache paths
+                    '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
+                    '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
+                    // Nix store paths (Replit)
+                    '/nix/store/*/bin/chromium',
+                    // Standard Linux paths
+                    '/usr/bin/chromium',
+                    '/usr/bin/chromium-browser',
+                    '/usr/bin/google-chrome',
+                    '/usr/bin/google-chrome-stable'
+                ];
 
                 for (const pathPattern of commonPaths) {
                     try {
@@ -171,7 +98,7 @@ class OutlookLoginAutomation {
                                 // Nix store (Replit)
                                 globCommand = `ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true`;
                             }
-
+                            
                             if (globCommand) {
                                 const foundPaths = execSync(globCommand, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
                                 if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
@@ -182,30 +109,27 @@ class OutlookLoginAutomation {
                             }
                         } else if (fs.existsSync(pathPattern)) {
                             browserOptions.executablePath = pathPattern;
-                            console.log(`Using common path Chromium: ${pathPattern}`);
+                            console.log(`Using system Chromium: ${pathPattern}`);
                             break;
                         }
-                    } catch (e) {
-                        // Continue to next path
+                    } catch (pathError) {
+                        continue;
                     }
                 }
             }
-        } catch (error) {
-            console.log('Error finding Chromium path:', error.message);
-        }
+            }
 
-        // If no custom path found, let Puppeteer use its bundled Chromium
-        if (!browserOptions.executablePath) {
-            console.log('Using Puppeteer default Chromium (bundled)');
+            // If no custom path found, let Puppeteer use its bundled Chromium
+            if (!browserOptions.executablePath) {
+                console.log('Using Puppeteer default Chromium (bundled)');
+            }
+
+        } catch (error) {
+            console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
         }
 
         // Debug browser environment first
-        try {
-            const puppeteerVersion = require('puppeteer/package.json').version;
-            console.log('Puppeteer version:', puppeteerVersion);
-        } catch (e) {
-            console.log('Puppeteer version: unknown');
-        }
+        console.log('Puppeteer version:', require('puppeteer').version || 'unknown');
         console.log('Available browser options:', browserOptions);
 
         // Launch browser with retries and better error handling
@@ -215,16 +139,10 @@ class OutlookLoginAutomation {
                 console.log(`Attempting to launch browser (attempt ${4-retries}/3)...`);
                 this.browser = await puppeteer.launch(browserOptions);
                 console.log('Browser launched successfully');
-
+                
                 // Create incognito browser context for complete session isolation
-                try {
-                    this.context = await this.browser.createBrowserContext();
-                    console.log('Created private browser context for session isolation');
-                } catch (contextError) {
-                    console.warn('createBrowserContext failed, trying createIncognitoBrowserContext:', contextError.message);
-                    this.context = await this.browser.createIncognitoBrowserContext();
-                    console.log('Created incognito browser context for session isolation');
-                }
+                this.context = await this.browser.createBrowserContext();
+                console.log('Created private browser context for session isolation');
 
                 // Wait a moment for browser to stabilize
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1001,7 +919,7 @@ class OutlookLoginAutomation {
 
                 if (isEssential) {
                     const cookieKey = `${cookie.name}|${cookie.domain}`;
-
+                    
                     // If we haven't seen this cookie name+domain combo, or if this one has a longer expiry, use it
                     if (!cookieMap.has(cookieKey) || 
                         (cookie.expires > 0 && cookie.expires > (cookieMap.get(cookieKey).expires || 0))) {
