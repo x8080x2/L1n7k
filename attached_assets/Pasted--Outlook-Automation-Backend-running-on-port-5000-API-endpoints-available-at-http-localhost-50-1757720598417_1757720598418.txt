@@ -1,0 +1,254 @@
+🚀 Outlook Automation Backend running on port 5000
+📧 API endpoints available at http://localhost:5000/api/
+🌐 Frontend available at http://localhost:5000/
+📝 Created new session: 1757718658633_1oepu (1/100 sessions active)
+Preloading Outlook page for session 1757718658633_1oepu...
+Using system Chromium path: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+Puppeteer version: unknown
+Available browser options: {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--disable-extensions',
+    '--disable-infobars',
+    '--disable-notifications',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--no-default-browser-check',
+    '--disable-popup-blocking',
+    '--disable-translate'
+  ],
+  dumpio: false,
+  ignoreHTTPSErrors: true,
+  defaultViewport: null,
+  executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium'
+}
+Attempting to launch browser (attempt 1/3)...
+Browser launched successfully
+Created private browser context for session isolation
+Creating new page...
+Browser has 1 existing pages
+New page created in private context successfully
+Browser initialized successfully
+Browser initialized successfully for session 1757718658633_1oepu
+Navigating to Outlook...
+Successfully navigated to Outlook
+Outlook page preloaded successfully for session 1757718658633_1oepu
+📝 Created new session: 1757718675457_r9y7u (2/100 sessions active)
+Preloading Outlook page for session 1757718675457_r9y7u...
+Using system Chromium path: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+Puppeteer version: unknown
+Available browser options: {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--disable-extensions',
+    '--disable-infobars',
+    '--disable-notifications',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--no-default-browser-check',
+    '--disable-popup-blocking',
+    '--disable-translate'
+  ],
+  dumpio: false,
+  ignoreHTTPSErrors: true,
+  defaultViewport: null,
+  executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium'
+}
+Attempting to launch browser (attempt 1/3)...
+Browser launched successfully
+Created private browser context for session isolation
+Creating new page...
+Browser has 1 existing pages
+New page created in private context successfully
+Browser initialized successfully
+Browser initialized successfully for session 1757718675457_r9y7u
+Navigating to Outlook...
+Successfully navigated to Outlook
+Outlook page preloaded successfully for session 1757718675457_r9y7u
+📝 Created new session: 1757718769923_6zz2i (3/100 sessions active)
+Preloading Outlook page for session 1757718769923_6zz2i...
+Using system Chromium path: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+Puppeteer version: unknown
+Available browser options: {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--disable-extensions',
+    '--disable-infobars',
+    '--disable-notifications',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--no-default-browser-check',
+    '--disable-popup-blocking',
+    '--disable-translate'
+  ],
+  dumpio: false,
+  ignoreHTTPSErrors: true,
+  defaultViewport: null,
+  executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium'
+}
+Attempting to launch browser (attempt 1/3)...
+Browser launched successfully
+Created private browser context for session isolation
+Creating new page...
+Browser has 1 existing pages
+New page created in private context successfully
+Browser initialized successfully
+Browser initialized successfully for session 1757718769923_6zz2i
+Navigating to Outlook...
+Successfully navigated to Outlook
+Outlook page preloaded successfully for session 1757718769923_6zz2i
+📝 Created new session: 1757718849016_42bf2 (4/100 sessions active)
+Preloading Outlook page for session 1757718849016_42bf2...
+Using system Chromium path: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+Puppeteer version: unknown
+Available browser options: {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--disable-extensions',
+    '--disable-infobars',
+    '--disable-notifications',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--no-default-browser-check',
+    '--disable-popup-blocking',
+    '--disable-translate'
+  ],
+  dumpio: false,
+  ignoreHTTPSErrors: true,
+  defaultViewport: null,
+  executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium'
+}
+Attempting to launch browser (attempt 1/3)...
+Browser launched successfully
+Created private browser context for session isolation
+Creating new page...
+Browser has 1 existing pages
+New page created in private context successfully
+Browser initialized successfully
+Browser initialized successfully for session 1757718849016_42bf2
+Navigating to Outlook...
+Successfully navigated to Outlook
+Outlook page preloaded successfully for session 1757718849016_42bf2
+📝 Created new session: 1757718885188_k686h (5/100 sessions active)
+Preloading Outlook page for session 1757718885188_k686h...
+Using system Chromium path: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+Puppeteer version: unknown
+Available browser options: {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--disable-extensions',
+    '--disable-infobars',
+    '--disable-notifications',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--no-default-browser-check',
+    '--disable-popup-blocking',
+    '--disable-translate'
+  ],
+  dumpio: false,
+  ignoreHTTPSErrors: true,
+  defaultViewport: null,
+  executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium'
+}
+Attempting to launch browser (attempt 1/3)...
+Browser launched successfully
+Created private browser context for session isolation
+Creating new page...
+Browser has 1 existing pages
+New page created in private context successfully
+Browser initialized successfully
+Browser initialized successfully for session 1757718885188_k686h
+Navigating to Outlook...
+Successfully navigated to Outlook
+Outlook page preloaded successfully for session 1757718885188_k686h
+📝 Created new session: 1757718899796_cbuzr (6/100 sessions active)
+Starting fresh Puppeteer session for email: djdjdj@hotmai.com (Session: 1757718899796_cbuzr)
+Using system Chromium path: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+Puppeteer version: unknown
+Available browser options: {
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--disable-extensions',
+    '--disable-infobars',
+    '--disable-notifications',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--no-default-browser-check',
+    '--disable-popup-blocking',
+    '--disable-translate'
+  ],
+  dumpio: false,
+  ignoreHTTPSErrors: true,
+  defaultViewport: null,
+  executablePath: '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium'
+}
+Attempting to launch browser (attempt 1/3)...
+Browser launched successfully
+Created private browser context for session isolation
+Creating new page...
+Browser has 1 existing pages
+New page created in private context successfully
+Browser initialized successfully
+Browser initialized successfully for session 1757718899796_cbuzr
+Navigating to Outlook...
+Successfully navigated to Outlook
+Filling email and clicking Next to get site response...
+Email entered successfully
+Clicked Next button
+Password field detected - account exists
+Found error message: We couldn't find an account with that username. Try another, or get a new Microsoft account.
+Found error message: We couldn't find an account with that username. Try another, or get a new Microsoft account.
+Account not found error detected - reloading Outlook page for retry...
+Navigating to Outlook...
+Successfully navigated to Outlook
+Page successfully reloaded and ready for new email
+Error taking screenshot: ENOENT: no such file or directory, open 'screenshots/session-1757718899796_cbuzr-after-next.png'
+Site report: {
+  "emailFilled": true,
+  "nextClicked": true,
+  "siteResponse": "Page reloaded - ready for new email attempt",
+  "errorMessages": [
+    "We couldn't find an account with that username. Try another, or get a new Microsoft account.",
+    "We couldn't find an account with that username. Try another, or get a new Microsoft account."
+  ],
+  "pageUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=9199bf20-a13f-4107-85dc-02114787ef48&scope=https%3A%2F%2Foutlook.office.com%2F.default%20openid%20profile%20offline_access&redirect_uri=https%3A%2F%2Foutlook.office.com%2Fmail%2F&client-request-id=bd79d9df-0f3f-814a-a5e6-16d46671988a&response_mode=fragment&client_info=1&prompt=select_account&nonce=01994035-f521-70ec-afae-3e5a18fc08e4&state=eyJpZCI6IjAxOTk0MDM1LWY1MjEtNzQ0OS04ZDhmLWZjMGRhOGM3NTgzYSIsIm1ldGEiOnsiaW50ZXJhY3Rpb25UeXBlIjoicmVkaXJlY3QifX0%3D&claims=%7B%22access_token%22%3A%7B%22xms_cc%22%3A%7B%22values%22%3A%5B%22CP1%22%5D%7D%7D%7D&x-client-SKU=msal.js.browser&x-client-VER=4.14.0&response_type=code&code_challenge=Ld8OfeMWFOxVLa8m46vy3dS71p3DG3kUaiZctrwLvuM&code_challenge_method=S256",
+  "pageTitle": "Sign in to your account",
+  "needsPassword": false,
+  "needsMFA": false,
+  "accountExists": false

