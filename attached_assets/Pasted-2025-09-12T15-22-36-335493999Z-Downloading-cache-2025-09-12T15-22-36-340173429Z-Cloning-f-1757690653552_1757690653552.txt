@@ -1,0 +1,57 @@
+2025-09-12T15:22:36.335493999Z ==> Downloading cache...
+2025-09-12T15:22:36.340173429Z ==> Cloning from https://github.com/x8080x2/L1n7k
+2025-09-12T15:22:36.961144151Z ==> Checking out commit 54bfe7ab0168caab57420147f732d1dae909f5f4 in branch main
+2025-09-12T15:22:57.594615158Z ==> Transferred 325MB in 9s. Extraction took 7s.
+2025-09-12T15:23:20.030539161Z ==> Using Node.js version 22.16.0 (default)
+2025-09-12T15:23:20.088616563Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-09-12T15:23:20.172502592Z ==> Running build command 'npm install && npx puppeteer browsers install chrome'...
+2025-09-12T15:23:22.012619864Z 
+2025-09-12T15:23:22.012891332Z up to date, audited 162 packages in 1s
+2025-09-12T15:23:22.012904592Z 
+2025-09-12T15:23:22.012908872Z 23 packages are looking for funding
+2025-09-12T15:23:22.012912503Z   run `npm fund` for details
+2025-09-12T15:23:22.014113306Z 
+2025-09-12T15:23:22.014125696Z found 0 vulnerabilities
+2025-09-12T15:23:23.014316507Z chrome@140.0.7339.80 /opt/render/.cache/puppeteer/chrome/linux-140.0.7339.80/chrome-linux64/chrome
+2025-09-12T15:23:28.324295123Z ==> Uploading build...
+2025-09-12T15:23:40.125461011Z ==> Uploaded in 3.7s. Compression took 8.1s
+2025-09-12T15:23:40.146953668Z ==> Build successful 🎉
+2025-09-12T15:23:42.921612634Z ==> Deploying...
+2025-09-12T15:23:53.891460048Z ==> Running 'node server.js'
+2025-09-12T15:23:54.188270764Z /opt/render/project/src/src/outlook-login.js:134
+2025-09-12T15:23:54.190349647Z         try {
+2025-09-12T15:23:54.190353427Z             ^
+2025-09-12T15:23:54.190355607Z 
+2025-09-12T15:23:54.190358477Z SyntaxError: Unexpected token '{'
+2025-09-12T15:23:54.190361098Z     at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+2025-09-12T15:23:54.190363678Z     at Module._compile (node:internal/modules/cjs/loader:1704:20)
+2025-09-12T15:23:54.190365867Z     at Object..js (node:internal/modules/cjs/loader:1895:10)
+2025-09-12T15:23:54.190368038Z     at Module.load (node:internal/modules/cjs/loader:1465:32)
+2025-09-12T15:23:54.190385718Z     at Function._load (node:internal/modules/cjs/loader:1282:12)
+2025-09-12T15:23:54.190388838Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T15:23:54.190391418Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T15:23:54.190393678Z     at Module.require (node:internal/modules/cjs/loader:1487:12)
+2025-09-12T15:23:54.190395698Z     at require (node:internal/modules/helpers:135:16)
+2025-09-12T15:23:54.190397718Z     at Object.<anonymous> (/opt/render/project/src/server.js:4:36)
+2025-09-12T15:23:54.190409879Z 
+2025-09-12T15:23:54.190412819Z Node.js v22.16.0
+2025-09-12T15:23:56.387154618Z ==> Exited with status 1
+2025-09-12T15:23:56.403766977Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-09-12T15:23:57.736134298Z ==> Running 'node server.js'
+2025-09-12T15:23:58.017958063Z /opt/render/project/src/src/outlook-login.js:134
+2025-09-12T15:23:58.017998554Z         try {
+2025-09-12T15:23:58.018001784Z             ^
+2025-09-12T15:23:58.018003874Z 
+2025-09-12T15:23:58.018006144Z SyntaxError: Unexpected token '{'
+2025-09-12T15:23:58.018009054Z     at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+2025-09-12T15:23:58.018011584Z     at Module._compile (node:internal/modules/cjs/loader:1704:20)
+2025-09-12T15:23:58.018013664Z     at Object..js (node:internal/modules/cjs/loader:1895:10)
+2025-09-12T15:23:58.018015874Z     at Module.load (node:internal/modules/cjs/loader:1465:32)
+2025-09-12T15:23:58.018018015Z     at Function._load (node:internal/modules/cjs/loader:1282:12)
+2025-09-12T15:23:58.018024184Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-09-12T15:23:58.018026524Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-09-12T15:23:58.018028665Z     at Module.require (node:internal/modules/cjs/loader:1487:12)
+2025-09-12T15:23:58.018030825Z     at require (node:internal/modules/helpers:135:16)
+2025-09-12T15:23:58.018032955Z     at Object.<anonymous> (/opt/render/project/src/server.js:4:36)
+2025-09-12T15:23:58.018067776Z 
+2025-09-12T15:23:58.018070445Z Node.js v22.16.0
