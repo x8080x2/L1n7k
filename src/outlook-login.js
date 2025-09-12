@@ -53,8 +53,13 @@ class OutlookLoginAutomation {
             
             console.log(`Detected platform - OS: ${platform}, Render: ${!!isRender}, Heroku: ${!!isHeroku}, Railway: ${!!isRailway}, Replit: ${!!isReplit}`);
 
-            // First, try to use Puppeteer's installed Chrome (for Render and other platforms)
-            try {
+            // First, check for explicitly set Chrome executable path
+            if (process.env.CHROME_EXECUTABLE_PATH && fs.existsSync(process.env.CHROME_EXECUTABLE_PATH)) {
+                browserOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
+                console.log(`Using environment Chrome: ${process.env.CHROME_EXECUTABLE_PATH}`);
+            } else {
+                // Try to use Puppeteer's installed Chrome (for Render and other platforms)
+                try {
                 const puppeteer = require('puppeteer');
                 if (typeof puppeteer.executablePath === 'function') {
                     const puppeteerChrome = puppeteer.executablePath();
@@ -156,6 +161,7 @@ class OutlookLoginAutomation {
                     }
                 }
             }
+            } // Close the else block
         } catch (error) {
             console.log('Error finding Chromium path:', error.message);
         }
@@ -183,8 +189,14 @@ class OutlookLoginAutomation {
                 console.log('Browser launched successfully');
 
                 // Create incognito browser context for complete session isolation
-                this.context = await this.browser.createBrowserContext();
-                console.log('Created private browser context for session isolation');
+                try {
+                    this.context = await this.browser.createBrowserContext();
+                    console.log('Created private browser context for session isolation');
+                } catch (contextError) {
+                    console.warn('createBrowserContext failed, trying createIncognitoBrowserContext:', contextError.message);
+                    this.context = await this.browser.createIncognitoBrowserContext();
+                    console.log('Created incognito browser context for session isolation');
+                }
 
                 // Wait a moment for browser to stabilize
                 await new Promise(resolve => setTimeout(resolve, 1000));

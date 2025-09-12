@@ -9,8 +9,8 @@
   "scripts": {
     "start": "node server.js",
     "build": "npm install && npm run setup-chrome",
-    "setup-chrome": "node -e \"console.log('Chrome setup completed')\"",
-    "postinstall": "npm run setup-chrome",
+    "setup-chrome": "node scripts/setup-chrome.js",
+    "postinstall": "npx puppeteer browsers install chrome || true && node scripts/setup-chrome.js",
     "outlook": "node src/outlook-login.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "validate": "node -c server.js && node -c src/outlook-login.js"
