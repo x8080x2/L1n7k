@@ -131,7 +131,12 @@ class OutlookLoginAutomation {
         }
 
         // Debug browser environment first
-        console.log('Puppeteer version:', require('puppeteer').version || 'unknown');
+        try {
+            const puppeteerVersion = require('puppeteer/package.json').version;
+            console.log('Puppeteer version:', puppeteerVersion);
+        } catch (e) {
+            console.log('Puppeteer version: unknown');
+        }
         console.log('Available browser options:', browserOptions);
 
         // Launch browser with retries and better error handling
