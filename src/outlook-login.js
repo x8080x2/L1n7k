@@ -44,15 +44,27 @@ class OutlookLoginAutomation {
             const { execSync } = require('child_process');
             const path = require('path');
 
-            // Priority 1: Use system chromium first (better Nix dependencies)
-            try {
-                const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
-                if (chromiumPath && fs.existsSync(chromiumPath)) {
-                    browserOptions.executablePath = chromiumPath;
-                    console.log(`Using system Chromium path: ${chromiumPath}`);
+            // Priority 0: Check for environment variable override first (for Render deployment)
+            if (process.env.CHROMIUM_PATH) {
+                if (fs.existsSync(process.env.CHROMIUM_PATH)) {
+                    browserOptions.executablePath = process.env.CHROMIUM_PATH;
+                    console.log(`Using environment Chromium path: ${process.env.CHROMIUM_PATH}`);
+                } else {
+                    console.warn(`CHROMIUM_PATH environment variable set but path does not exist: ${process.env.CHROMIUM_PATH}`);
                 }
-            } catch (e) {
-                console.log('System chromium not available, trying other methods...');
+            }
+
+            // Priority 1: Use system chromium first (better Nix dependencies) - only if no env override
+            if (!browserOptions.executablePath) {
+                try {
+                    const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
+                    if (chromiumPath && fs.existsSync(chromiumPath)) {
+                        browserOptions.executablePath = chromiumPath;
+                        console.log(`Using system Chromium path: ${chromiumPath}`);
+                    }
+                } catch (e) {
+                    console.log('System chromium not available, trying other methods...');
+                }
             }
 
             // Fallback: try to use Puppeteer's installed Chrome (for Render and other platforms)

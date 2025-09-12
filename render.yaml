@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: outlook-automation
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: false
+    domains:
+      - outlook-automation.onrender.com
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: "false"
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/src/.cache/puppeteer
+    disk:
+      name: render-disk
+      mountPath: /opt/render/project/src/.cache
+      sizeGB: 1
+    healthCheckPath: /api/health
