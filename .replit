@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["chromium", "glib", "xorg.libX11", "xorg.libXcomposite", "xorg.libXcursor", "xorg.libXdamage", "xorg.libXext", "xorg.libXi", "xorg.libXrandr", "xorg.libXrender", "xorg.libXScrnSaver", "xorg.libXtst", "xorg.libxcb", "nss", "gcc", "libdrm", "at-spi2-atk", "gtk3", "xorg.libxshmfence", "libxkbcommon"]
+packages = ["chromium", "glib", "xorg.libX11", "xorg.libXcomposite", "xorg.libXcursor", "xorg.libXdamage", "xorg.libXext", "xorg.libXi", "xorg.libXrandr", "xorg.libXrender", "xorg.libXScrnSaver", "xorg.libXtst", "xorg.libxcb", "nss", "gcc", "libdrm", "at-spi2-atk", "gtk3", "xorg.libxshmfence", "libxkbcommon", "mesa", "libGL", "vulkan-loader"]
 
 [workflows]
 runButton = "Project"

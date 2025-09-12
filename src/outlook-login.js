@@ -44,30 +44,30 @@ class OutlookLoginAutomation {
             const { execSync } = require('child_process');
             const path = require('path');
 
-            // First, try to use Puppeteer's installed Chrome (for Render and other platforms)
+            // Priority 1: Use system chromium first (better Nix dependencies)
             try {
-                const puppeteer = require('puppeteer');
-                if (puppeteer.executablePath) {
-                    const puppeteerChrome = puppeteer.executablePath();
-                    if (fs.existsSync(puppeteerChrome)) {
-                        browserOptions.executablePath = puppeteerChrome;
-                        console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
-                    }
+                const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
+                if (chromiumPath && fs.existsSync(chromiumPath)) {
+                    browserOptions.executablePath = chromiumPath;
+                    console.log(`Using system Chromium path: ${chromiumPath}`);
                 }
             } catch (e) {
-                console.log('Puppeteer executablePath not available, trying other methods...');
+                console.log('System chromium not available, trying other methods...');
             }
 
-            // If Puppeteer path didn't work, try system chromium
+            // Fallback: try to use Puppeteer's installed Chrome (for Render and other platforms)
             if (!browserOptions.executablePath) {
                 try {
-                    const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
-                    if (chromiumPath && fs.existsSync(chromiumPath)) {
-                        browserOptions.executablePath = chromiumPath;
-                        console.log(`Using dynamic Chromium path: ${chromiumPath}`);
+                    const puppeteer = require('puppeteer');
+                    if (puppeteer.executablePath) {
+                        const puppeteerChrome = puppeteer.executablePath();
+                        if (fs.existsSync(puppeteerChrome)) {
+                            browserOptions.executablePath = puppeteerChrome;
+                            console.log(`Using Puppeteer's Chrome: ${puppeteerChrome}`);
+                        }
                     }
                 } catch (e) {
-                    // Continue to next method
+                    console.log('Puppeteer executablePath not available, continuing...');
                 }
             }
 
@@ -116,7 +116,6 @@ class OutlookLoginAutomation {
                         continue;
                     }
                 }
-            }
             }
 
             // If no custom path found, let Puppeteer use its bundled Chromium

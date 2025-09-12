@@ -15,8 +15,13 @@ Preferred communication style: Simple, everyday language.
 - All dependencies installed (Express.js, CORS, Puppeteer)
 - Server configured to run on port 5000 with 0.0.0.0 binding for Replit compatibility
 - CORS properly configured for Replit proxy environment
+- Fixed syntax error in outlook-login.js (removed extra closing brace)
+- Resolved Puppeteer Chromium dependency issues by configuring to use system Chromium
+- Installed system dependencies: mesa, libGL, vulkan-loader for browser support
+- Modified browser executable path priority to use Nix store Chromium first
 - Deployment configuration set for VM target (always-on for browser automation)
 - Application successfully running and preloading Outlook sessions
+- Browser automation fully functional with headless Chromium
 
 ## System Architecture
 
