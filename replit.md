@@ -8,6 +8,16 @@ This project provides a robust web browser automation tool for Microsoft Outlook
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**September 12, 2025**
+- Successfully imported from GitHub and configured for Replit environment
+- All dependencies installed (Express.js, CORS, Puppeteer)
+- Server configured to run on port 5000 with 0.0.0.0 binding for Replit compatibility
+- CORS properly configured for Replit proxy environment
+- Deployment configuration set for VM target (always-on for browser automation)
+- Application successfully running and preloading Outlook sessions
+
 ## System Architecture
 
 The application is built around the `OutlookLoginAutomation` class, which encapsulates all browser operations using Puppeteer. An Express.js server provides a RESTful API.
