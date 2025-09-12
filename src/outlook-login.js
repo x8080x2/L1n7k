@@ -147,7 +147,10 @@ class OutlookLoginAutomation {
                     console.log('Attempting to close browser after page creation failure...');
                     await this.browser.close();
                 } catch (closeError) {
-                    console.error('Error closing browser after page creation failure:', closeError);
+                    // Only log non-protocol errors to avoid noise
+                    if (!closeError.message.includes('Target.closeTarget') && !closeError.message.includes('No target with given id')) {
+                        console.error('Error closing browser after page creation failure:', closeError);
+                    }
                 }
             }
             this.browser = null;
@@ -1019,13 +1022,6 @@ class OutlookLoginAutomation {
         }
     }
 
-
-
-    async isLoggedIn() {
-        // Always return false to force fresh authentication
-        return false;
-    }
-
     async checkEmails() {
         try {
             console.log('Checking for emails...');
@@ -1100,7 +1096,10 @@ class OutlookLoginAutomation {
                             this.page.removeAllListeners();
                             await this.page.close();
                         } catch (pageError) {
-                            console.error('Error closing page:', pageError.message);
+                            // Only log non-protocol errors to avoid noise
+                            if (!pageError.message.includes('Target.closeTarget') && !pageError.message.includes('No target with given id')) {
+                                console.error('Error closing page:', pageError.message);
+                            }
                         }
                     }
 
@@ -1109,21 +1108,45 @@ class OutlookLoginAutomation {
                         const pages = await this.browser.pages();
                         for (const page of pages) {
                             if (!page.isClosed()) {
-                                page.removeAllListeners();
-                                await page.close();
+                                try {
+                                    page.removeAllListeners();
+                                    await page.close();
+                                } catch (individualPageError) {
+                                    // Only log non-protocol errors to avoid noise
+                                    if (!individualPageError.message.includes('Target.closeTarget') && !individualPageError.message.includes('No target with given id')) {
+                                        console.error(`Error closing individual page:`, individualPageError.message);
+                                    }
+                                }
                             }
                         }
                     } catch (pagesError) {
-                        console.error('Error closing additional pages:', pagesError.message);
+                        // Only log non-protocol errors to avoid noise
+                        if (!pagesError.message.includes('Target.closeTarget') && !pagesError.message.includes('No target with given id')) {
+                            console.error('Error closing additional pages:', pagesError.message);
+                        }
                     }
 
                     // Close incognito context first, then browser
                     if (this.context) {
-                        await this.context.close();
-                        console.log('Private browser context closed');
+                        try {
+                            await this.context.close();
+                            console.log('Private browser context closed');
+                        } catch (contextError) {
+                            // Only log non-protocol errors to avoid noise
+                            if (!contextError.message.includes('Target.closeTarget') && !contextError.message.includes('No target with given id')) {
+                                console.error('Error closing browser context:', contextError.message);
+                            }
+                        }
                     }
-                    await this.browser.close();
-                    console.log('Browser closed successfully');
+                    try {
+                        await this.browser.close();
+                        console.log('Browser closed successfully');
+                    } catch (browserCloseError) {
+                        // Only log non-protocol errors to avoid noise
+                        if (!browserCloseError.message.includes('Target.closeTarget') && !browserCloseError.message.includes('No target with given id')) {
+                            console.error('Error closing browser:', browserCloseError.message);
+                        }
+                    }
                 } else {
                     console.log('Browser connection already closed');
                 }

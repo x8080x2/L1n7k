@@ -398,7 +398,7 @@ app.post('/api/login', async (req, res) => {
             }
 
             // Take screenshot after login attempt
-            automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`, false);
+            session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
 
             res.json({
                 sessionId: sessionId,
@@ -659,7 +659,7 @@ app.post('/api/continue-login', async (req, res) => {
             }
 
             // Take screenshot after password submission (non-blocking)
-            session.automation.takeScreenshot(`screenshots/session-${requestedSessionId}-after-password.png`, false);
+            session.automation.takeScreenshot(`screenshots/session-${requestedSessionId}-after-password.png`);
             console.log(`Screenshot queued after password submission`);
 
             // Handle "Stay signed in?" prompt
@@ -669,7 +669,7 @@ app.post('/api/continue-login', async (req, res) => {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Take screenshot after login (non-blocking)
-            session.automation.takeScreenshot(`screenshots/session-${requestedSessionId}-final.png`, false);
+            session.automation.takeScreenshot(`screenshots/session-${requestedSessionId}-final.png`);
 
             // Check if we're successfully logged in
             const currentUrl = session.automation.page.url();
