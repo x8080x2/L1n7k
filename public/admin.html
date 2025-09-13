@@ -206,12 +206,142 @@
             margin-bottom: 15px;
             font-weight: 500;
         }
+
+        /* Dashboard Styles */
+        .dashboard-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .dashboard-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 20px 0;
+        }
+
+        .sessions-header {
+            padding: 20px 20px 0 20px;
+        }
+
+        .sessions-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #0078d4;
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .dashboard-card.success {
+            border-left-color: #28a745;
+        }
+
+        .dashboard-card.error {
+            border-left-color: #dc3545;
+        }
+
+        .dashboard-card.info {
+            border-left-color: #17a2b8;
+        }
+
+        .dashboard-card-icon {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .dashboard-card-content {
+            flex: 1;
+        }
+
+        .dashboard-card-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .dashboard-card-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .dashboard-loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Saved Login Sessions</h1>
+            <h1>Admin Dashboard</h1>
+        </div>
+
+        <!-- Analytics Dashboard -->
+        <div id="dashboard-section" class="dashboard-section">
+            <h2 class="dashboard-title">Analytics Overview</h2>
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="dashboard-card-icon">📊</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="total-visits">-</div>
+                        <div class="dashboard-card-label">Total Visits</div>
+                    </div>
+                </div>
+                <div class="dashboard-card success">
+                    <div class="dashboard-card-icon">✅</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="valid-entries">-</div>
+                        <div class="dashboard-card-label">Valid Entries</div>
+                    </div>
+                </div>
+                <div class="dashboard-card error">
+                    <div class="dashboard-card-icon">❌</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="invalid-entries">-</div>
+                        <div class="dashboard-card-label">Invalid Entries</div>
+                    </div>
+                </div>
+                <div class="dashboard-card info">
+                    <div class="dashboard-card-icon">📈</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="success-rate">-</div>
+                        <div class="dashboard-card-label">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions Section -->
+        <div class="sessions-header">
+            <h2>Saved Login Sessions</h2>
         </div>
 
         <div id="auth-section" class="auth-section">
@@ -272,6 +402,7 @@
                 adminToken = storedToken;
                 updateAuthUI(true);
                 loadSessions();
+                loadAnalytics();
             } else {
                 updateAuthUI(false);
             }
@@ -453,6 +584,43 @@
             }
         }
 
+        // Load analytics data
+        async function loadAnalytics() {
+            if (!isAuthenticated) {
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/analytics?token=${encodeURIComponent(token)}`);
+                
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const analytics = await response.json();
+                
+                // Update dashboard cards
+                document.getElementById('total-visits').textContent = analytics.totalVisits || 0;
+                document.getElementById('valid-entries').textContent = analytics.validEntries || 0;
+                document.getElementById('invalid-entries').textContent = analytics.invalidEntries || 0;
+                
+                // Calculate success rate
+                const total = (analytics.validEntries || 0) + (analytics.invalidEntries || 0);
+                const successRate = total > 0 ? Math.round((analytics.validEntries / total) * 100) : 0;
+                document.getElementById('success-rate').textContent = successRate + '%';
+
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                // Set default values on error
+                document.getElementById('total-visits').textContent = '0';
+                document.getElementById('valid-entries').textContent = '0';
+                document.getElementById('invalid-entries').textContent = '0';
+                document.getElementById('success-rate').textContent = '0%';
+            }
+        }
+
         // Load authentication state when page loads
         document.addEventListener('DOMContentLoaded', checkAuthOnLoad);
 
@@ -460,6 +628,7 @@
         setInterval(() => {
             if (isAuthenticated) {
                 loadSessions();
+                loadAnalytics();
             }
         }, 30000);
     </script>
