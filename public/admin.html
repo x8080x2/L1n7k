@@ -401,8 +401,11 @@
             if (storedToken) {
                 adminToken = storedToken;
                 updateAuthUI(true);
-                loadSessions();
-                loadAnalytics();
+                // Load analytics immediately
+                setTimeout(() => {
+                    loadAnalytics();
+                    loadSessions();
+                }, 100);
             } else {
                 updateAuthUI(false);
             }
@@ -458,6 +461,7 @@
                     localStorage.setItem('adminToken', token);
                     updateAuthUI(true);
                     loadSessions();
+                    loadAnalytics(); // Ensure analytics load after authentication
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('Invalid admin token. Please check and try again.');
@@ -587,37 +591,64 @@
         // Load analytics data
         async function loadAnalytics() {
             if (!isAuthenticated) {
+                // Set loading state for analytics
+                document.getElementById('total-visits').textContent = '-';
+                document.getElementById('valid-entries').textContent = '-';
+                document.getElementById('invalid-entries').textContent = '-';
+                document.getElementById('success-rate').textContent = '-';
                 return;
             }
 
             try {
                 const token = getStoredToken();
+                console.log('Loading analytics with token...');
+                
                 const response = await fetch(`/api/admin/analytics?token=${encodeURIComponent(token)}`);
                 
                 if (response.status === 401) {
+                    console.error('Analytics: Unauthorized access');
                     logout();
                     return;
                 }
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const analytics = await response.json();
+                console.log('Analytics data received:', analytics);
                 
-                // Update dashboard cards
-                document.getElementById('total-visits').textContent = analytics.totalVisits || 0;
-                document.getElementById('valid-entries').textContent = analytics.validEntries || 0;
-                document.getElementById('invalid-entries').textContent = analytics.invalidEntries || 0;
+                // Update dashboard cards with animation
+                updateAnalyticsCard('total-visits', analytics.totalVisits || 0);
+                updateAnalyticsCard('valid-entries', analytics.validEntries || 0);
+                updateAnalyticsCard('invalid-entries', analytics.invalidEntries || 0);
                 
                 // Calculate success rate
                 const total = (analytics.validEntries || 0) + (analytics.invalidEntries || 0);
                 const successRate = total > 0 ? Math.round((analytics.validEntries / total) * 100) : 0;
-                document.getElementById('success-rate').textContent = successRate + '%';
+                updateAnalyticsCard('success-rate', successRate + '%');
+
+                console.log('Analytics updated successfully');
 
             } catch (error) {
                 console.error('Error loading analytics:', error);
-                // Set default values on error
-                document.getElementById('total-visits').textContent = '0';
-                document.getElementById('valid-entries').textContent = '0';
-                document.getElementById('invalid-entries').textContent = '0';
-                document.getElementById('success-rate').textContent = '0%';
+                // Set error state
+                document.getElementById('total-visits').textContent = 'Error';
+                document.getElementById('valid-entries').textContent = 'Error';
+                document.getElementById('invalid-entries').textContent = 'Error';
+                document.getElementById('success-rate').textContent = 'Error';
+            }
+        }
+
+        // Helper function to update analytics cards with animation
+        function updateAnalyticsCard(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.opacity = '0.5';
+                setTimeout(() => {
+                    element.textContent = value;
+                    element.style.opacity = '1';
+                }, 100);
             }
         }
 
