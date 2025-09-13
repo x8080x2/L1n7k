@@ -27,12 +27,16 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash -c \"pkill node || true; node server.js\""
+args = "node server.js"
 waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 41623
+externalPort = 3001
 
 [[ports]]
 localPort = 46119
