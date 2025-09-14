@@ -771,8 +771,13 @@
                                     id="reveal-btn-${index}" class="reveal-btn">SHOW</button>
                             </div>
                         `;
+                    } else if (session.status === 'invalid') {
+                        // Show reason for invalid entries
+                        const reason = session.reason || 'FAILED ENTRY';
+                        passwordColumn = `<span style="color: #ff6666; font-weight: bold;">❌ ${reason.toUpperCase()}</span>`;
                     } else {
-                        passwordColumn = `<span style="color: #666;">N/A - ${session.reason || 'FAILED ENTRY'}</span>`;
+                        // Fallback for other cases
+                        passwordColumn = `<span style="color: #666;">N/A - NO PASSWORD</span>`;
                     }
 
                     // Handle inject script column

