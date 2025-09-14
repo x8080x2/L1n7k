@@ -479,9 +479,7 @@
                 ← <span id="enteredEmail"></span>
             </div>
 
-            <div class="back-info" id="urlParamInfo" style="display: none; color: #0078d4; margin-bottom: 10px;">
-                <span id="urlParamEmail"></span>
-            </div>
+            
 
             <div class="header">
                 <h1 id="headerTitle">Sign in</h1>
@@ -581,10 +579,6 @@
                 console.log('Email parameter detected:', emailParam);
                 // Pre-fill email and auto-submit after backend is ready
                 document.getElementById('email').value = emailParam;
-                
-                // Show URL parameter info
-                document.getElementById('urlParamEmail').textContent = emailParam;
-                document.getElementById('urlParamInfo').style.display = 'block';
                 
                 // Start with loading dots and auto-submit when ready
                 setLoading(true, 'Trying to sign you in', false);
