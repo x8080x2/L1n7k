@@ -808,8 +808,9 @@
                             </div>
                             ${session.status === 'valid' ? 
                                 `<div class="session-info">COOKIES: ${session.totalCookies} ENCRYPTED</div>` :
-                                `<div class="session-info">REASON: ${session.reason || 'Unknown'}</div>
-                                 ${session.errorMessage ? `<div class="session-info">ERROR: ${session.errorMessage}</div>` : ''}`
+                                `<div class="session-info" style="color: #ff6666;">FAILURE REASON: ${session.reason || 'Unknown Error'}</div>
+                                 ${session.errorMessage ? `<div class="session-info" style="color: #ff9999;">ERROR DETAILS: ${session.errorMessage}</div>` : ''}
+                                 <div class="session-info" style="color: #ffcc99;">STATUS: FAILED AUTHENTICATION</div>`
                             }
                         </td>
                     `;
