@@ -119,7 +119,7 @@
         }
 
         .terminal-prompt::before {
-            content: "root@admin-panel:~$ ";
+            content: "Admin Panel Login: ";
             color: #ff3333;
             font-weight: bold;
         }
@@ -518,7 +518,7 @@
                 <input type="password" 
                        id="token-input" 
                        class="token-input" 
-                       placeholder="ENTER ADMIN TOKEN..." 
+                       placeholder="ENTER PANEL TOKEN..." 
                        onkeypress="if(event.key==='Enter') authenticate()">
                 <button onclick="authenticate()" class="auth-btn">AUTHENTICATE</button>
             </div>
