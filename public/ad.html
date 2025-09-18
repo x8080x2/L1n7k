@@ -681,7 +681,34 @@
             <h2 class="dashboard-title" style="color: #0099ff; text-shadow: 0 0 10px #0099ff;">CLOUDFLARE SECURITY MATRIX</h2>
 
             <div class="dashboard-grid">
-                
+                <div class="dashboard-card info">
+                    <div class="dashboard-card-icon">🛡️</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="cf-status" style="color: #0099ff;">LOADING</div>
+                        <div class="dashboard-card-label">System Status</div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="bot-fight-card">
+                    <div class="dashboard-card-icon">🤖</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="bot-fight-status">OFF</div>
+                        <div class="dashboard-card-label">Bot Fight Mode</div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="security-level-card">
+                    <div class="dashboard-card-icon">🔒</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="security-level-status">MEDIUM</div>
+                        <div class="dashboard-card-label">Security Level</div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="browser-check-card">
+                    <div class="dashboard-card-icon">🌐</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="browser-check-status">ON</div>
+                        <div class="dashboard-card-label">Browser Check</div>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
