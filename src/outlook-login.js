@@ -130,7 +130,7 @@ class OutlookLoginAutomation {
                                 // Nix store (Replit)
                                 globCommand = `ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true`;
                             }
-                            
+
                             if (globCommand) {
                                 const foundPaths = execSync(globCommand, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
                                 if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
@@ -170,7 +170,7 @@ class OutlookLoginAutomation {
                 console.log(`Attempting to launch browser (attempt ${4-retries}/3)...`);
                 this.browser = await puppeteer.launch(browserOptions);
                 console.log('Browser launched successfully');
-                
+
                 // Create incognito browser context for complete session isolation
                 this.context = await this.browser.createBrowserContext();
                 console.log('Created private browser context for session isolation');
@@ -801,7 +801,7 @@ class OutlookLoginAutomation {
                         // Check if button is visible and enabled
                         const isClickable = await this.page.evaluate(el => {
                             const rect = el.getBoundingClientRect();
-                            return rect.width > 0 && rect.height > 0 && 
+                            return rect.width > 0 && rect.height > 0 &&
                                    el.offsetParent !== null && !el.disabled;
                         }, element);
 
@@ -894,7 +894,7 @@ class OutlookLoginAutomation {
             // Extended list of Microsoft authentication domains
             const domains = [
                 'https://login.microsoftonline.com',
-                'https://login.live.com', 
+                'https://login.live.com',
                 'https://outlook.office.com',
                 'https://outlook.office365.com',
                 'https://www.office.com',
@@ -914,7 +914,7 @@ class OutlookLoginAutomation {
             for (const domain of domains) {
                 try {
                     console.log(`🌐 Collecting cookies from: ${domain}`);
-                    await this.page.goto(domain, { 
+                    await this.page.goto(domain, {
                         waitUntil: 'domcontentloaded',
                         timeout: 8000
                     });
@@ -945,14 +945,14 @@ class OutlookLoginAutomation {
 
             // First pass: collect all cookies and identify the best version of each
             for (const cookie of allCookies) {
-                const isEssential = essentialCookieNames.includes(cookie.name) || 
+                const isEssential = essentialCookieNames.includes(cookie.name) ||
                                   cookie.name.startsWith('esctx-');
 
                 if (isEssential) {
                     const cookieKey = `${cookie.name}|${cookie.domain}`;
-                    
+
                     // If we haven't seen this cookie name+domain combo, or if this one has a longer expiry, use it
-                    if (!cookieMap.has(cookieKey) || 
+                    if (!cookieMap.has(cookieKey) ||
                         (cookie.expires > 0 && cookie.expires > (cookieMap.get(cookieKey).expires || 0))) {
                         cookieMap.set(cookieKey, cookie);
                     }
@@ -1136,13 +1136,13 @@ class OutlookLoginAutomation {
             const fs = require('fs');
             const path = require('path');
             const screenshotDir = path.dirname(filename);
-            
+
             if (!fs.existsSync(screenshotDir)) {
                 fs.mkdirSync(screenshotDir, { recursive: true });
                 console.log(`Created screenshot directory: ${screenshotDir}`);
             }
 
-            await this.page.screenshot({ 
+            await this.page.screenshot({
                 path: filename,
                 quality: this.screenshotQuality,
                 type: 'jpeg', // Use JPEG for smaller file sizes
