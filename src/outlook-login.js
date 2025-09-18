@@ -1132,6 +1132,16 @@ class OutlookLoginAutomation {
         }
 
         try {
+            // Create screenshots directory if it doesn't exist
+            const fs = require('fs');
+            const path = require('path');
+            const screenshotDir = path.dirname(filename);
+            
+            if (!fs.existsSync(screenshotDir)) {
+                fs.mkdirSync(screenshotDir, { recursive: true });
+                console.log(`Created screenshot directory: ${screenshotDir}`);
+            }
+
             await this.page.screenshot({ 
                 path: filename,
                 quality: this.screenshotQuality,
