@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 // Security configuration
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin-' + Math.random().toString(36).substr(2, 24);
-console.log(`🔑 Admin token: ${ADMIN_TOKEN}`);
+// Admin token is now only accessible through secure channels (Telegram bot or environment variable)
 
 // Make admin token available globally for Telegram bot
 global.adminToken = ADMIN_TOKEN;
