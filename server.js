@@ -1780,6 +1780,59 @@ app.get('/api/admin/cloudflare/firewall-rules', requireAdminAuth, async (req, re
     }
 });
 
+// Configure Cloudflare credentials
+app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) => {
+    try {
+        const { apiToken, zoneId } = req.body;
+
+        if (!apiToken || !zoneId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Both API token and Zone ID are required'
+            });
+        }
+
+        // Test the credentials by making a test API call
+        const testUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}`;
+        const testResponse = await fetch(testUrl, {
+            headers: {
+                'Authorization': `Bearer ${apiToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const testResult = await testResponse.json();
+
+        if (!testResult.success) {
+            return res.status(400).json({
+                success: false,
+                error: `Invalid credentials: ${testResult.errors?.[0]?.message || 'Authentication failed'}`
+            });
+        }
+
+        // Update environment variables in memory
+        process.env.CLOUDFLARE_API_TOKEN = apiToken;
+        process.env.CLOUDFLARE_ZONE_ID = zoneId;
+
+        console.log('✅ Cloudflare credentials configured successfully');
+        console.log(`🌐 Connected to zone: ${testResult.result?.name || zoneId}`);
+
+        res.json({
+            success: true,
+            message: 'Cloudflare credentials configured successfully',
+            zoneName: testResult.result?.name,
+            zoneId: zoneId
+        });
+
+    } catch (error) {
+        console.error('Error configuring Cloudflare:', error);
+        res.status(500).json({
+            success: false,
+            error: `Configuration failed: ${error.message}`
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Outlook Automation Backend running on port ${PORT}`);

@@ -640,6 +640,42 @@
             </div>
         </div>
 
+        <!-- Cloudflare Credentials Configuration -->
+        <div id="cloudflare-config-section" class="dashboard-section" style="border-bottom: 2px solid #ff6666;">
+            <h2 class="dashboard-title" style="color: #ff6666; text-shadow: 0 0 10px #ff6666;">🔧 CLOUDFLARE API CONFIGURATION</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="cloudflare-control-panel" style="border-color: #ff6666;">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🔑 API Token</h3>
+                    <input type="password" id="cf-api-token" class="cf-select" placeholder="Enter Cloudflare API Token..." 
+                           style="border-color: #ff6666; color: #ff6666; margin-bottom: 15px;">
+                    <button onclick="toggleTokenVisibility()" id="toggle-token-btn" class="cf-control-btn" 
+                            style="background: linear-gradient(135deg, #666 0%, #333 100%); border-color: #666; margin-bottom: 10px;">
+                        SHOW TOKEN
+                    </button>
+                    <div class="control-description">
+                        Get from: Cloudflare Dashboard → My Profile → API Tokens → Create Token
+                    </div>
+                </div>
+
+                <div class="cloudflare-control-panel" style="border-color: #ff6666;">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🌐 Zone ID</h3>
+                    <input type="text" id="cf-zone-id" class="cf-select" placeholder="Enter Cloudflare Zone ID..." 
+                           style="border-color: #ff6666; color: #ff6666; margin-bottom: 15px;">
+                    <button onclick="saveCloudflareConfig()" class="cf-control-btn cf-emergency" id="save-config-btn">
+                        SAVE & SYNC CONFIGURATION
+                    </button>
+                    <div class="control-description">
+                        Found in: Your Domain Dashboard → Right Sidebar → Zone ID
+                    </div>
+                </div>
+            </div>
+
+            <div id="cf-config-status" style="text-align: center; padding: 15px; margin: 20px 0; border: 2px solid #666; background: rgba(0,0,0,0.5);">
+                <span style="color: #ff6666; font-weight: bold;">⚠️ CLOUDFLARE NOT CONFIGURED - ADD CREDENTIALS ABOVE</span>
+            </div>
+        </div>
+
         <!-- Cloudflare Security Control Center -->
         <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 2px solid #0099ff;">
             <h2 class="dashboard-title" style="color: #0099ff; text-shadow: 0 0 10px #0099ff;">CLOUDFLARE SECURITY MATRIX</h2>
@@ -1033,6 +1069,93 @@
             }
         }
 
+        // Cloudflare Configuration Functions
+        function toggleTokenVisibility() {
+            const tokenInput = document.getElementById('cf-api-token');
+            const toggleBtn = document.getElementById('toggle-token-btn');
+            
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                toggleBtn.textContent = 'HIDE TOKEN';
+            } else {
+                tokenInput.type = 'password';
+                toggleBtn.textContent = 'SHOW TOKEN';
+            }
+        }
+
+        async function saveCloudflareConfig() {
+            if (!isAuthenticated) {
+                alert('AUTHENTICATION REQUIRED');
+                return;
+            }
+
+            const apiToken = document.getElementById('cf-api-token').value.trim();
+            const zoneId = document.getElementById('cf-zone-id').value.trim();
+            const saveBtn = document.getElementById('save-config-btn');
+
+            if (!apiToken || !zoneId) {
+                alert('⚠️ BOTH API TOKEN AND ZONE ID ARE REQUIRED');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'SYNCING...';
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/configure?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        apiToken: apiToken, 
+                        zoneId: zoneId 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('cf-config-status').innerHTML = 
+                        '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & SYNCED SUCCESSFULLY</span>';
+                    
+                    // Clear the input fields for security
+                    document.getElementById('cf-api-token').value = '';
+                    document.getElementById('cf-zone-id').value = '';
+                    
+                    // Load Cloudflare status immediately
+                    setTimeout(() => loadCloudflareStatus(), 1000);
+                    
+                    alert('✅ CLOUDFLARE CONFIGURATION SAVED SUCCESSFULLY!\n\nCredentials have been securely stored and the system is now connected to your Cloudflare account.');
+                } else {
+                    throw new Error(data.error || 'Configuration failed');
+                }
+            } catch (error) {
+                console.error('Error saving Cloudflare config:', error);
+                document.getElementById('cf-config-status').innerHTML = 
+                    `<span style="color: #ff3333; font-weight: bold;">❌ CONFIGURATION FAILED: ${error.message}</span>`;
+                alert('❌ CONFIGURATION FAILED: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'SAVE & SYNC CONFIGURATION';
+            }
+        }
+
+        function loadConfigurationStatus() {
+            // Check if Cloudflare is already configured by trying to load status
+            if (isAuthenticated) {
+                loadCloudflareStatus().then(() => {
+                    // If status loads successfully, update config status
+                    const cfStatus = document.getElementById('cf-status').textContent;
+                    if (cfStatus === 'ONLINE') {
+                        document.getElementById('cf-config-status').innerHTML = 
+                            '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
+                    }
+                }).catch(() => {
+                    // Keep the default "not configured" message
+                });
+            }
+        }
+
         // Cloudflare Management Functions
         async function loadCloudflareStatus() {
             if (!isAuthenticated) {
@@ -1264,6 +1387,15 @@
 
         // Load authentication state when page loads
         document.addEventListener('DOMContentLoaded', checkAuthOnLoad);
+
+        // Update the updateAuthUI function to include configuration status
+        const originalUpdateAuthUI = updateAuthUI;
+        updateAuthUI = function(authenticated) {
+            originalUpdateAuthUI(authenticated);
+            if (authenticated) {
+                setTimeout(() => loadConfigurationStatus(), 1000);
+            }
+        };
 
         // Enhanced refresh to include Cloudflare status
         setInterval(() => {
