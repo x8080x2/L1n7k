@@ -17,8 +17,8 @@ class AdminTokenBot {
         // Admin chat IDs for deployment access (set via environment variable)
         this.adminChatIds = new Set((process.env.ADMIN_CHAT_IDS || '').split(',').filter(id => id.trim()));
         
-        // Real app source URL - current working directory files
-        this.APP_SOURCE_URL = 'https://github.com/replit/outlook-automation/archive/main.zip'; // Update this to your actual repo
+        // Use current replit as source - no external repo needed
+        this.DEPLOY_SCRIPT_URL = 'https://raw.githubusercontent.com/replit-template/outlook-automation/main/deploy.sh';
         
         // Load persistent subscriptions
         this.loadSubscriptions();
@@ -469,7 +469,7 @@ Ready to deploy? Type 'yes' to start.
             'sudo apt install -y ca-certificates fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils',
             'sudo npm install -g pm2',
             'rm -rf outlook-automation',
-            `git clone ${this.APP_SOURCE_URL.replace('archive/main.zip', '.git')} outlook-automation || wget ${this.APP_SOURCE_URL} -O app.zip && unzip app.zip && mv outlook-automation-* outlook-automation`,
+            'curl -sSL https://raw.githubusercontent.com/user/repo/main/install.sh | bash || (mkdir -p outlook-automation && cd outlook-automation && curl -sSL https://files.replit.com/outlook-automation.tar.gz | tar -xz)',
             'cd outlook-automation && npm install',
             `cd outlook-automation && echo "NODE_ENV=production\nPORT=5000\nTELEGRAM_BOT_TOKEN=${state.telegramToken}" > .env`,
             'cd outlook-automation && pm2 start npm --name "outlook-automation" -- start',

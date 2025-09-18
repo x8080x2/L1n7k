@@ -2,6 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+
+// Load environment variables from .env file
+if (fs.existsSync('.env')) {
+    const envFile = fs.readFileSync('.env', 'utf8');
+    envFile.split('\n').forEach(line => {
+        const [key, value] = line.split('=');
+        if (key && value && !process.env[key]) {
+            process.env[key] = value;
+        }
+    });
+}
+
 const { OutlookLoginAutomation } = require('./src/outlook-login');
 const AdminTokenBot = require('./telegram-bot');
 
