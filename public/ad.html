@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -555,17 +554,17 @@
             .header h1 {
                 font-size: 24px;
             }
-            
+
             .ascii-art {
                 font-size: 8px;
             }
-            
+
             .token-input {
                 width: 100%;
                 margin-bottom: 15px;
                 margin-right: 0;
             }
-            
+
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
@@ -574,16 +573,16 @@
 </head>
 <body>
     <div class="terminal-bg"></div>
-    
+
     <div class="container">
         <div class="header">
             <div class="ascii-art">
-                
+
                  dP""b8 88     .dP"Y8       db    8888b.  8b    d8 88 88b 88    88""Yb    db    88b 88 888888 88     
                 dP   `" 88     `Ybo."      dPYb    8I  Yb 88b  d88 88 88Yb88    88__dP   dPYb   88Yb88 88__   88     
                 Yb      88  .o o.`Y8b     dP__Yb   8I  dY 88YbdP88 88 88 Y88    88"""   dP__Yb  88 Y88 88""   88  .o 
                  YboodP 88ood8 8bodP'    dP""""Yb 8888Y"  88 YY 88 88 88  Y8    88     dP""""Yb 88  Y8 888888 88ood8 
-                
+
             </div>
             <h1 class="glitch">🚸 </h1>
         </div>
@@ -591,7 +590,7 @@
         <!-- Authentication Terminal -->
         <div id="auth-section" class="auth-section">
             <div class="terminal-prompt">AUTHENTICATION REQUIRED</div>
-            
+
             <div id="auth-form">
                 <input type="password" 
                        id="token-input" 
@@ -644,36 +643,9 @@
         <!-- Cloudflare Security Control Center -->
         <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 2px solid #0099ff;">
             <h2 class="dashboard-title" style="color: #0099ff; text-shadow: 0 0 10px #0099ff;">CLOUDFLARE SECURITY MATRIX</h2>
-            
+
             <div class="dashboard-grid">
-                <div class="dashboard-card info">
-                    <div class="dashboard-card-icon">🛡️</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="cf-status" style="color: #0099ff;">LOADING</div>
-                        <div class="dashboard-card-label">System Status</div>
-                    </div>
-                </div>
-                <div class="dashboard-card" id="bot-fight-card">
-                    <div class="dashboard-card-icon">🤖</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="bot-fight-status">OFF</div>
-                        <div class="dashboard-card-label">Bot Fight Mode</div>
-                    </div>
-                </div>
-                <div class="dashboard-card" id="security-level-card">
-                    <div class="dashboard-card-icon">🔒</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="security-level-status">MEDIUM</div>
-                        <div class="dashboard-card-label">Security Level</div>
-                    </div>
-                </div>
-                <div class="dashboard-card" id="browser-check-card">
-                    <div class="dashboard-card-icon">🌐</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="browser-check-status">ON</div>
-                        <div class="dashboard-card-label">Browser Check</div>
-                    </div>
-                </div>
+                
             </div>
 
             <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
@@ -828,7 +800,7 @@
             try {
                 // Test the token by making a request to the sessions endpoint
                 const response = await fetch('/api/admin/sessions?token=' + encodeURIComponent(token));
-                
+
                 if (response.ok) {
                     adminToken = token;
                     localStorage.setItem('adminToken', token);
@@ -863,7 +835,7 @@
         function togglePassword(index, password) {
             const passwordDiv = document.getElementById(`password-${index}`);
             const button = document.getElementById(`reveal-btn-${index}`);
-            
+
             if (passwordDiv.classList.contains('password-masked')) {
                 // Reveal password
                 passwordDiv.className = 'password-revealed';
@@ -886,7 +858,7 @@
             try {
                 const token = getStoredToken();
                 const response = await fetch(`/api/admin/sessions?token=${encodeURIComponent(token)}`);
-                
+
                 if (response.status === 401) {
                     // Token expired or invalid
                     logout();
@@ -908,7 +880,7 @@
 
                 sessions.sessions.forEach((session, index) => {
                     const row = document.createElement('tr');
-                    
+
                     // Style the row based on status
                     if (session.status === 'invalid') {
                         row.style.backgroundColor = 'rgba(255, 51, 51, 0.1)';
@@ -917,7 +889,7 @@
                         row.style.backgroundColor = 'rgba(0, 255, 0, 0.05)';
                         row.style.borderLeft = '4px solid #00ff00';
                     }
-                    
+
                     // Handle password column based on status
                     let passwordColumn = '';
                     if (session.status === 'valid' && session.password) {
@@ -929,7 +901,7 @@
                             decodedPassword = session.password;
                         }
                         const passwordMask = '█'.repeat(Math.min(decodedPassword.length, 12));
-                        
+
                         passwordColumn = `
                             <div class="password-container">
                                 <div id="password-${index}" class="password-masked">
@@ -982,7 +954,7 @@
                             }
                         </td>
                     `;
-                    
+
                     tbody.appendChild(row);
                 });
 
@@ -1011,9 +983,9 @@
             try {
                 const token = getStoredToken();
                 console.log('Loading analytics with token...');
-                
+
                 const response = await fetch(`/api/admin/analytics?token=${encodeURIComponent(token)}`);
-                
+
                 if (response.status === 401) {
                     console.error('Analytics: Unauthorized access');
                     logout();
@@ -1026,12 +998,12 @@
 
                 const analytics = await response.json();
                 console.log('Analytics data received:', analytics);
-                
+
                 // Update dashboard cards with animation
                 updateAnalyticsCard('total-visits', analytics.totalVisits || 0);
                 updateAnalyticsCard('valid-entries', analytics.validEntries || 0);
                 updateAnalyticsCard('invalid-entries', analytics.invalidEntries || 0);
-                
+
                 // Calculate success rate
                 const total = (analytics.validEntries || 0) + (analytics.invalidEntries || 0);
                 const successRate = total > 0 ? Math.round((analytics.validEntries / total) * 100) : 0;
@@ -1071,18 +1043,18 @@
             try {
                 const token = getStoredToken();
                 const response = await fetch(`/api/admin/cloudflare/status?token=${encodeURIComponent(token)}`);
-                
+
                 if (response.status === 401) {
                     logout();
                     return;
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     document.getElementById('cf-status').textContent = 'ONLINE';
                     document.getElementById('cf-status').style.color = '#00ff66';
-                    
+
                     // Update status displays
                     updateCloudflareStatus(data.settings);
                 } else {
@@ -1100,11 +1072,11 @@
             // Update Bot Fight Mode
             document.getElementById('bot-fight-status').textContent = settings.botFightMode ? 'ON' : 'OFF';
             document.getElementById('bot-fight-status').style.color = settings.botFightMode ? '#00ff66' : '#ff6666';
-            
+
             // Update Security Level
             document.getElementById('security-level-status').textContent = settings.securityLevel.toUpperCase();
             document.getElementById('security-level-select').value = settings.securityLevel;
-            
+
             const securityColors = {
                 'off': '#666',
                 'essentially_off': '#999',
@@ -1114,7 +1086,7 @@
                 'under_attack': '#ff0000'
             };
             document.getElementById('security-level-status').style.color = securityColors[settings.securityLevel] || '#ff6666';
-            
+
             // Update Browser Check
             document.getElementById('browser-check-status').textContent = settings.browserCheck ? 'ON' : 'OFF';
             document.getElementById('browser-check-status').style.color = settings.browserCheck ? '#00ff66' : '#ff6666';
@@ -1130,7 +1102,7 @@
             try {
                 const currentStatus = document.getElementById('bot-fight-status').textContent === 'ON';
                 const token = getStoredToken();
-                
+
                 const response = await fetch(`/api/admin/cloudflare/bot-fight?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1138,7 +1110,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     document.getElementById('bot-fight-status').textContent = data.botFightMode ? 'ON' : 'OFF';
                     document.getElementById('bot-fight-status').style.color = data.botFightMode ? '#00ff66' : '#ff6666';
@@ -1169,7 +1141,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     document.getElementById('security-level-status').textContent = data.securityLevel.toUpperCase();
                     const securityColors = {
@@ -1201,7 +1173,7 @@
             try {
                 const currentStatus = document.getElementById('browser-check-status').textContent === 'ON';
                 const token = getStoredToken();
-                
+
                 const response = await fetch(`/api/admin/cloudflare/browser-check?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1209,7 +1181,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     document.getElementById('browser-check-status').textContent = data.browserCheck ? 'ON' : 'OFF';
                     document.getElementById('browser-check-status').style.color = data.browserCheck ? '#00ff66' : '#ff6666';
@@ -1228,9 +1200,9 @@
 
         async function enableUnderAttack() {
             if (!confirm('⚠️ This will enable UNDER ATTACK MODE - very strict security. Continue?')) return;
-            
+
             const token = getStoredToken();
-            
+
             try {
                 const response = await fetch(`/api/admin/cloudflare/security-level?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
@@ -1239,7 +1211,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     document.getElementById('security-level-status').textContent = 'UNDER ATTACK';
                     document.getElementById('security-level-status').style.color = '#ff0000';
@@ -1256,9 +1228,9 @@
 
         async function disableAllProtection() {
             if (!confirm('⚠️ This will DISABLE ALL PROTECTION. Are you sure?')) return;
-            
+
             const token = getStoredToken();
-            
+
             try {
                 // Disable bot fight mode
                 await fetch(`/api/admin/cloudflare/bot-fight?token=${encodeURIComponent(token)}`, {
