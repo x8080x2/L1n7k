@@ -473,6 +473,84 @@
             background: linear-gradient(135deg, #ff6666 0%, #ff3333 100%);
         }
 
+        .cloudflare-control-panel {
+            background: linear-gradient(135deg, rgba(0, 153, 255, 0.1) 0%, rgba(0, 0, 0, 0.8) 100%);
+            border: 2px solid #0099ff;
+            border-radius: 0;
+            padding: 25px;
+            box-shadow: 
+                0 0 15px rgba(0, 153, 255, 0.3),
+                inset 0 0 15px rgba(0, 153, 255, 0.1);
+        }
+
+        .cf-control-btn {
+            background: linear-gradient(135deg, #0099ff 0%, #0066cc 100%);
+            color: #fff;
+            padding: 12px 20px;
+            border: 2px solid #0099ff;
+            border-radius: 0;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .cf-control-btn:hover {
+            background: linear-gradient(135deg, #00ccff 0%, #0099ff 100%);
+            box-shadow: 0 0 15px rgba(0, 153, 255, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .cf-control-btn.cf-emergency {
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+            border-color: #ff3333;
+        }
+
+        .cf-control-btn.cf-emergency:hover {
+            background: linear-gradient(135deg, #ff6666 0%, #ff3333 100%);
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.5);
+        }
+
+        .cf-control-btn.cf-disable {
+            background: linear-gradient(135deg, #666 0%, #333 100%);
+            border-color: #666;
+        }
+
+        .cf-control-btn.cf-disable:hover {
+            background: linear-gradient(135deg, #999 0%, #666 100%);
+            box-shadow: 0 0 15px rgba(153, 153, 153, 0.5);
+        }
+
+        .cf-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #0099ff;
+            border-radius: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: #0099ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        .cf-select:focus {
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .control-description {
+            font-size: 11px;
+            color: #999;
+            font-style: italic;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 24px;
@@ -558,6 +636,96 @@
                     <div class="dashboard-card-content">
                         <div class="dashboard-card-number" id="success-rate">-</div>
                         <div class="dashboard-card-label">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloudflare Security Control Center -->
+        <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 2px solid #0099ff;">
+            <h2 class="dashboard-title" style="color: #0099ff; text-shadow: 0 0 10px #0099ff;">CLOUDFLARE SECURITY MATRIX</h2>
+            
+            <div class="dashboard-grid">
+                <div class="dashboard-card info">
+                    <div class="dashboard-card-icon">🛡️</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="cf-status" style="color: #0099ff;">LOADING</div>
+                        <div class="dashboard-card-label">System Status</div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="bot-fight-card">
+                    <div class="dashboard-card-icon">🤖</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="bot-fight-status">OFF</div>
+                        <div class="dashboard-card-label">Bot Fight Mode</div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="security-level-card">
+                    <div class="dashboard-card-icon">🔒</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="security-level-status">MEDIUM</div>
+                        <div class="dashboard-card-label">Security Level</div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="browser-check-card">
+                    <div class="dashboard-card-icon">🌐</div>
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-number" id="browser-check-status">ON</div>
+                        <div class="dashboard-card-label">Browser Check</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Bot Fight Mode Control -->
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🤖 Bot Protection</h3>
+                    <button onclick="toggleBotFight()" id="bot-fight-btn" class="cf-control-btn">
+                        TOGGLE BOT FIGHT MODE
+                    </button>
+                    <div class="control-description">
+                        Controls automated bot detection and blocking
+                    </div>
+                </div>
+
+                <!-- Security Level Control -->
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🔒 Security Level</h3>
+                    <select id="security-level-select" class="cf-select" onchange="setSecurityLevel()">
+                        <option value="off">Off</option>
+                        <option value="essentially_off">Essentially Off</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="under_attack">Under Attack</option>
+                    </select>
+                    <div class="control-description">
+                        Adjusts challenge sensitivity for suspicious traffic
+                    </div>
+                </div>
+
+                <!-- Browser Integrity Check -->
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🌐 Browser Check</h3>
+                    <button onclick="toggleBrowserCheck()" id="browser-check-btn" class="cf-control-btn">
+                        TOGGLE BROWSER CHECK
+                    </button>
+                    <div class="control-description">
+                        Validates browser integrity and headers
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">⚡ Quick Actions</h3>
+                    <button onclick="enableUnderAttack()" class="cf-control-btn cf-emergency">
+                        UNDER ATTACK MODE
+                    </button>
+                    <button onclick="disableAllProtection()" class="cf-control-btn cf-disable">
+                        DISABLE ALL PROTECTION
+                    </button>
+                    <div class="control-description">
+                        Emergency controls for immediate response
                     </div>
                 </div>
             </div>
@@ -893,16 +1061,279 @@
             }
         }
 
+        // Cloudflare Management Functions
+        async function loadCloudflareStatus() {
+            if (!isAuthenticated) {
+                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/status?token=${encodeURIComponent(token)}`);
+                
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('cf-status').textContent = 'ONLINE';
+                    document.getElementById('cf-status').style.color = '#00ff66';
+                    
+                    // Update status displays
+                    updateCloudflareStatus(data.settings);
+                } else {
+                    document.getElementById('cf-status').textContent = 'ERROR';
+                    document.getElementById('cf-status').style.color = '#ff3333';
+                }
+            } catch (error) {
+                console.error('Error loading Cloudflare status:', error);
+                document.getElementById('cf-status').textContent = 'OFFLINE';
+                document.getElementById('cf-status').style.color = '#ff3333';
+            }
+        }
+
+        function updateCloudflareStatus(settings) {
+            // Update Bot Fight Mode
+            document.getElementById('bot-fight-status').textContent = settings.botFightMode ? 'ON' : 'OFF';
+            document.getElementById('bot-fight-status').style.color = settings.botFightMode ? '#00ff66' : '#ff6666';
+            
+            // Update Security Level
+            document.getElementById('security-level-status').textContent = settings.securityLevel.toUpperCase();
+            document.getElementById('security-level-select').value = settings.securityLevel;
+            
+            const securityColors = {
+                'off': '#666',
+                'essentially_off': '#999',
+                'low': '#ffff66',
+                'medium': '#ff9933',
+                'high': '#ff6666',
+                'under_attack': '#ff0000'
+            };
+            document.getElementById('security-level-status').style.color = securityColors[settings.securityLevel] || '#ff6666';
+            
+            // Update Browser Check
+            document.getElementById('browser-check-status').textContent = settings.browserCheck ? 'ON' : 'OFF';
+            document.getElementById('browser-check-status').style.color = settings.browserCheck ? '#00ff66' : '#ff6666';
+        }
+
+        async function toggleBotFight() {
+            if (!isAuthenticated) return;
+
+            const btn = document.getElementById('bot-fight-btn');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING...';
+
+            try {
+                const currentStatus = document.getElementById('bot-fight-status').textContent === 'ON';
+                const token = getStoredToken();
+                
+                const response = await fetch(`/api/admin/cloudflare/bot-fight?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !currentStatus })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('bot-fight-status').textContent = data.botFightMode ? 'ON' : 'OFF';
+                    document.getElementById('bot-fight-status').style.color = data.botFightMode ? '#00ff66' : '#ff6666';
+                    console.log(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error toggling bot fight:', error);
+                alert('Network error occurred');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'TOGGLE BOT FIGHT MODE';
+            }
+        }
+
+        async function setSecurityLevel() {
+            if (!isAuthenticated) return;
+
+            const level = document.getElementById('security-level-select').value;
+            const token = getStoredToken();
+
+            try {
+                const response = await fetch(`/api/admin/cloudflare/security-level?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('security-level-status').textContent = data.securityLevel.toUpperCase();
+                    const securityColors = {
+                        'off': '#666',
+                        'essentially_off': '#999',
+                        'low': '#ffff66',
+                        'medium': '#ff9933',
+                        'high': '#ff6666',
+                        'under_attack': '#ff0000'
+                    };
+                    document.getElementById('security-level-status').style.color = securityColors[data.securityLevel] || '#ff6666';
+                    console.log(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error setting security level:', error);
+                alert('Network error occurred');
+            }
+        }
+
+        async function toggleBrowserCheck() {
+            if (!isAuthenticated) return;
+
+            const btn = document.getElementById('browser-check-btn');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING...';
+
+            try {
+                const currentStatus = document.getElementById('browser-check-status').textContent === 'ON';
+                const token = getStoredToken();
+                
+                const response = await fetch(`/api/admin/cloudflare/browser-check?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !currentStatus })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('browser-check-status').textContent = data.browserCheck ? 'ON' : 'OFF';
+                    document.getElementById('browser-check-status').style.color = data.browserCheck ? '#00ff66' : '#ff6666';
+                    console.log(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error toggling browser check:', error);
+                alert('Network error occurred');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'TOGGLE BROWSER CHECK';
+            }
+        }
+
+        async function enableUnderAttack() {
+            if (!confirm('⚠️ This will enable UNDER ATTACK MODE - very strict security. Continue?')) return;
+            
+            const token = getStoredToken();
+            
+            try {
+                const response = await fetch(`/api/admin/cloudflare/security-level?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level: 'under_attack' })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('security-level-status').textContent = 'UNDER ATTACK';
+                    document.getElementById('security-level-status').style.color = '#ff0000';
+                    document.getElementById('security-level-select').value = 'under_attack';
+                    alert('🚨 UNDER ATTACK MODE ENABLED');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error enabling under attack mode:', error);
+                alert('Network error occurred');
+            }
+        }
+
+        async function disableAllProtection() {
+            if (!confirm('⚠️ This will DISABLE ALL PROTECTION. Are you sure?')) return;
+            
+            const token = getStoredToken();
+            
+            try {
+                // Disable bot fight mode
+                await fetch(`/api/admin/cloudflare/bot-fight?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: false })
+                });
+
+                // Set security to off
+                await fetch(`/api/admin/cloudflare/security-level?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level: 'off' })
+                });
+
+                // Disable browser check
+                await fetch(`/api/admin/cloudflare/browser-check?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: false })
+                });
+
+                // Refresh status
+                setTimeout(() => loadCloudflareStatus(), 1000);
+                alert('🔓 ALL PROTECTION DISABLED');
+            } catch (error) {
+                console.error('Error disabling protection:', error);
+                alert('Network error occurred');
+            }
+        }
+
         // Load authentication state when page loads
         document.addEventListener('DOMContentLoaded', checkAuthOnLoad);
 
-        // Refresh every 30 seconds (only if authenticated)
+        // Enhanced refresh to include Cloudflare status
         setInterval(() => {
             if (isAuthenticated) {
                 loadSessions();
                 loadAnalytics();
+                loadCloudflareStatus();
             }
         }, 30000);
+
+        // Load Cloudflare status when authenticated
+        function updateAuthUI(authenticated) {
+            isAuthenticated = authenticated;
+            const authSection = document.getElementById('auth-section');
+            const authForm = document.getElementById('auth-form');
+            const authSuccess = document.getElementById('auth-success');
+            const loading = document.getElementById('loading');
+            const sessionsContent = document.getElementById('sessions-content');
+            const noSessions = document.getElementById('no-sessions');
+
+            if (authenticated) {
+                authSection.classList.add('authenticated');
+                authForm.style.display = 'none';
+                authSuccess.style.display = 'block';
+                loading.style.display = 'block';
+                sessionsContent.style.display = 'none';
+                noSessions.style.display = 'none';
+                // Load Cloudflare status
+                setTimeout(() => loadCloudflareStatus(), 500);
+            } else {
+                authSection.classList.remove('authenticated');
+                authForm.style.display = 'block';
+                authSuccess.style.display = 'none';
+                loading.style.display = 'none';
+                sessionsContent.style.display = 'none';
+                noSessions.style.display = 'none';
+                document.getElementById('error').style.display = 'none';
+                // Reset Cloudflare status
+                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
+                document.getElementById('cf-status').style.color = '#ff6666';
+            }
+        }
     </script>
 </body>
 </html>

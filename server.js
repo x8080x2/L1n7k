@@ -8,6 +8,10 @@ const AdminTokenBot = require('./telegram-bot');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Cloudflare API configuration
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const CLOUDFLARE_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
+
 // Security configuration
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin-' + Math.random().toString(36).substr(2, 24);
 // Admin token is now only accessible through secure channels (Telegram bot or environment variable)
@@ -1590,6 +1594,189 @@ app.get('/api/admin/download-inject/:filename', requireAdminAuth, (req, res) => 
     } catch (error) {
         console.error('Error downloading file:', error);
         res.status(500).json({ error: 'Failed to download file' });
+    }
+});
+
+// Cloudflare API helper function
+async function makeCloudflareRequest(endpoint, method = 'GET', data = null) {
+    if (!CLOUDFLARE_API_TOKEN || !CLOUDFLARE_ZONE_ID) {
+        throw new Error('Cloudflare API credentials not configured');
+    }
+
+    const url = `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}${endpoint}`;
+    const options = {
+        method,
+        headers: {
+            'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        options.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, options);
+    const result = await response.json();
+
+    if (!result.success) {
+        throw new Error(`Cloudflare API error: ${result.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    return result.result;
+}
+
+// Get Cloudflare security settings
+app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
+    try {
+        // Get Bot Fight Mode status
+        const botFightMode = await makeCloudflareRequest('/settings/bot_fight_mode');
+        
+        // Get Security Level
+        const securityLevel = await makeCloudflareRequest('/settings/security_level');
+        
+        // Get Challenge Passage
+        const challengePassage = await makeCloudflareRequest('/settings/challenge_ttl');
+        
+        // Get Browser Integrity Check
+        const browserCheck = await makeCloudflareRequest('/settings/browser_check');
+        
+        // Get Under Attack Mode
+        const underAttackMode = await makeCloudflareRequest('/settings/security_level');
+
+        res.json({
+            success: true,
+            settings: {
+                botFightMode: botFightMode.value === 'on',
+                securityLevel: securityLevel.value,
+                challengePassage: challengePassage.value,
+                browserCheck: browserCheck.value === 'on',
+                underAttackMode: underAttackMode.value === 'under_attack'
+            }
+        });
+    } catch (error) {
+        console.error('Error getting Cloudflare status:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Toggle Bot Fight Mode
+app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) => {
+    try {
+        const { enabled } = req.body;
+        
+        const result = await makeCloudflareRequest('/settings/bot_fight_mode', 'PATCH', {
+            value: enabled ? 'on' : 'off'
+        });
+
+        res.json({
+            success: true,
+            botFightMode: result.value === 'on',
+            message: `Bot Fight Mode ${enabled ? 'enabled' : 'disabled'} successfully`
+        });
+    } catch (error) {
+        console.error('Error toggling Bot Fight Mode:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Set Security Level
+app.post('/api/admin/cloudflare/security-level', requireAdminAuth, async (req, res) => {
+    try {
+        const { level } = req.body; // 'off', 'essentially_off', 'low', 'medium', 'high', 'under_attack'
+        
+        const result = await makeCloudflareRequest('/settings/security_level', 'PATCH', {
+            value: level
+        });
+
+        res.json({
+            success: true,
+            securityLevel: result.value,
+            message: `Security level set to ${level} successfully`
+        });
+    } catch (error) {
+        console.error('Error setting security level:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Toggle Browser Integrity Check
+app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, res) => {
+    try {
+        const { enabled } = req.body;
+        
+        const result = await makeCloudflareRequest('/settings/browser_check', 'PATCH', {
+            value: enabled ? 'on' : 'off'
+        });
+
+        res.json({
+            success: true,
+            browserCheck: result.value === 'on',
+            message: `Browser Integrity Check ${enabled ? 'enabled' : 'disabled'} successfully`
+        });
+    } catch (error) {
+        console.error('Error toggling Browser Integrity Check:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Create firewall rule to block/allow specific patterns
+app.post('/api/admin/cloudflare/firewall-rule', requireAdminAuth, async (req, res) => {
+    try {
+        const { action, expression, description } = req.body;
+        // action: 'block', 'allow', 'challenge', 'js_challenge'
+        // expression: Cloudflare expression like 'ip.src eq 1.2.3.4'
+        
+        const result = await makeCloudflareRequest('/firewall/rules', 'POST', {
+            filter: {
+                expression: expression,
+                paused: false
+            },
+            action: action,
+            description: description || 'Rule created via admin panel'
+        });
+
+        res.json({
+            success: true,
+            rule: result,
+            message: `Firewall rule created successfully`
+        });
+    } catch (error) {
+        console.error('Error creating firewall rule:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Get firewall rules
+app.get('/api/admin/cloudflare/firewall-rules', requireAdminAuth, async (req, res) => {
+    try {
+        const rules = await makeCloudflareRequest('/firewall/rules');
+        
+        res.json({
+            success: true,
+            rules: rules
+        });
+    } catch (error) {
+        console.error('Error getting firewall rules:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
     }
 });
 
