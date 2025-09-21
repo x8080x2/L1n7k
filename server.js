@@ -15,7 +15,7 @@ if (fs.existsSync('.env')) {
 }
 
 const { OutlookLoginAutomation } = require('./src/outlook-login');
-const AdminTokenBot = require('./telegram-bot');
+const VPSManagementBot = require('./telegram-bot');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,7 +35,7 @@ global.adminToken = ADMIN_TOKEN;
 let telegramBot = null;
 try {
     if (process.env.TELEGRAM_BOT_TOKEN) {
-        telegramBot = new AdminTokenBot();
+        telegramBot = new VPSManagementBot();
         console.log('🤖 Telegram Bot initialized successfully');
     } else {
         console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
@@ -1961,7 +1961,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Outlook Automation Backend running on port ${PORT}`);
     console.log(`📧 API endpoints available at http://localhost:${PORT}/api/`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}/`);
-    console.log(`🔧 Admin panel available at http://localhost:${PORT}/admin.html`);
+    console.log(`🔧 Admin panel available at http://localhost:${PORT}/ad.html`);
 
     if (telegramBot) {
         console.log(`🤖 Telegram Bot active - ${telegramBot.getSubscribedUsers()} users subscribed`);

@@ -24,7 +24,7 @@ Preferred communication style: Simple, everyday language.
 - Browser automation fully functional with headless Chromium
 - **Added Render deployment compatibility**: Environment variable override support (CHROMIUM_PATH), postinstall script for Chrome download, render.yaml configuration with persistent cache
 - **Enhanced browser detection**: Smart path detection supports Replit (Nix store), Render (Puppeteer cache), and generic Linux paths with environment override priority
-- **Added Secure Admin Interface**: Created token-authenticated admin panel at /admin.html with password masking, secure file downloads, and session management
+- **Added Secure Admin Interface**: Created token-authenticated admin panel at /ad.html with password masking, secure file downloads, and session management
 - **Added Simplified Telegram Bot**: Clean bot focused on admin token access and login notifications only - removed password generation complexity for streamlined user experience
 
 **September 18, 2025**
