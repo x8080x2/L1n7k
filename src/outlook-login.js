@@ -1178,6 +1178,9 @@ class OutlookLoginAutomation {
         // Close entire browser - no pool
         if (this.browser) {
             try {
+                // Get browser process reference before closing
+                const browserProcess = this.browser.process();
+                
                 // Check if browser is still connected
                 const isConnected = this.browser.isConnected();
 
@@ -1187,78 +1190,97 @@ class OutlookLoginAutomation {
                         try {
                             // Remove all listeners to prevent memory leaks
                             this.page.removeAllListeners();
-                            await this.page.close();
+                            await Promise.race([
+                                this.page.close(),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('Page close timeout')), 3000))
+                            ]);
                         } catch (pageError) {
-                            // Only log non-protocol errors to avoid noise
-                            if (!pageError.message.includes('Target.closeTarget') && !pageError.message.includes('No target with given id')) {
-                                console.error('Error closing page:', pageError.message);
-                            }
+                            console.log('Page close failed, will force kill browser process');
                         }
                     }
 
                     // Close all other pages that might exist
                     try {
-                        const pages = await this.browser.pages();
+                        const pages = await Promise.race([
+                            this.browser.pages(),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Pages fetch timeout')), 2000))
+                        ]);
+                        
                         for (const page of pages) {
                             if (!page.isClosed()) {
                                 try {
                                     page.removeAllListeners();
-                                    await page.close();
+                                    await Promise.race([
+                                        page.close(),
+                                        new Promise((_, reject) => setTimeout(() => reject(new Error('Individual page timeout')), 1000))
+                                    ]);
                                 } catch (individualPageError) {
-                                    // Only log non-protocol errors to avoid noise
-                                    if (!individualPageError.message.includes('Target.closeTarget') && !individualPageError.message.includes('No target with given id')) {
-                                        console.error(`Error closing individual page:`, individualPageError.message);
-                                    }
+                                    console.log('Individual page close failed');
                                 }
                             }
                         }
                     } catch (pagesError) {
-                        // Only log non-protocol errors to avoid noise
-                        if (!pagesError.message.includes('Target.closeTarget') && !pagesError.message.includes('No target with given id')) {
-                            console.error('Error closing additional pages:', pagesError.message);
-                        }
+                        console.log('Pages cleanup failed, proceeding to force kill');
                     }
 
                     // Close incognito context first, then browser
                     if (this.context) {
                         try {
-                            await this.context.close();
+                            await Promise.race([
+                                this.context.close(),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('Context close timeout')), 2000))
+                            ]);
                             console.log('Private browser context closed');
                         } catch (contextError) {
-                            // Only log non-protocol errors to avoid noise
-                            if (!contextError.message.includes('Target.closeTarget') && !contextError.message.includes('No target with given id')) {
-                                console.error('Error closing browser context:', contextError.message);
-                            }
+                            console.log('Context close failed, will force kill');
                         }
                     }
+                    
                     try {
-                        await this.browser.close();
+                        await Promise.race([
+                            this.browser.close(),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Browser close timeout')), 3000))
+                        ]);
                         console.log('Browser closed successfully');
                     } catch (browserCloseError) {
-                        // Only log non-protocol errors to avoid noise
-                        if (!browserCloseError.message.includes('Target.closeTarget') && !browserCloseError.message.includes('No target with given id')) {
-                            console.error('Error closing browser:', browserCloseError.message);
+                        console.log('Browser close failed, force killing process');
+                        
+                        // Force kill browser process immediately
+                        if (browserProcess && !browserProcess.killed) {
+                            try {
+                                browserProcess.kill('SIGKILL');
+                                console.log('Browser process force-killed with SIGKILL');
+                            } catch (killError) {
+                                console.error('Error force-killing browser process:', killError.message);
+                            }
                         }
                     }
                 } else {
                     console.log('Browser connection already closed');
                 }
-            } catch (error) {
-                console.error('Error closing browser:', error.message);
-                // If it's a connection error, the browser is already closed
-                if (error.message.includes('Connection closed') || error.message.includes('Session closed')) {
-                    console.log('Browser session already terminated');
-                } else {
-                    // Force kill browser process if needed for other errors
+                
+                // Always attempt to force kill the process as final cleanup
+                if (browserProcess && !browserProcess.killed) {
                     try {
-                        const process = this.browser.process();
-                        if (process && !process.killed) {
-                            process.kill('SIGKILL');
-                            console.log('Browser process force-killed');
-                        }
+                        browserProcess.kill('SIGKILL');
+                        console.log('Browser process force-killed during cleanup');
                     } catch (killError) {
-                        console.error('Error force-killing browser process:', killError.message);
+                        console.log('Browser process was already dead');
                     }
+                }
+                
+            } catch (error) {
+                console.error('Error during browser close:', error.message);
+                
+                // Final attempt to kill browser process
+                try {
+                    const process = this.browser.process();
+                    if (process && !process.killed) {
+                        process.kill('SIGKILL');
+                        console.log('Browser process force-killed in error handler');
+                    }
+                } catch (killError) {
+                    console.log('Final cleanup: Browser process was already terminated');
                 }
             }
         }
@@ -1268,6 +1290,8 @@ class OutlookLoginAutomation {
         this.page = null;
         this.context = null;
         this.isClosing = false;
+        
+        console.log('Browser cleanup completed');
     }
 }
 

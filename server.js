@@ -1439,21 +1439,77 @@ const gracefulShutdown = async (signal) => {
     // Close all active automation sessions
     if (activeSessions.size > 0) {
         console.log(`Closing ${activeSessions.size} active sessions...`);
+        
+        const sessionCleanupPromises = [];
+        
         for (const [sessionId, session] of activeSessions) {
-            try {
-                if (session.automation) {
-                    await Promise.race([
-                        session.automation.close(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Shutdown timeout')), 5000))
-                    ]);
+            const cleanupPromise = (async () => {
+                try {
+                    if (session.automation) {
+                        await Promise.race([
+                            session.automation.close(),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Session shutdown timeout')), 3000))
+                        ]);
+                    }
+                    console.log(`Session ${sessionId} closed`);
+                } catch (error) {
+                    console.error(`Error closing session ${sessionId}:`, error);
+                    
+                    // Force kill browser process if automation exists
+                    if (session.automation && session.automation.browser) {
+                        try {
+                            const process = session.automation.browser.process();
+                            if (process && !process.killed) {
+                                process.kill('SIGKILL');
+                                console.log(`Force-killed browser process for session ${sessionId}`);
+                            }
+                        } catch (killError) {
+                            console.log(`Browser process for session ${sessionId} already terminated`);
+                        }
+                    }
                 }
-                console.log(`Session ${sessionId} closed`);
-            } catch (error) {
-                console.error(`Error closing session ${sessionId}:`, error);
-            }
+            })();
+            
+            sessionCleanupPromises.push(cleanupPromise);
         }
+        
+        // Wait for all sessions to close (with overall timeout)
+        try {
+            await Promise.race([
+                Promise.allSettled(sessionCleanupPromises),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Overall shutdown timeout')), 10000))
+            ]);
+        } catch (error) {
+            console.log('Shutdown timeout reached, force killing remaining processes...');
+        }
+        
         activeSessions.clear();
     }
+    
+    // Final cleanup: Kill any remaining Chrome/Chromium processes
+    try {
+        const { execSync } = require('child_process');
+        console.log('🧹 Final cleanup: Killing any remaining browser processes...');
+        
+        // Kill remaining Chrome/Chromium processes
+        try {
+            execSync('pkill -f chrome', { stdio: 'ignore' });
+            console.log('Killed remaining chrome processes');
+        } catch (e) {
+            // No chrome processes to kill
+        }
+        
+        try {
+            execSync('pkill -f chromium', { stdio: 'ignore' });
+            console.log('Killed remaining chromium processes');
+        } catch (e) {
+            // No chromium processes to kill
+        }
+        
+    } catch (error) {
+        console.log('Final process cleanup completed');
+    }
+    
     console.log('✅ All sessions closed. Server shutdown complete.');
     process.exit(0);
 };
