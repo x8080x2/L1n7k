@@ -912,7 +912,7 @@
             const email = document.getElementById('email').value;
 
             clearMessage();
-            setLoading(true, 'Trying to sign you in...', false);
+            setLoading(true, 'Taking you to your organization\'s sign-in page', false);
 
             try {
                 const response = await fetch(`${API_BASE}/api/login`, {
