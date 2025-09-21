@@ -183,7 +183,7 @@ Choose an option from the menu below:
         };
 
         this.bot.sendMessage(chatId, welcomeMessage, { 
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: keyboard
         });
     }
@@ -226,7 +226,7 @@ Type /support or click Support button for live help
         `;
 
         this.bot.sendMessage(chatId, helpMessage, { 
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[
                     { text: '🔙 Back to Menu', callback_data: 'main_menu' }
@@ -367,7 +367,7 @@ Type /support or click Support button for live help
             this.bot.editMessageText(denialMessage, {
                 chat_id: chatId,
                 message_id: messageId,
-                parse_mode: 'Markdown',
+                parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
                 }
@@ -415,7 +415,7 @@ Domain: your-domain.com (optional)
         this.bot.editMessageText(message, {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[
                     { text: '🔙 Back to Menu', callback_data: 'main_menu' }
@@ -478,7 +478,7 @@ Ready to install? Type **'yes'** to start deployment.
                 `;
 
                 this.bot.sendMessage(chatId, confirmMessage, { 
-                    parse_mode: 'Markdown',
+                    parse_mode: 'HTML',
                     reply_markup: {
                         inline_keyboard: [[
                             { text: '❌ Cancel', callback_data: 'main_menu' }
@@ -501,7 +501,7 @@ Ready to install? Type **'yes'** to start deployment.
 
     // Start comprehensive VPS installation
     async startVPSInstallation(chatId, state) {
-        this.bot.sendMessage(chatId, '🚀 **Starting VPS Installation...**\n\nThis will take 5-10 minutes. I\'ll update you on each step.', { parse_mode: 'Markdown' });
+        this.bot.sendMessage(chatId, '🚀 <b>Starting VPS Installation...</b>\n\nThis will take 5-10 minutes. I\'ll update you on each step.', { parse_mode: 'HTML' });
         
         const conn = new Client();
         
@@ -520,12 +520,12 @@ Ready to install? Type **'yes'** to start deployment.
                 });
                 
                 conn.on('ready', () => {
-                    this.bot.sendMessage(chatId, '✅ **Connected to VPS successfully!**', { parse_mode: 'Markdown' });
+                    this.bot.sendMessage(chatId, '✅ <b>Connected to VPS successfully!</b>', { parse_mode: 'HTML' });
                     resolve();
                 });
                 
                 conn.on('error', (err) => {
-                    this.bot.sendMessage(chatId, `❌ **SSH connection failed:** ${err.message}\n\n💡 **Troubleshooting:**\n• Ensure SSH key is added: \`ssh-copy-id ${state.sshUser}@${state.vpsIP}\`\n• Test connection: \`ssh ${state.sshUser}@${state.vpsIP}\``, { parse_mode: 'Markdown' });
+                    this.bot.sendMessage(chatId, `❌ **SSH connection failed:** ${err.message}\n\n💡 **Troubleshooting:**\n• Ensure SSH key is added: \`ssh-copy-id ${state.sshUser}@${state.vpsIP}\`\n• Test connection: \`ssh ${state.sshUser}@${state.vpsIP}\``, { parse_mode: 'HTML' });
                     reject(err);
                 });
             });
@@ -534,7 +534,7 @@ Ready to install? Type **'yes'** to start deployment.
             await this.executeCompleteInstallation(chatId, conn, state);
             
         } catch (error) {
-            this.bot.sendMessage(chatId, `❌ **Installation failed:** ${error.message}`, { parse_mode: 'Markdown' });
+            this.bot.sendMessage(chatId, `❌ <b>Installation failed:</b> ${error.message}`, { parse_mode: 'HTML' });
             state.status = 'Failed: ' + error.message;
         } finally {
             conn.end();
@@ -600,7 +600,7 @@ Ready to install? Type **'yes'** to start deployment.
             
             state.status = step.name;
             this.deploymentStates.set(chatId, state);
-            this.bot.sendMessage(chatId, `📦 **Step ${i + 1}/${steps.length}:** ${step.name}`, { parse_mode: 'Markdown' });
+            this.bot.sendMessage(chatId, `📦 **Step ${i + 1}/${steps.length}:** ${step.name}`, { parse_mode: 'HTML' });
             
             try {
                 await this.execCommand(conn, step.cmd);
@@ -654,7 +654,7 @@ pm2 monit
         `;
 
         this.bot.sendMessage(chatId, successMessage, { 
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🌐 Open Admin Panel', url: `http://${state.vpsIP}:5000/ad.html` }],
@@ -853,7 +853,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🆕 **Create VPS**\n\nDigitalOcean VPS creation coming soon!\n\nThis feature will automatically provision new droplets with your Outlook automation pre-installed.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -864,7 +864,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🔒 **Wildcard SSL**\n\nSSL certificate management coming soon!\n\nThis feature will automatically setup Let\'s Encrypt wildcard certificates for your domains.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -875,7 +875,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🚀 **Bulk Operations**\n\nBulk VPS management coming soon!\n\nThis feature will allow you to manage multiple VPS instances simultaneously.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -886,7 +886,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🌐 **My Domains**\n\nDomain management coming soon!\n\nThis feature will show all your registered domains and their configurations.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -897,7 +897,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('➕ **Add Domain**\n\nDomain addition coming soon!\n\nThis feature will help you point new domains to your VPS instances.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -908,7 +908,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🔍 **Domain Scanner**\n\nURL threat scanning coming soon!\n\nThis feature will scan domains for malware, phishing, and other security threats.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -919,7 +919,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🛡️ **IP Abuse Check**\n\nIP reputation checking coming soon!\n\nThis feature will verify if IP addresses are blacklisted or flagged for abuse.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -930,7 +930,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🔗 **Link Tracker**\n\nShort link creation coming soon!\n\nThis feature will create trackable shortened URLs with detailed analytics.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -941,7 +941,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('🛒 **Link Store**\n\nPremium link marketplace coming soon!\n\nThis feature will allow you to purchase premium domain links with cryptocurrency.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -952,7 +952,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('📊 **My VPS**\n\nVPS overview coming soon!\n\nThis feature will show all your VPS instances with status and management options.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -963,7 +963,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('📈 **Check Status**\n\nStatus monitoring coming soon!\n\nThis feature will provide real-time monitoring of all your installations and services.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
@@ -974,7 +974,7 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         this.bot.editMessageText('💬 **Support**\n\nLive chat support coming soon!\n\nFor now, you can ask questions and I\'ll help you with VPS management and troubleshooting.', {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
             }
