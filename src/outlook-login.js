@@ -413,7 +413,6 @@ class OutlookLoginAutomation {
             const errorPatterns = [
                 'Your account or password is incorrect',
                 'password is incorrect',
-                'Sign-in was unsuccessful',
                 'The username or password is incorrect',
                 'Invalid credentials',
                 'Authentication failed'
