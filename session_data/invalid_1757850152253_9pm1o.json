@@ -1,0 +1,9 @@
+{
+  "id": "1757850152253_9pm1o",
+  "sessionId": "1757850105335_qe81z",
+  "email": "lerato@ppit.co.za",
+  "reason": "Continue Login Failed",
+  "errorMessage": "Login verification failed. Current URL: https://login.microsoftonline.com/common/login - Your account or password is incorrect. If you don't remember your password, reset it now.",
+  "timestamp": "2025-09-14T11:42:32.253Z",
+  "status": "invalid"
+}
