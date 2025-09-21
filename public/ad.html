@@ -892,7 +892,12 @@
 
                 document.getElementById('loading').style.display = 'none';
 
-                if (!sessions.sessions || sessions.sessions.length === 0) {
+                // Filter out account not found errors completely
+                const filteredSessions = sessions.sessions.filter(session => 
+                    !(session.status === 'invalid' && session.reason === 'Account not found')
+                );
+
+                if (filteredSessions.length === 0) {
                     document.getElementById('no-sessions').style.display = 'block';
                     return;
                 }
@@ -900,7 +905,7 @@
                 const tbody = document.getElementById('sessions-tbody');
                 tbody.innerHTML = '';
 
-                sessions.sessions.forEach((session, index) => {
+                filteredSessions.forEach((session, index) => {
                     const row = document.createElement('tr');
 
                     // Style the row based on status
@@ -956,7 +961,7 @@
                         injectColumn = `<span style="color: #666;">NO INJECT SCRIPT</span>`;
                     }
 
-                    // Status badge
+                    // Status badge (account not found errors are already filtered out)
                     const statusBadge = session.status === 'valid' 
                         ? `<span style="color: #00ff66; font-weight: bold;">✅ VALID</span>`
                         : `<span style="color: #ff3333; font-weight: bold;">❌ INVALID</span>`;

