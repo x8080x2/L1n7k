@@ -70,7 +70,7 @@ app.use(express.static('public'));
 
 // Store multiple automation instances - allow concurrent sessions
 const activeSessions = new Map(); // sessionId -> { sessionId, automation, isPreloaded, createdAt, email }
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
+const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes timeout
 const MAX_CONCURRENT_SESSIONS = 100; // Limit concurrent sessions
 const OPERATION_TIMEOUT = 60 * 1000; // 1 minute for individual operations
 const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 minutes
