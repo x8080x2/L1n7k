@@ -707,93 +707,35 @@
             </div>
         </div>
 
-        <!-- Cloudflare Security Control Center -->
-        <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 2px solid #0099ff;">
-            <h2 class="dashboard-title" style="color: #0099ff; text-shadow: 0 0 10px #0099ff;">BOT SECURITY MATRIX</h2>
+        <!-- Bot Security Matrix -->
+        <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
+            <h2 style="color: #0099ff; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🛡️ SECURITY MATRIX</h2>
 
-            <div class="dashboard-grid">
-                <div class="dashboard-card info">
-                    <div class="dashboard-card-icon">🛡️</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="cf-status" style="color: #0099ff;">LOADING</div>
-                        <div class="dashboard-card-label">System Status</div>
-                    </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
+                    <div style="color: #0099ff; font-size: 10px; font-weight: bold;" id="cf-status">LOADING</div>
+                    <div style="color: #666; font-size: 8px;">System Status</div>
                 </div>
-                <div class="dashboard-card" id="bot-fight-card">
-                    <div class="dashboard-card-icon">🤖</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="bot-fight-status">OFF</div>
-                        <div class="dashboard-card-label">Bot Fight Mode</div>
-                    </div>
-                </div>
-                <div class="dashboard-card" id="security-level-card">
-                    <div class="dashboard-card-icon">🔒</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="security-level-status">MEDIUM</div>
-                        <div class="dashboard-card-label">Security Level</div>
-                    </div>
-                </div>
-                <div class="dashboard-card" id="browser-check-card">
-                    <div class="dashboard-card-icon">🌐</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="browser-check-status">ON</div>
-                        <div class="dashboard-card-label">Browser Check</div>
-                    </div>
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
+                    <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="bot-fight-status">OFF</div>
+                    <div style="color: #666; font-size: 8px;">Bot Protection</div>
                 </div>
             </div>
 
-            <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <!-- Bot Fight Mode Control -->
-                <div class="cloudflare-control-panel">
-                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🤖 Bot Protection</h3>
-                    <button onclick="toggleBotFight()" id="bot-fight-btn" class="cf-control-btn">
-                        TOGGLE BOT FIGHT MODE
-                    </button>
-                    <div class="control-description">
-                        Controls automated bot detection and blocking
-                    </div>
-                </div>
-
-                <!-- Security Level Control -->
-                <div class="cloudflare-control-panel">
-                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🔒 Security Level</h3>
-                    <select id="security-level-select" class="cf-select" onchange="setSecurityLevel()">
-                        <option value="off">Off</option>
-                        <option value="essentially_off">Essentially Off</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="under_attack">Under Attack</option>
-                    </select>
-                    <div class="control-description">
-                        Adjusts challenge sensitivity for suspicious traffic
-                    </div>
-                </div>
-
-                <!-- Browser Integrity Check -->
-                <div class="cloudflare-control-panel">
-                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">🌐 Browser Check</h3>
-                    <button onclick="toggleBrowserCheck()" id="browser-check-btn" class="cf-control-btn">
-                        TOGGLE BROWSER CHECK
-                    </button>
-                    <div class="control-description">
-                        Validates browser integrity and headers
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="cloudflare-control-panel">
-                    <h3 style="color: #ff6666; margin-bottom: 15px; text-transform: uppercase;">⚡ Quick Actions</h3>
-                    <button onclick="enableUnderAttack()" class="cf-control-btn cf-emergency">
-                        UNDER ATTACK MODE
-                    </button>
-                    <button onclick="disableAllProtection()" class="cf-control-btn cf-disable">
-                        DISABLE ALL PROTECTION
-                    </button>
-                    <div class="control-description">
-                        Emergency controls for immediate response
-                    </div>
-                </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="toggleBotFight()" id="bot-fight-btn" style="background: #0066cc; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                    TOGGLE BOT FIGHT
+                </button>
+                <select id="security-level-select" onchange="setSecurityLevel()" style="background: rgba(0,0,0,0.5); color: #0099ff; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px;">
+                    <option value="off">Security: Off</option>
+                    <option value="low">Security: Low</option>
+                    <option value="medium">Security: Medium</option>
+                    <option value="high">Security: High</option>
+                    <option value="under_attack">Under Attack</option>
+                </select>
+                <button onclick="enableUnderAttack()" style="background: #cc3333; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                    EMERGENCY
+                </button>
             </div>
         </div>
 
