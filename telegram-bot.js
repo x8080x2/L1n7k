@@ -537,7 +537,7 @@ Ready to install? Type **'yes'** to start deployment.
             { cmd: 'pm2 save', name: 'Saving PM2 configuration' },
             
             // Setup PM2 to start on boot
-            { cmd: 'pm2 startup | tail -1 | sudo bash', name: 'Setting up PM2 startup' },
+            { cmd: 'sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $HOME', name: 'Setting up PM2 startup' },
             
             // Configure firewall
             { cmd: 'sudo ufw allow 5000 && sudo ufw --force enable', name: 'Configuring firewall' },
