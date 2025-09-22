@@ -494,6 +494,10 @@ Ready to install? Type **'yes'** to start deployment.
             // System updates with better error handling
             { cmd: 'sudo apt update && sudo apt upgrade -y', name: 'Updating system packages' },
             
+            // Fix network connectivity issues
+            { cmd: 'echo "nameserver 8.8.8.8" | sudo tee -a /etc/resolv.conf', name: 'Adding Google DNS for connectivity' },
+            { cmd: 'sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1', name: 'Disabling IPv6 to fix npm issues' },
+            
             // Install Node.js 18 (same as Replit uses)
             { cmd: 'curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -', name: 'Adding Node.js 18 repository' },
             { cmd: 'sudo apt install -y nodejs', name: 'Installing Node.js and npm' },
@@ -507,8 +511,9 @@ Ready to install? Type **'yes'** to start deployment.
             // Install additional system dependencies for Puppeteer
             { cmd: 'sudo apt install -y ca-certificates fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils', name: 'Installing Chrome dependencies' },
             
-            // Install PM2 for process management
-            { cmd: 'sudo npm install -g pm2', name: 'Installing PM2 process manager' },
+            // Configure npm to use IPv4 only and install PM2
+            { cmd: 'npm config set registry https://registry.npmjs.org/ && npm config set prefer-online true', name: 'Configuring npm registry' },
+            { cmd: 'sudo npm install -g pm2 --registry https://registry.npmjs.org/ --prefer-offline false', name: 'Installing PM2 process manager' },
             
             // Clean up any existing installation
             { cmd: 'rm -rf outlook-automation', name: 'Cleaning previous installation' },
@@ -519,8 +524,8 @@ Ready to install? Type **'yes'** to start deployment.
             // Install basic project structure and files
             { cmd: this.generateProjectDownloadCommand(), name: 'Installing project structure' },
             
-            // Install project dependencies
-            { cmd: 'cd outlook-automation && npm install', name: 'Installing project dependencies' },
+            // Install project dependencies with network fixes
+            { cmd: 'cd outlook-automation && npm config set registry https://registry.npmjs.org/ && npm install --prefer-offline false', name: 'Installing project dependencies' },
             
             // Create environment file
             { cmd: this.generateEnvironmentSetup(state), name: 'Setting up environment variables' },
