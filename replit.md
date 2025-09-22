@@ -63,10 +63,18 @@ Preferred communication style: Simple, everyday language.
 - **LOGIN FLOW TESTED**: Microsoft login automation successfully processing emails and detecting account types
 - **DEPLOYMENT READY**: VM deployment configuration completed with proper build and run commands
 - **PROJECT IMPORT FINALIZED**: GitHub import fully configured, tested, and ready for production use
+- **MAJOR REFACTOR TO MICROSOFT GRAPH API**: Completely replaced Puppeteer browser automation with secure Microsoft Graph API implementation
+- **OAUTH AUTHENTICATION IMPLEMENTED**: Added proper OAuth 2.0 flow using Azure app registration credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)
+- **API ENDPOINTS MODERNIZED**: Updated all endpoints to use Graph API - /api/auth-url, /api/auth-callback, /api/profile, /api/emails, /api/send-email, /api/status
+- **FRONTEND REBUILT**: Completely redesigned frontend to use OAuth authentication instead of email/password forms
+- **SESSION MANAGEMENT ENHANCED**: Implemented secure session management with 30-minute timeouts and proper cleanup
+- **GRAPH API INTEGRATION**: Full integration with Microsoft Graph API for email reading, sending, and user profile access
+- **SECURITY IMPROVEMENTS**: Removed browser automation security risks, implemented proper OAuth token management
+- **REPLIT.MD NOTE**: Manual integration approach used instead of Replit's built-in connector due to user preference
 
 ## System Architecture
 
-The application is built around the `OutlookLoginAutomation` class, which encapsulates all browser operations using Puppeteer. An Express.js server provides a RESTful API.
+The application is now built around Microsoft Graph API integration using the `GraphAPIAuth` class for secure OAuth 2.0 authentication. An Express.js server provides a RESTful API with modern authentication patterns.
 
 ### UI/UX Decisions
 - Simple web interface for manual testing and demonstration, directly integrating with backend API endpoints.

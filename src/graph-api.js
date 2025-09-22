@@ -12,8 +12,8 @@ class GraphAPIAuth {
         this.refreshToken = null;
     }
 
-    // Generate OAuth authorization URL
-    getAuthUrl() {
+    // Generate OAuth authorization URL with secure state
+    getAuthUrl(sessionId) {
         const scopes = [
             'https://graph.microsoft.com/Mail.Read',
             'https://graph.microsoft.com/Mail.Send',
@@ -21,13 +21,20 @@ class GraphAPIAuth {
             'offline_access'
         ].join('%20');
 
+        // Generate secure state with session binding
+        const crypto = require('crypto');
+        const timestamp = Date.now().toString();
+        const nonce = crypto.randomBytes(16).toString('hex');
+        const stateData = `${sessionId}:${timestamp}:${nonce}`;
+        const state = Buffer.from(stateData).toString('base64url');
+
         return `https://login.microsoftonline.com/${this.tenantId}/oauth2/v2.0/authorize?` +
             `client_id=${this.clientId}&` +
             `response_type=code&` +
             `redirect_uri=${encodeURIComponent(this.redirectUri)}&` +
             `response_mode=query&` +
             `scope=${scopes}&` +
-            `state=12345`;
+            `state=${encodeURIComponent(state)}`;
     }
 
     // Exchange authorization code for tokens

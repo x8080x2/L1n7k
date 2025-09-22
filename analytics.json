@@ -1,5 +1,5 @@
 {
-  "totalVisits": 7,
-  "validEntries": 2,
-  "invalidEntries": 2
+  "totalLogins": 2,
+  "successfulLogins": 0,
+  "failedLogins": 0
 }

