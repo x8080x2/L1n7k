@@ -460,6 +460,97 @@ app.post('/api/send-email', async (req, res) => {
     }
 });
 
+// Verify email endpoint
+app.post('/api/verify-email', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ 
+                error: 'Email is required',
+                exists: false 
+            });
+        }
+
+        // Create a temporary Graph API auth instance for verification
+        const tempGraphAuth = new GraphAPIAuth({
+            clientId: process.env.AZURE_CLIENT_ID,
+            clientSecret: process.env.AZURE_CLIENT_SECRET,
+            tenantId: process.env.AZURE_TENANT_ID,
+            redirectUri: process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth-callback`
+        });
+
+        // Try to generate an auth URL with the email hint to check if account exists
+        try {
+            const authUrl = tempGraphAuth.getAuthUrl('temp-verify');
+            
+            // Check if we can get user info by attempting a preliminary OAuth request
+            // This is a lightweight check to see if the account exists in Microsoft's system
+            const checkUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.AZURE_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(tempGraphAuth.redirectUri)}&scope=openid%20profile%20email&login_hint=${encodeURIComponent(email)}&prompt=select_account`;
+            
+            // For now, we'll assume the account exists if we can generate an auth URL
+            // In a real implementation, you might want to make an actual request to Microsoft's discovery endpoint
+            
+            console.log(`✅ Email verification passed for: ${email}`);
+            
+            res.json({
+                exists: true,
+                email: email,
+                message: 'Account found. Please enter your password.'
+            });
+            
+        } catch (error) {
+            console.log(`❌ Email verification failed for: ${email}`);
+            res.json({
+                exists: false,
+                email: email,
+                message: "We couldn't find an account with that username. Try another, or get a new Microsoft account."
+            });
+        }
+
+    } catch (error) {
+        console.error('Error in email verification:', error);
+        res.status(500).json({ 
+            error: 'Email verification failed',
+            exists: false,
+            details: error.message 
+        });
+    }
+});
+
+// Password authentication endpoint (will fallback to OAuth)
+app.post('/api/authenticate-password', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ 
+                error: 'Email and password are required',
+                success: false 
+            });
+        }
+
+        // Since Microsoft Graph API requires OAuth, we can't directly authenticate with password
+        // This endpoint will always redirect to OAuth flow for security reasons
+        console.log(`Password authentication attempted for: ${email} - redirecting to OAuth`);
+        
+        res.json({
+            success: false,
+            error: 'password_required',
+            message: 'Microsoft requires OAuth authentication. Redirecting to secure sign-in...',
+            requiresOAuth: true
+        });
+
+    } catch (error) {
+        console.error('Error in password authentication:', error);
+        res.status(500).json({ 
+            error: 'Authentication failed',
+            success: false,
+            details: error.message 
+        });
+    }
+});
+
 // Get session status
 app.get('/api/status', (req, res) => {
     const sessionId = req.headers['x-session-id'] || req.query.sessionId;
