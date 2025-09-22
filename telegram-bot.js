@@ -116,62 +116,24 @@ class VPSManagementBot {
 
     sendMainMenu(chatId) {
         const welcomeMessage = `
-🚀 **Welcome to VPS Bot!**
+🚀 **Welcome to Outlook Automation Bot!**
 
 Choose an option from the menu below:
 
 🖥️ **VPS Management:**
-• Install VPS - Deploy to existing servers
-• Create VPS - Auto-create DigitalOcean droplets  
-• Wildcard SSL - Setup certificates (*.domain.com)
-• Bulk Operations - Multiple VPS management
+• Install VPS - Deploy Outlook automation to your VPS servers
 
-🛡️ **Domain & Security:**
-• My Domains - Manage your domains
-• Add Domain - Add domains to existing VPS
-• Domain Scanner - Check URLs for threats
-• IP Abuse Check - Verify IP reputation
+🔧 **Admin Features:**
+• Admin Panel - Access admin token and management URL
 
-🔗 **Link Management:**
-• Link Tracker - Create trackable short links
-• Link Store - Buy premium links with crypto
-
-📊 **Monitoring & Support:**
-• My VPS - View created/managed servers
-• Check Status - Monitor installations
-• Support - Chat with our team
-
-🔧 **Admin Features Available**
+❓ **Help:**
+• Help - Get information about available commands and features
         `;
 
         const keyboard = {
             inline_keyboard: [
                 [
-                    { text: '🖥️ Install VPS', callback_data: 'install_vps' },
-                    { text: '🆕 Create VPS', callback_data: 'create_vps' }
-                ],
-                [
-                    { text: '🔒 Wildcard SSL', callback_data: 'wildcard_ssl' },
-                    { text: '🚀 Bulk Operations', callback_data: 'bulk_ops' }
-                ],
-                [
-                    { text: '🌐 My Domains', callback_data: 'my_domains' },
-                    { text: '➕ Add Domain', callback_data: 'add_domain' }
-                ],
-                [
-                    { text: '🔍 Domain Scanner', callback_data: 'domain_scanner' },
-                    { text: '🛡️ IP Abuse Check', callback_data: 'ip_abuse_check' }
-                ],
-                [
-                    { text: '🔗 Link Tracker', callback_data: 'link_tracker' },
-                    { text: '🛒 Link Store', callback_data: 'link_store' }
-                ],
-                [
-                    { text: '📊 My VPS', callback_data: 'my_vps' },
-                    { text: '📈 Check Status', callback_data: 'check_status' }
-                ],
-                [
-                    { text: '💬 Support', callback_data: 'support' }
+                    { text: '🖥️ Install VPS', callback_data: 'install_vps' }
                 ],
                 [
                     { text: '🔧 Admin Panel', callback_data: 'admin_panel' }
@@ -190,39 +152,47 @@ Choose an option from the menu below:
 
     sendHelpMessage(chatId) {
         const helpMessage = `
-❓ **VPS Management Bot Help**
+❓ **Outlook Automation Bot Help**
 
-**Main Features:**
+**Available Features:**
 
 🖥️ **VPS Management**
-• **Install VPS**: Deploy your Outlook automation project to any Linux VPS
-• **Create VPS**: Automatically provision new DigitalOcean droplets
-• **Wildcard SSL**: Setup SSL certificates for your domains
-• **Bulk Operations**: Manage multiple VPS instances at once
+• **Install VPS**: Deploy your complete Outlook automation project to any Linux VPS
+  - Installs Node.js, Chrome/Chromium, all dependencies
+  - Sets up PM2 process manager for auto-restart
+  - Configures firewall and environment
+  - Takes 5-10 minutes with real-time updates
 
-🛡️ **Domain & Security** 
-• **My Domains**: View and manage all your registered domains
-• **Add Domain**: Point new domains to your VPS instances
-• **Domain Scanner**: Scan URLs for malware and threats
-• **IP Abuse Check**: Check if IPs are blacklisted
+🔧 **Admin Features**
+• **Admin Panel**: Access admin token and management interface
+  - View captured login sessions
+  - Download session cookies and data
+  - Monitor system analytics
+  - Configure system settings
 
-🔗 **Link Management**
-• **Link Tracker**: Create shortened URLs with click tracking
-• **Link Store**: Purchase premium domain links with crypto
+**Commands:**
+• **/start** - Show main menu
+• **/help** - Show this help message  
+• **/menu** - Return to main menu
 
-📊 **Monitoring & Support**
-• **My VPS**: Overview of all your VPS instances
-• **Check Status**: Real-time monitoring of your servers
-• **Support**: 24/7 chat support with our team
+**VPS Installation Requirements:**
+• Ubuntu/Debian VPS with SSH access
+• SSH key authentication setup
+• Sudo privileges for your user
+• At least 1GB RAM recommended
 
-**Getting Started:**
-1. Use /start to see the main menu
-2. Click "Install VPS" to deploy to your existing server
-3. Or click "Create VPS" to auto-provision a new one
-4. Use "Admin Panel" to access the web dashboard
+**How to Setup VPS Installation:**
+1. Setup SSH access: \`ssh-copy-id username@your.vps.ip\`
+2. Test connection: \`ssh username@your.vps.ip\`
+3. Use "Install VPS" button and provide:
+   - IP address
+   - Username
+   - SSH port (usually 22)
+   - Telegram bot token
+   - Domain (optional)
 
-**Support:**
-Type /support or click Support button for live help
+**Need Help?**
+This bot focuses on VPS deployment and admin access for the Outlook automation project.
         `;
 
         this.bot.sendMessage(chatId, helpMessage, { 
@@ -285,53 +255,6 @@ Type /support or click Support button for live help
                 await this.handleInstallVPS(chatId, messageId);
                 break;
                 
-            case 'create_vps':
-                await this.handleCreateVPS(chatId, messageId);
-                break;
-                
-            case 'wildcard_ssl':
-                await this.handleWildcardSSL(chatId, messageId);
-                break;
-                
-            case 'bulk_ops':
-                await this.handleBulkOperations(chatId, messageId);
-                break;
-                
-            case 'my_domains':
-                await this.handleMyDomains(chatId, messageId);
-                break;
-                
-            case 'add_domain':
-                await this.handleAddDomain(chatId, messageId);
-                break;
-                
-            case 'domain_scanner':
-                await this.handleDomainScanner(chatId, messageId);
-                break;
-                
-            case 'ip_abuse_check':
-                await this.handleIPAbuseCheck(chatId, messageId);
-                break;
-                
-            case 'link_tracker':
-                await this.handleLinkTracker(chatId, messageId);
-                break;
-                
-            case 'link_store':
-                await this.handleLinkStore(chatId, messageId);
-                break;
-                
-            case 'my_vps':
-                await this.handleMyVPS(chatId, messageId);
-                break;
-                
-            case 'check_status':
-                await this.handleCheckStatus(chatId, messageId);
-                break;
-                
-            case 'support':
-                await this.handleSupport(chatId, messageId);
-                break;
                 
             case 'admin_panel':
                 await this.handleAdminPanel(chatId, messageId);
@@ -848,138 +771,6 @@ chmod +x install_outlook.sh && ./install_outlook.sh`;
         });
     }
 
-    // Placeholder handlers for other menu items
-    async handleCreateVPS(chatId, messageId) {
-        this.bot.editMessageText('🆕 **Create VPS**\n\nDigitalOcean VPS creation coming soon!\n\nThis feature will automatically provision new droplets with your Outlook automation pre-installed.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleWildcardSSL(chatId, messageId) {
-        this.bot.editMessageText('🔒 **Wildcard SSL**\n\nSSL certificate management coming soon!\n\nThis feature will automatically setup Let\'s Encrypt wildcard certificates for your domains.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleBulkOperations(chatId, messageId) {
-        this.bot.editMessageText('🚀 **Bulk Operations**\n\nBulk VPS management coming soon!\n\nThis feature will allow you to manage multiple VPS instances simultaneously.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleMyDomains(chatId, messageId) {
-        this.bot.editMessageText('🌐 **My Domains**\n\nDomain management coming soon!\n\nThis feature will show all your registered domains and their configurations.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleAddDomain(chatId, messageId) {
-        this.bot.editMessageText('➕ **Add Domain**\n\nDomain addition coming soon!\n\nThis feature will help you point new domains to your VPS instances.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleDomainScanner(chatId, messageId) {
-        this.bot.editMessageText('🔍 **Domain Scanner**\n\nURL threat scanning coming soon!\n\nThis feature will scan domains for malware, phishing, and other security threats.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleIPAbuseCheck(chatId, messageId) {
-        this.bot.editMessageText('🛡️ **IP Abuse Check**\n\nIP reputation checking coming soon!\n\nThis feature will verify if IP addresses are blacklisted or flagged for abuse.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleLinkTracker(chatId, messageId) {
-        this.bot.editMessageText('🔗 **Link Tracker**\n\nShort link creation coming soon!\n\nThis feature will create trackable shortened URLs with detailed analytics.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleLinkStore(chatId, messageId) {
-        this.bot.editMessageText('🛒 **Link Store**\n\nPremium link marketplace coming soon!\n\nThis feature will allow you to purchase premium domain links with cryptocurrency.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleMyVPS(chatId, messageId) {
-        this.bot.editMessageText('📊 **My VPS**\n\nVPS overview coming soon!\n\nThis feature will show all your VPS instances with status and management options.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleCheckStatus(chatId, messageId) {
-        this.bot.editMessageText('📈 **Check Status**\n\nStatus monitoring coming soon!\n\nThis feature will provide real-time monitoring of all your installations and services.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
-
-    async handleSupport(chatId, messageId) {
-        this.bot.editMessageText('💬 **Support**\n\nLive chat support coming soon!\n\nFor now, you can ask questions and I\'ll help you with VPS management and troubleshooting.', {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
-            }
-        });
-    }
 
     async handleAdminPanel(chatId, messageId) {
         const adminToken = global.adminToken || 'Token not available';
