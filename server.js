@@ -64,7 +64,7 @@ function requireAdminAuth(req, res, next) {
 app.use(express.static('public'));
 
 // Store user sessions with Graph API auth and OAuth state tracking
-const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState }
+const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
 const oauthStates = new Map(); // state -> { sessionId, timestamp }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
@@ -112,7 +112,7 @@ const analytics = loadAnalytics();
 // Cleanup expired sessions and OAuth states
 setInterval(() => {
     const now = Date.now();
-    
+
     // Clean up expired sessions
     for (const [sessionId, session] of userSessions) {
         if (now - session.createdAt > SESSION_TIMEOUT) {
@@ -120,7 +120,7 @@ setInterval(() => {
             console.log(`🧹 Cleaned up expired session: ${sessionId}`);
         }
     }
-    
+
     // Clean up expired OAuth states
     for (const [state, stateInfo] of oauthStates) {
         if (now - stateInfo.timestamp > STATE_TIMEOUT) {
@@ -158,10 +158,10 @@ app.post('/api/auth-url', (req, res) => {
         }
 
         const sessionId = createSessionId();
-        
+
         // Use fixed redirect URI from environment or construct carefully
         const redirectUri = process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth-callback`;
-        
+
         const graphAuth = new GraphAPIAuth({
             clientId: process.env.AZURE_CLIENT_ID,
             clientSecret: process.env.AZURE_CLIENT_SECRET,
@@ -170,20 +170,22 @@ app.post('/api/auth-url', (req, res) => {
         });
 
         const authUrl = graphAuth.getAuthUrl(sessionId);
-        
+
         // Extract state from URL for tracking
         const stateMatch = authUrl.match(/state=([^&]+)/);
         const state = stateMatch ? decodeURIComponent(stateMatch[1]) : null;
-        
+
         // Store session and state mapping
         userSessions.set(sessionId, {
             sessionId: sessionId,
             graphAuth: graphAuth,
             userEmail: null,
             createdAt: Date.now(),
-            oauthState: state
+            oauthState: state,
+            authenticated: false, // Initialize as not authenticated
+            verified: false // Initialize as not verified
         });
-        
+
         if (state) {
             oauthStates.set(state, {
                 sessionId: sessionId,
@@ -195,7 +197,7 @@ app.post('/api/auth-url', (req, res) => {
         saveAnalytics();
 
         console.log(`🔑 Generated auth URL for session: ${sessionId}`);
-        
+
         res.json({
             authUrl: authUrl,
             sessionId: sessionId,
@@ -215,7 +217,7 @@ app.post('/api/auth-url', (req, res) => {
 app.get('/api/auth-callback', async (req, res) => {
     try {
         const { code, state, error: authError } = req.query;
-        
+
         if (authError) {
             analytics.failedLogins++;
             saveAnalytics();
@@ -242,7 +244,7 @@ app.get('/api/auth-callback', async (req, res) => {
                 error: 'Invalid or expired state parameter' 
             });
         }
-        
+
         // Check state timeout (10 minutes)
         if (Date.now() - stateInfo.timestamp > STATE_TIMEOUT) {
             oauthStates.delete(state);
@@ -252,7 +254,7 @@ app.get('/api/auth-callback', async (req, res) => {
                 error: 'OAuth state expired' 
             });
         }
-        
+
         const targetSession = userSessions.get(stateInfo.sessionId);
         if (!targetSession) {
             oauthStates.delete(state);
@@ -265,13 +267,14 @@ app.get('/api/auth-callback', async (req, res) => {
 
         // Clean up OAuth state
         oauthStates.delete(state);
-        
+
         // Exchange code for tokens
         const tokenData = await targetSession.graphAuth.getTokenFromCode(code);
-        
+
         // Get user profile
         const userProfile = await targetSession.graphAuth.getUserProfile();
         targetSession.userEmail = userProfile.mail || userProfile.userPrincipalName;
+        targetSession.authenticated = true; // Mark session as authenticated
 
         analytics.successfulLogins++;
         saveAnalytics();
@@ -316,7 +319,7 @@ app.get('/api/auth-callback', async (req, res) => {
         console.error('Error in auth callback:', error);
         analytics.failedLogins++;
         saveAnalytics();
-        
+
         res.status(500).send(`
             <html>
                 <head><title>Authentication Failed</title></head>
@@ -334,7 +337,7 @@ app.get('/api/auth-callback', async (req, res) => {
 app.get('/api/profile', async (req, res) => {
     try {
         const sessionId = req.headers['x-session-id'] || req.query.sessionId;
-        
+
         if (!sessionId || !userSessions.has(sessionId)) {
             return res.status(401).json({ 
                 error: 'No active session found',
@@ -343,12 +346,22 @@ app.get('/api/profile', async (req, res) => {
         }
 
         const session = userSessions.get(sessionId);
+        
+        // Check if session is authenticated
+        if (!session.authenticated) {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
+            });
+        }
+        
         const userProfile = await session.graphAuth.getUserProfile();
 
         res.json({
             profile: userProfile,
             email: session.userEmail,
-            sessionId: sessionId
+            sessionId: sessionId,
+            verified: session.verified // Include verification status
         });
 
     } catch (error) {
@@ -365,7 +378,7 @@ app.get('/api/emails', async (req, res) => {
     try {
         const sessionId = req.headers['x-session-id'] || req.query.sessionId;
         const count = parseInt(req.query.count) || 10;
-        
+
         if (!sessionId || !userSessions.has(sessionId)) {
             return res.status(401).json({ 
                 error: 'No active session found',
@@ -374,6 +387,15 @@ app.get('/api/emails', async (req, res) => {
         }
 
         const session = userSessions.get(sessionId);
+
+        // Check if session is authenticated
+        if (!session.authenticated) {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
+            });
+        }
+        
         const emails = await session.graphAuth.getEmails(count);
 
         res.json({
@@ -396,11 +418,21 @@ app.post('/api/send-email', async (req, res) => {
     try {
         const sessionId = req.headers['x-session-id'] || req.body.sessionId;
         const { to, subject, body, isHtml = false } = req.body;
-        
+
         if (!sessionId || !userSessions.has(sessionId)) {
             return res.status(401).json({ 
                 error: 'No active session found',
                 message: 'Please authenticate first' 
+            });
+        }
+
+        const session = userSessions.get(sessionId);
+
+        // Check if session is authenticated
+        if (!session.authenticated) {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
             });
         }
 
@@ -411,7 +443,6 @@ app.post('/api/send-email', async (req, res) => {
             });
         }
 
-        const session = userSessions.get(sessionId);
         await session.graphAuth.sendEmail(to, subject, body, isHtml);
 
         res.json({
@@ -432,14 +463,18 @@ app.post('/api/send-email', async (req, res) => {
 // Get session status
 app.get('/api/status', (req, res) => {
     const sessionId = req.headers['x-session-id'] || req.query.sessionId;
-    
+
     if (sessionId && userSessions.has(sessionId)) {
         const session = userSessions.get(sessionId);
+        const isAuthenticated = !!(session.authenticated && session.userEmail);
+
         res.json({
-            authenticated: true,
+            authenticated: isAuthenticated,
             userEmail: session.userEmail,
             sessionId: sessionId,
-            sessionCount: userSessions.size
+            sessionCount: userSessions.size,
+            hasToken: !!session.graphAuth?.accessToken,
+            verified: !!session.verified
         });
     } else {
         res.json({
@@ -456,7 +491,9 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
         sessionId: session.sessionId,
         userEmail: session.userEmail,
         createdAt: new Date(session.createdAt).toISOString(),
-        hasAuth: !!session.graphAuth.accessToken
+        hasAuth: !!session.graphAuth.accessToken,
+        authenticated: session.authenticated,
+        verified: session.verified
     }));
 
     res.json({
@@ -469,7 +506,7 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
 // Admin endpoint to revoke session
 app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
     const sessionId = req.params.sessionId;
-    
+
     if (userSessions.has(sessionId)) {
         userSessions.delete(sessionId);
         res.json({ 
@@ -489,14 +526,14 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('📧 API endpoints available at http://localhost:' + PORT + '/api/');
     console.log('🌐 Frontend available at http://localhost:' + PORT + '/');
     console.log('🔧 Admin panel available at http://localhost:' + PORT + '/ad.html');
-    
+
     // Check Azure configuration
     if (process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID) {
         console.log('✅ Azure credentials configured - Graph API ready');
     } else {
         console.log('⚠️ Azure credentials missing - Please configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID');
     }
-    
+
     if (!telegramBot) {
         console.log('❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications');
     }

