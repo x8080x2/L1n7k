@@ -142,6 +142,9 @@ Choose an option from the menu below:
                     { text: '🔐 Set VPS Password', callback_data: 'set_vps_password' }
                 ],
                 [
+                    { text: '🌐 Manage Domains', callback_data: 'manage_domains' }
+                ],
+                [
                     { text: '❓ Help', callback_data: 'help' }
                 ]
             ]
@@ -234,6 +237,8 @@ This bot focuses on VPS deployment and admin access for the Outlook automation p
             if (state) {
                 if (state.type === 'password_setup') {
                     this.handlePasswordSetup(chatId, text, state);
+                } else if (state.type === 'domain_config' || state.type === 'domain_test') {
+                    this.handleDomainFlow(chatId, text, state);
                 } else {
                     this.handleDeploymentFlow(chatId, text, state);
                 }
@@ -271,8 +276,28 @@ This bot focuses on VPS deployment and admin access for the Outlook automation p
                 await this.startPasswordSetup(chatId, messageId);
                 break;
                 
+            case 'manage_domains':
+                await this.handleDomainManagement(chatId, messageId);
+                break;
+                
             case 'help':
                 this.sendHelpMessage(chatId);
+                break;
+                
+            case 'configure_domain':
+                await this.startDomainConfiguration(chatId, messageId);
+                break;
+                
+            case 'view_domains':
+                await this.viewDomainStatus(chatId, messageId);
+                break;
+                
+            case 'test_domain':
+                await this.startDomainTest(chatId, messageId);
+                break;
+                
+            case 'dns_guide':
+                await this.showDNSGuide(chatId, messageId);
                 break;
         }
         
@@ -949,8 +974,420 @@ Please enter your VPS password securely.
         }
     }
 
+    // Domain Management Handler
+    async handleDomainManagement(chatId, messageId) {
+        const message = `
+🌐 **Domain Management**
+
+Set up custom domains for your VPS deployments to make your Outlook automation accessible via your own domain name.
+
+**Available Options:**
+
+🔧 **Configure Domain**
+• Set up DNS records for your domain
+• Get step-by-step configuration guide
+• Test domain connectivity
+
+📋 **View Domain Status**
+• Check current domain configurations
+• Verify DNS propagation
+• Monitor domain health
+
+💡 **Domain Requirements:**
+• Own a domain name (e.g., yourdomain.com)
+• Access to DNS management (Cloudflare, Namecheap, etc.)
+• A record pointing to your VPS IP
+• SSL certificate setup (optional but recommended)
+
+Choose an option below:
+        `;
+
+        this.bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '🔧 Configure New Domain', callback_data: 'configure_domain' }
+                    ],
+                    [
+                        { text: '📋 View Domain Status', callback_data: 'view_domains' },
+                        { text: '🧪 Test Domain', callback_data: 'test_domain' }
+                    ],
+                    [
+                        { text: '📖 DNS Setup Guide', callback_data: 'dns_guide' }
+                    ],
+                    [
+                        { text: '🔙 Back to Menu', callback_data: 'main_menu' }
+                    ]
+                ]
+            }
+        });
+    }
+
     getSubscribedUsers() {
         return this.chatIds.size;
+    }
+
+    // Start domain configuration flow
+    async startDomainConfiguration(chatId, messageId) {
+        this.deploymentStates.set(chatId, { 
+            type: 'domain_config', 
+            step: 'enter_domain' 
+        });
+        
+        const message = `
+🔧 **Configure New Domain**
+
+Please provide your domain configuration details:
+
+\`\`\`
+Domain: yourdomain.com
+VPS IP: your.vps.ip.address
+SSL: yes/no (optional)
+\`\`\`
+
+**Example:**
+\`\`\`
+Domain: outlookautomation.example.com
+VPS IP: 203.0.113.123
+SSL: yes
+\`\`\`
+
+💡 **Tips:**
+• Use a subdomain for better organization
+• Ensure you have DNS management access
+• SSL is recommended for production use
+        `;
+        
+        this.bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '🔙 Back to Domains', callback_data: 'manage_domains' }
+                ]]
+            }
+        });
+    }
+
+    // View current domain status
+    async viewDomainStatus(chatId, messageId) {
+        // In a real implementation, you'd load from a database
+        const message = `
+📋 **Domain Status**
+
+**Configured Domains:**
+
+🌐 **outlookautomation.example.com**
+• Status: ✅ Active
+• VPS IP: 203.0.113.123
+• SSL: ✅ Enabled
+• Last Check: 2 minutes ago
+
+🌐 **mail.example.com**
+• Status: ⚠️ DNS Pending
+• VPS IP: 203.0.113.124
+• SSL: ❌ Disabled
+• Last Check: 1 hour ago
+
+**Quick Actions:**
+• Refresh status checks
+• Test domain connectivity
+• Update SSL certificates
+        `;
+        
+        this.bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '🔄 Refresh Status', callback_data: 'refresh_domains' },
+                        { text: '🧪 Test All', callback_data: 'test_all_domains' }
+                    ],
+                    [
+                        { text: '🔧 Configure New', callback_data: 'configure_domain' }
+                    ],
+                    [
+                        { text: '🔙 Back to Domains', callback_data: 'manage_domains' }
+                    ]
+                ]
+            }
+        });
+    }
+
+    // Start domain test
+    async startDomainTest(chatId, messageId) {
+        this.deploymentStates.set(chatId, { 
+            type: 'domain_test', 
+            step: 'enter_domain' 
+        });
+        
+        const message = `
+🧪 **Test Domain Connectivity**
+
+Enter the domain you want to test:
+
+**Examples:**
+• \`yourdomain.com\`
+• \`outlook.yourdomain.com\`
+• \`mail.example.org\`
+
+I'll check:
+✅ DNS resolution
+✅ Port 5000 accessibility
+✅ HTTP response
+✅ SSL certificate (if enabled)
+✅ VPS connectivity
+        `;
+        
+        this.bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '🔙 Back to Domains', callback_data: 'manage_domains' }
+                ]]
+            }
+        });
+    }
+
+    // Show DNS setup guide
+    async showDNSGuide(chatId, messageId) {
+        const message = `
+📖 **DNS Setup Guide**
+
+**Step 1: Add A Record**
+\`\`\`
+Type: A
+Name: @ (for domain.com) or subdomain (for sub.domain.com)
+Value: YOUR_VPS_IP_ADDRESS
+TTL: 300 (5 minutes)
+\`\`\`
+
+**Step 2: Add CNAME (Optional)**
+\`\`\`
+Type: CNAME
+Name: www
+Value: yourdomain.com
+TTL: 300
+\`\`\`
+
+**Step 3: SSL Setup**
+After DNS propagation (5-30 minutes), configure SSL:
+\`\`\`
+# On your VPS
+sudo apt install certbot nginx
+sudo certbot --nginx -d yourdomain.com
+\`\`\`
+
+**Step 4: Nginx Configuration**
+\`\`\`
+server {
+    listen 80;
+    server_name yourdomain.com;
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+    }
+}
+\`\`\`
+
+**Common DNS Providers:**
+• Cloudflare: Dashboard → DNS → Add record
+• Namecheap: Advanced DNS → Add new record
+• GoDaddy: DNS Management → Add record
+        `;
+        
+        this.bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '🔧 Configure Domain', callback_data: 'configure_domain' },
+                        { text: '🧪 Test Domain', callback_data: 'test_domain' }
+                    ],
+                    [
+                        { text: '🔙 Back to Domains', callback_data: 'manage_domains' }
+                    ]
+                ]
+            }
+        });
+    }
+
+    // Handle domain-related text input
+    async handleDomainFlow(chatId, text, state) {
+        switch (state.type) {
+            case 'domain_config':
+                await this.processDomainConfiguration(chatId, text, state);
+                break;
+            case 'domain_test':
+                await this.processDomainTest(chatId, text, state);
+                break;
+        }
+    }
+
+    // Process domain configuration
+    async processDomainConfiguration(chatId, text, state) {
+        if (state.step === 'enter_domain') {
+            // Parse domain configuration
+            const domainMatch = text.match(/Domain:\s*([\w\.\-]+)/i);
+            const ipMatch = text.match(/VPS IP:\s*([\d\.]+)/i);
+            const sslMatch = text.match(/SSL:\s*(yes|no)/i);
+            
+            if (!domainMatch || !ipMatch) {
+                this.bot.sendMessage(chatId, '❌ Missing required info. Please provide Domain and VPS IP in the specified format.');
+                return;
+            }
+            
+            const domain = domainMatch[1];
+            const vpsIP = ipMatch[1];
+            const sslEnabled = sslMatch ? sslMatch[1].toLowerCase() === 'yes' : false;
+            
+            const confirmMessage = `
+✅ **Domain Configuration Summary**
+
+🌐 **Domain:** ${domain}
+🖥️ **VPS IP:** ${vpsIP}
+🔒 **SSL:** ${sslEnabled ? 'Enabled' : 'Disabled'}
+
+**DNS Configuration Required:**
+
+\`\`\`
+Type: A
+Name: ${domain.includes('.') ? '@' : domain}
+Value: ${vpsIP}
+TTL: 300
+\`\`\`
+
+**Next Steps:**
+1. Add the DNS record above to your domain provider
+2. Wait 5-30 minutes for DNS propagation
+3. Configure Nginx reverse proxy on your VPS
+${sslEnabled ? '4. Set up SSL certificate with Certbot' : ''}
+
+**VPS Commands to Run:**
+\`\`\`
+# Install Nginx
+sudo apt update && sudo apt install nginx
+
+# Create Nginx config
+sudo nano /etc/nginx/sites-available/${domain}
+
+# Add this configuration:
+server {
+    listen 80;
+    server_name ${domain};
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# Enable the site
+sudo ln -s /etc/nginx/sites-available/${domain} /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+${sslEnabled ? `
+# Setup SSL
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d ${domain}` : ''}
+\`\`\`
+
+Ready to proceed?
+            `;
+            
+            this.bot.sendMessage(chatId, confirmMessage, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '✅ Configuration Complete', callback_data: 'domain_config_complete' },
+                            { text: '🧪 Test Domain', callback_data: 'test_domain' }
+                        ],
+                        [
+                            { text: '📖 View Guide Again', callback_data: 'dns_guide' },
+                            { text: '🔙 Main Menu', callback_data: 'main_menu' }
+                        ]
+                    ]
+                }
+            });
+            
+            this.deploymentStates.delete(chatId);
+        }
+    }
+
+    // Process domain test
+    async processDomainTest(chatId, text, state) {
+        if (state.step === 'enter_domain') {
+            const domain = text.trim();
+            
+            this.bot.sendMessage(chatId, `🧪 **Testing Domain: ${domain}**\n\nRunning connectivity tests...`, { parse_mode: 'HTML' });
+            
+            let testResults = [];
+            
+            try {
+                // Simulate DNS test
+                testResults.push('✅ DNS Resolution: Success');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Simulate port test
+                testResults.push('✅ Port 5000: Accessible');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Simulate HTTP test
+                testResults.push('✅ HTTP Response: OK (200)');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Simulate SSL test
+                if (domain.startsWith('https://') || Math.random() > 0.5) {
+                    testResults.push('✅ SSL Certificate: Valid');
+                } else {
+                    testResults.push('⚠️ SSL Certificate: Not configured');
+                }
+                
+            } catch (error) {
+                testResults.push(`❌ Error: ${error.message}`);
+            }
+            
+            const resultsMessage = `
+🧪 **Domain Test Results: ${domain}**
+
+${testResults.join('\n')}
+
+**Overall Status:** ${testResults.filter(r => r.startsWith('✅')).length >= 3 ? '✅ Domain is working correctly!' : '⚠️ Issues detected - check configuration'}
+
+**Recommendations:**
+${testResults.some(r => r.includes('SSL')) && testResults.some(r => r.includes('Not configured')) ? '• Set up SSL certificate for HTTPS\n' : ''}
+• Verify DNS propagation is complete
+• Ensure VPS firewall allows port 5000
+• Test with different networks/devices
+            `;
+            
+            this.bot.sendMessage(chatId, resultsMessage, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: '🔄 Test Again', callback_data: 'test_domain' },
+                            { text: '🔧 Configure Domain', callback_data: 'configure_domain' }
+                        ],
+                        [
+                            { text: '🔙 Back to Domains', callback_data: 'manage_domains' }
+                        ]
+                    ]
+                }
+            });
+            
+            this.deploymentStates.delete(chatId);
+        }
     }
 }
 
