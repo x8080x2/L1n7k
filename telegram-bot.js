@@ -299,6 +299,10 @@ This bot focuses on VPS deployment and admin access for the Outlook automation p
             case 'dns_guide':
                 await this.showDNSGuide(chatId, messageId);
                 break;
+                
+            case 'cloudflare_status':
+                await this.showCloudflareStatus(chatId, messageId);
+                break;
         }
         
         this.bot.answerCallbackQuery(query.id);
@@ -1016,6 +1020,7 @@ Choose an option below:
                         { text: '🧪 Test Domain', callback_data: 'test_domain' }
                     ],
                     [
+                        { text: '🛡️ Cloudflare Security', callback_data: 'cloudflare_status' },
                         { text: '📖 DNS Setup Guide', callback_data: 'dns_guide' }
                     ],
                     [
@@ -1222,6 +1227,96 @@ server {
         });
     }
 
+    // Show Cloudflare security status
+    async showCloudflareStatus(chatId, messageId) {
+        let statusMessage = '';
+        let adminPanelUrl = '';
+
+        try {
+            // Get admin panel URL
+            adminPanelUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
+
+            // Try to get Cloudflare status
+            const response = await fetch('http://localhost:5000/api/admin/cloudflare/status', {
+                headers: { 'Authorization': `Bearer ${process.env.ADMIN_TOKEN}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    statusMessage = `
+🛡️ **Cloudflare Security Status**
+
+✅ **System Connected & Online**
+
+🤖 **Bot Fight Mode:** ${data.settings.botFightMode ? '🟢 ENABLED' : '🔴 DISABLED'}
+🔒 **Security Level:** ${data.settings.securityLevel.toUpperCase()}
+🌐 **Browser Check:** ${data.settings.browserCheck ? '🟢 ENABLED' : '🔴 DISABLED'}
+
+**Security Features:**
+• DDoS Protection: ✅ Active
+• Bot Mitigation: ${data.settings.botFightMode ? '✅ Active' : '⚠️ Disabled'}
+• Challenge Mode: ${data.settings.securityLevel !== 'off' ? '✅ Active' : '❌ Disabled'}
+
+💡 **Quick Actions:**
+Use the admin panel below to adjust security settings for all your domains.
+                    `;
+                } else {
+                    throw new Error('Cloudflare API not configured');
+                }
+            } else {
+                throw new Error('Unable to connect to Cloudflare');
+            }
+        } catch (error) {
+            statusMessage = `
+🛡️ **Cloudflare Security Status**
+
+⚠️ **Not Configured**
+
+To enable advanced domain security:
+
+1. **Get Cloudflare API Token:**
+   - Login to Cloudflare dashboard
+   - Go to My Profile → API Tokens
+   - Create token with Zone:Zone:Read, Zone:Zone Settings:Edit permissions
+
+2. **Configure in Admin Panel:**
+   - Visit the admin panel below
+   - Go to "🔧 CLOUDFLARE" section
+   - Enter API Token and Zone ID
+   - Click "SAVE & SYNC"
+
+3. **Available Features:**
+   • Bot Fight Mode - Block automated attacks
+   • Security Levels - Control challenge difficulty
+   • Browser Integrity Check - Verify legitimate browsers
+   • Custom Firewall Rules - Block specific threats
+
+🔗 **Setup Required:** Visit admin panel to configure Cloudflare integration
+            `;
+        }
+
+        this.bot.editMessageText(statusMessage, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '🌐 Open Admin Panel', url: adminPanelUrl }
+                    ],
+                    [
+                        { text: '🔄 Refresh Status', callback_data: 'cloudflare_status' },
+                        { text: '🔧 Configure Domain', callback_data: 'configure_domain' }
+                    ],
+                    [
+                        { text: '🔙 Back to Domains', callback_data: 'manage_domains' }
+                    ]
+                ]
+            }
+        });
+    }
+
     // Handle domain-related text input
     async handleDomainFlow(chatId, text, state) {
         switch (state.type) {
@@ -1251,13 +1346,36 @@ server {
             const vpsIP = ipMatch[1];
             const sslEnabled = sslMatch ? sslMatch[1].toLowerCase() === 'yes' : false;
             
+            // Check Cloudflare configuration status
+            let cloudflareStatus = '';
+            try {
+                const response = await fetch('http://localhost:5000/api/admin/cloudflare/status', {
+                    headers: { 'Authorization': `Bearer ${process.env.ADMIN_TOKEN}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        cloudflareStatus = `
+🛡️ **Cloudflare Security Status:**
+• Bot Fight Mode: ${data.settings.botFightMode ? '✅ ON' : '❌ OFF'}
+• Security Level: ${data.settings.securityLevel.toUpperCase()}
+• Browser Check: ${data.settings.browserCheck ? '✅ ON' : '❌ OFF'}
+
+📧 Access admin panel at /ad.html to adjust security settings.
+                        `;
+                    }
+                }
+            } catch (error) {
+                cloudflareStatus = '\n⚠️ **Cloudflare Status:** Not configured - set up in admin panel for enhanced security';
+            }
+            
             const confirmMessage = `
 ✅ **Domain Configuration Summary**
 
 🌐 **Domain:** ${domain}
 🖥️ **VPS IP:** ${vpsIP}
 🔒 **SSL:** ${sslEnabled ? 'Enabled' : 'Disabled'}
-
+${cloudflareStatus}
 **DNS Configuration Required:**
 
 \`\`\`
