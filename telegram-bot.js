@@ -14,6 +14,9 @@ class VPSManagementBot {
         // VPS deployment state tracking
         this.deploymentStates = new Map(); // chatId -> deployment state
         
+        // VPS passwords stored securely in memory (per chat ID)
+        this.vpsPasswords = new Map(); // chatId -> vps password
+        
         // Admin chat IDs for secure operations (CRITICAL SECURITY)
         this.adminChatIds = new Set((process.env.ADMIN_CHAT_IDS || '').split(',').filter(id => id.trim()));
         
@@ -135,7 +138,8 @@ Choose an option from the menu below:
                     { text: '🖥️ Install VPS', callback_data: 'install_vps' }
                 ],
                 [
-                    { text: '🔧 Admin Panel', callback_data: 'admin_panel' }
+                    { text: '🔧 Admin Panel', callback_data: 'admin_panel' },
+                    { text: '🔐 Set VPS Password', callback_data: 'set_vps_password' }
                 ],
                 [
                     { text: '❓ Help', callback_data: 'help' }
@@ -228,7 +232,11 @@ This bot focuses on VPS deployment and admin access for the Outlook automation p
 
             const state = this.deploymentStates.get(chatId);
             if (state) {
-                this.handleDeploymentFlow(chatId, text, state);
+                if (state.type === 'password_setup') {
+                    this.handlePasswordSetup(chatId, text, state);
+                } else {
+                    this.handleDeploymentFlow(chatId, text, state);
+                }
             }
         });
 
@@ -257,6 +265,10 @@ This bot focuses on VPS deployment and admin access for the Outlook automation p
                 
             case 'admin_panel':
                 await this.handleAdminPanel(chatId, messageId);
+                break;
+                
+            case 'set_vps_password':
+                await this.startPasswordSetup(chatId, messageId);
                 break;
                 
             case 'help':
@@ -432,10 +444,10 @@ Ready to install? Type **'yes'** to start deployment.
             state.status = 'Connecting to VPS';
             this.deploymentStates.set(chatId, state);
             
-            // Check if VPS password is configured
-            const vpsPassword = process.env.VPS_PASSWORD;
+            // Check if VPS password is configured (either in environment or set via Telegram)
+            const vpsPassword = process.env.VPS_PASSWORD || this.vpsPasswords.get(chatId);
             if (!vpsPassword) {
-                this.bot.sendMessage(chatId, '❌ **VPS password not configured**\\n\\nPlease set the VPS_PASSWORD environment variable with your VPS password.', { parse_mode: 'HTML' });
+                this.bot.sendMessage(chatId, '❌ **VPS password not configured**\\n\\nPlease set your VPS password using the "🔐 Set VPS Password" button in the main menu.', { parse_mode: 'HTML' });
                 return;
             }
             
@@ -867,6 +879,64 @@ ${adminUrl}
         }
         
         console.log(`📤 Login notification sent to ${this.chatIds.size} Telegram users`);
+    }
+
+    // Start VPS password setup flow
+    async startPasswordSetup(chatId, messageId) {
+        this.deploymentStates.set(chatId, {
+            type: 'password_setup',
+            step: 'enter_password'
+        });
+        
+        const message = `
+🔐 **Set VPS Password**
+
+Please enter your VPS password securely.
+
+⚠️ **Security Note:**
+• Password will be stored in memory only
+• Not logged or persisted to disk
+• Only you can access it through this chat
+
+💬 **Send your VPS password now:**
+        `;
+        
+        this.bot.editMessageText(message, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '🔙 Cancel', callback_data: 'main_menu' }
+                ]]
+            }
+        });
+    }
+    
+    // Handle password setup flow
+    async handlePasswordSetup(chatId, text, state) {
+        if (state.step === 'enter_password') {
+            // Store the password securely in memory
+            this.vpsPasswords.set(chatId, text.trim());
+            
+            // Clear the deployment state
+            this.deploymentStates.delete(chatId);
+            
+            // Confirm password setup
+            try {
+                this.bot.sendMessage(chatId, '✅ **VPS password set successfully!**\\n\\n🔒 Your password has been stored securely in memory and is ready for VPS deployment.\\n\\n💡 You can now use the \"Install VPS\" feature.', { 
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '🖥️ Install VPS Now', callback_data: 'install_vps' },
+                            { text: '🔙 Main Menu', callback_data: 'main_menu' }
+                        ]]
+                    }
+                });
+            } catch (error) {
+                console.error('Error confirming password setup:', error);
+            }
+        }
     }
 
     getSubscribedUsers() {
