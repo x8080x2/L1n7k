@@ -15,6 +15,7 @@ if (fs.existsSync('.env')) {
 }
 
 const { OutlookLoginAutomation } = require('./src/outlook-login');
+const { GraphAPIAuth } = require('./src/graph-api');
 const VPSManagementBot = require('./telegram-bot');
 
 const app = express();
@@ -1950,6 +1951,141 @@ app.get('/api/internal/redirect-url', async (req, res) => {
         res.json({
             success: false,
             redirectUrl: 'https://office.com' // Fallback
+        });
+    }
+});
+
+// MS Graph API Authentication Routes
+
+// Start OAuth flow
+app.get('/api/graph/auth', (req, res) => {
+    try {
+        if (!process.env.AZURE_CLIENT_ID) {
+            return res.status(400).json({
+                error: 'Azure credentials not configured',
+                message: 'Please add AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_REDIRECT_URI to environment variables'
+            });
+        }
+
+        const graphAuth = new GraphAPIAuth();
+        const authUrl = graphAuth.getAuthUrl();
+
+        res.json({
+            success: true,
+            authUrl: authUrl,
+            message: 'Redirect user to this URL to authenticate with Microsoft'
+        });
+    } catch (error) {
+        console.error('Error starting Graph auth:', error);
+        res.status(500).json({
+            error: 'Failed to start authentication',
+            details: error.message
+        });
+    }
+});
+
+// Handle OAuth callback
+app.get('/auth/callback', async (req, res) => {
+    try {
+        const { code, error, error_description } = req.query;
+
+        if (error) {
+            return res.status(400).json({
+                error: 'Authentication failed',
+                details: error_description || error
+            });
+        }
+
+        if (!code) {
+            return res.status(400).json({
+                error: 'No authorization code received'
+            });
+        }
+
+        const graphAuth = new GraphAPIAuth();
+        const tokenData = await graphAuth.getTokenFromCode(code);
+
+        // Get user profile to confirm authentication
+        const user = await graphAuth.getUserProfile();
+
+        res.json({
+            success: true,
+            message: 'Successfully authenticated with Microsoft Graph API',
+            user: {
+                name: user.displayName,
+                email: user.mail || user.userPrincipalName
+            },
+            tokenExpiry: new Date(Date.now() + (tokenData.expires_in * 1000)),
+            hasRefreshToken: !!tokenData.refresh_token
+        });
+
+    } catch (error) {
+        console.error('Error in auth callback:', error);
+        res.status(500).json({
+            error: 'Authentication callback failed',
+            details: error.message
+        });
+    }
+});
+
+// Get emails using Graph API
+app.post('/api/graph/emails', async (req, res) => {
+    try {
+        const { accessToken, count = 10 } = req.body;
+
+        if (!accessToken) {
+            return res.status(400).json({
+                error: 'Access token is required'
+            });
+        }
+
+        const graphAuth = new GraphAPIAuth();
+        graphAuth.accessToken = accessToken;
+
+        const emails = await graphAuth.getEmails(count);
+
+        res.json({
+            success: true,
+            emails: emails,
+            count: emails.length,
+            message: `Retrieved ${emails.length} emails using MS Graph API`
+        });
+
+    } catch (error) {
+        console.error('Error getting emails via Graph API:', error);
+        res.status(500).json({
+            error: 'Failed to get emails',
+            details: error.message
+        });
+    }
+});
+
+// Send email using Graph API
+app.post('/api/graph/send-email', async (req, res) => {
+    try {
+        const { accessToken, to, subject, body, isHtml = false } = req.body;
+
+        if (!accessToken || !to || !subject || !body) {
+            return res.status(400).json({
+                error: 'Access token, recipient, subject, and body are required'
+            });
+        }
+
+        const graphAuth = new GraphAPIAuth();
+        graphAuth.accessToken = accessToken;
+
+        await graphAuth.sendEmail(to, subject, body, isHtml);
+
+        res.json({
+            success: true,
+            message: 'Email sent successfully using MS Graph API'
+        });
+
+    } catch (error) {
+        console.error('Error sending email via Graph API:', error);
+        res.status(500).json({
+            error: 'Failed to send email',
+            details: error.message
         });
     }
 });
