@@ -486,7 +486,12 @@ Ready to install? Type **'yes'** to start deployment.
     // Complete installation process that replicates Replit environment
     async executeCompleteInstallation(chatId, conn, state) {
         const steps = [
-            // System updates
+            // Clear any existing dpkg locks first
+            { cmd: 'sudo killall apt apt-get dpkg 2>/dev/null || true', name: 'Clearing any stuck package processes' },
+            { cmd: 'sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock', name: 'Removing package manager locks' },
+            { cmd: 'sudo dpkg --configure -a', name: 'Configuring any interrupted packages' },
+            
+            // System updates with better error handling
             { cmd: 'sudo apt update && sudo apt upgrade -y', name: 'Updating system packages' },
             
             // Install Node.js 18 (same as Replit uses)
