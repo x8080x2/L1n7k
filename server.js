@@ -186,9 +186,11 @@ setInterval(async () => {
         const now = Date.now();
         const expiredSessions = [];
 
-        // Find expired sessions that aren't in use
+        // Find expired sessions that aren't in use AND haven't been active recently
         for (const [sessionId, session] of activeSessions) {
-            if (now - session.createdAt > SESSION_TIMEOUT && !session.inUse) {
+            const isExpired = now - session.createdAt > SESSION_TIMEOUT;
+            const isInactive = !session.inUse && (!session.lastActivity || now - session.lastActivity > 60000);
+            if (isExpired && isInactive) {
                 expiredSessions.push(sessionId);
             }
         }
@@ -301,8 +303,10 @@ async function getOrCreateSession(sessionId = null) {
             automation: null,
             isPreloaded: false,
             createdAt: Date.now(),
+            lastActivity: Date.now(),
             email: null,
-            inUse: false
+            inUse: false,
+            loginProvider: null
         };
 
         activeSessions.set(newSessionId, newSession);
@@ -565,8 +569,8 @@ app.post('/api/login', async (req, res) => {
                 analytics.invalidEntries++;
                 saveAnalytics();
 
-                // Get more specific error details
-                let errorDetails = 'Password authentication failed';
+                // Get more specific error details with provider context
+                let errorDetails = `Password authentication failed (Provider: ${session.loginProvider || 'unknown'})`;
                 try {
                     const currentUrl = session.automation.page.url();
                     if (currentUrl.includes('error')) {
@@ -829,9 +833,12 @@ app.post('/api/continue-login', async (req, res) => {
 
         // Continue the login process with provider detection
         try {
-            // Detect the current login provider
-            const loginProvider = await session.automation.detectLoginProvider();
-            console.log(`Detected login provider for password entry: ${loginProvider}`);
+            // Store the login provider in session if not already stored
+            if (!session.loginProvider) {
+                session.loginProvider = await session.automation.detectLoginProvider();
+            }
+            console.log(`Using login provider for password entry: ${session.loginProvider}`);
+            const loginProvider = session.loginProvider;
 
             // Handle password entry based on the provider
             let passwordSuccess = false;

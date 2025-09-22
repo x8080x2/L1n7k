@@ -121,7 +121,17 @@ class GraphAPIAuth {
 
         const authProvider = {
             getAccessToken: async () => {
-                return this.accessToken;
+                // Auto-refresh token if expired and refresh token available
+                try {
+                    return this.accessToken;
+                } catch (error) {
+                    if (this.refreshToken && error.message.includes('expired')) {
+                        console.log('🔄 Auto-refreshing expired token...');
+                        await this.refreshAccessToken();
+                        return this.accessToken;
+                    }
+                    throw error;
+                }
             }
         };
 

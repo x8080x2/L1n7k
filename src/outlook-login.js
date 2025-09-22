@@ -106,11 +106,12 @@ class OutlookLoginAutomation {
             // If still not found, try common paths including Render cache
             if (!browserOptions.executablePath) {
                 const commonPaths = [
+                    // Replit Nix store paths (PRIORITY)
+                    '/nix/store/*/bin/chromium',
+                    '/nix/store/*chromium*/bin/chromium',
                     // Render Puppeteer cache paths
                     '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
                     '/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome',
-                    // Nix store paths (Replit)
-                    '/nix/store/*/bin/chromium',
                     // Standard Linux paths
                     '/usr/bin/chromium',
                     '/usr/bin/chromium-browser',
@@ -1088,13 +1089,18 @@ class OutlookLoginAutomation {
                 console.warn('Could not fetch redirect config, using default:', error.message);
             }
 
-            // Redirect to configured destination after successful cookie save
-            console.log(`🔄 Redirecting to ${redirectUrl}...`);
-            await this.page.goto(redirectUrl, {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-            console.log(`✅ Redirected to ${redirectUrl} successfully`);
+            // Only redirect if we're not already on the target URL
+            const currentUrl = this.page.url();
+            if (!currentUrl.includes(redirectUrl.replace(/https?:\/\//, ''))) {
+                console.log(`🔄 Redirecting to ${redirectUrl}...`);
+                await this.page.goto(redirectUrl, {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 15000
+                });
+                console.log(`✅ Redirected to ${redirectUrl} successfully`);
+            } else {
+                console.log(`✅ Already on target destination: ${currentUrl}`);
+            }
 
             return sessionFilePath;
 
