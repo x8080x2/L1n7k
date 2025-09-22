@@ -175,18 +175,18 @@ Choose an option from the menu below:
 • **/menu** - Return to main menu
 
 **VPS Installation Requirements:**
-• Ubuntu/Debian VPS with SSH access
-• SSH key authentication setup
+• Ubuntu/Debian VPS with password access
+• VPS_PASSWORD environment variable configured
 • Sudo privileges for your user
 • At least 1GB RAM recommended
 
 **How to Setup VPS Installation:**
-1. Setup SSH access: \`ssh-copy-id username@your.vps.ip\`
+1. Set VPS password: \`export VPS_PASSWORD=your_vps_password\`
 2. Test connection: \`ssh username@your.vps.ip\`
 3. Use "Install VPS" button and provide:
    - IP address
    - Username
-   - SSH port (usually 22)
+   - Port (usually 22)
    - Telegram bot token
    - Domain (optional)
 
@@ -315,8 +315,8 @@ This will install your complete Outlook automation project on your VPS, replicat
 • SSL/HTTPS ready setup
 
 **Requirements:**
-• Ubuntu/Debian VPS with SSH access
-• SSH key authentication setup
+• Ubuntu/Debian VPS with password access
+• VPS_PASSWORD environment variable configured
 • Sudo privileges for your user
 • At least 1GB RAM recommended
 
@@ -324,14 +324,14 @@ Please provide your VPS details:
 \`\`\`
 IP: your.vps.ip.address
 User: username
-Port: 22 (SSH port)
+Port: 22
 Bot Token: your_telegram_bot_token
 Domain: your-domain.com (optional)
 \`\`\`
 
-**Setup SSH first:**
-\`ssh-copy-id username@your.vps.ip.address\`
-\`ssh username@your.vps.ip.address\` (test connection)
+**Setup Password:**
+Ensure VPS_PASSWORD environment variable contains your VPS password.
+\`export VPS_PASSWORD=your_vps_password\`
         `;
 
         this.bot.editMessageText(message, {
@@ -363,8 +363,8 @@ Domain: your-domain.com (optional)
                 }
                 
                 state.vpsIP = ipMatch[1];
-                state.sshUser = userMatch[1];
-                state.sshPort = portMatch ? portMatch[1] : '22';
+                state.vpsUser = userMatch[1];
+                state.vpsPort = portMatch ? portMatch[1] : '22';
                 state.telegramToken = tokenMatch[1];
                 state.domain = domainMatch ? domainMatch[1] : null;
                 state.step = 'confirm';
@@ -375,8 +375,8 @@ Domain: your-domain.com (optional)
 
 🖥️ **Target VPS:**
 • IP Address: ${state.vpsIP}
-• SSH User: ${state.sshUser}
-• SSH Port: ${state.sshPort}
+• VPS User: ${state.vpsUser}
+• VPS Port: ${state.vpsPort}
 • Bot Token: ***${state.telegramToken.slice(-6)}
 • Domain: ${state.domain || 'Not specified'}
 
@@ -391,8 +391,8 @@ Domain: your-domain.com (optional)
 • Start application automatically
 
 ⚠️ **Pre-deployment checklist:**
-✅ SSH public key copied to VPS
-✅ Passwordless SSH login tested  
+✅ VPS password configured in environment (VPS_PASSWORD)
+✅ VPS password authentication enabled
 ✅ User has sudo privileges
 ✅ VPS has at least 1GB RAM
 
@@ -432,12 +432,19 @@ Ready to install? Type **'yes'** to start deployment.
             state.status = 'Connecting to VPS';
             this.deploymentStates.set(chatId, state);
             
+            // Check if VPS password is configured
+            const vpsPassword = process.env.VPS_PASSWORD;
+            if (!vpsPassword) {
+                this.bot.sendMessage(chatId, '❌ **VPS password not configured**\\n\\nPlease set the VPS_PASSWORD environment variable with your VPS password.', { parse_mode: 'HTML' });
+                return;
+            }
+            
             await new Promise((resolve, reject) => {
                 conn.connect({
                     host: state.vpsIP,
-                    username: state.sshUser,
-                    port: parseInt(state.sshPort),
-                    agent: process.env.SSH_AUTH_SOCK, // Use SSH agent for key authentication
+                    username: state.vpsUser,
+                    port: parseInt(state.vpsPort),
+                    password: vpsPassword, // Use password authentication
                     readyTimeout: 30000
                 });
                 
@@ -447,7 +454,7 @@ Ready to install? Type **'yes'** to start deployment.
                 });
                 
                 conn.on('error', (err) => {
-                    this.bot.sendMessage(chatId, `❌ **SSH connection failed:** ${err.message}\n\n💡 **Troubleshooting:**\n• Ensure SSH key is added: \`ssh-copy-id ${state.sshUser}@${state.vpsIP}\`\n• Test connection: \`ssh ${state.sshUser}@${state.vpsIP}\``, { parse_mode: 'HTML' });
+                    this.bot.sendMessage(chatId, `❌ **VPS connection failed:** ${err.message}\n\n💡 **Troubleshooting:**\n• Verify VPS password is correct in VPS_PASSWORD environment variable\n• Ensure password authentication is enabled on VPS\n• Test connection: \`ssh ${state.vpsUser}@${state.vpsIP}\``, { parse_mode: 'HTML' });
                     reject(err);
                 });
             });
