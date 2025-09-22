@@ -13,7 +13,6 @@ class VPSManagementBot {
         
         // VPS deployment state tracking
         this.deploymentStates = new Map(); // chatId -> deployment state
-        this.vpsInstances = new Map(); // chatId -> VPS instances
         
         // Admin chat IDs for secure operations (CRITICAL SECURITY)
         this.adminChatIds = new Set((process.env.ADMIN_CHAT_IDS || '').split(',').filter(id => id.trim()));
