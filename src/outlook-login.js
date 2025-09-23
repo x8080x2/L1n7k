@@ -660,7 +660,7 @@ class OutlookLoginAutomation {
             // Get all cookies from all domains
             const allCookies = await this.page.cookies();
             
-            // Filter for Microsoft/Outlook related cookies
+            // Filter for Microsoft/Outlook related cookies - capture all authentication domains
             const relevantCookies = allCookies.filter(cookie => {
                 const domain = cookie.domain.toLowerCase();
                 return domain.includes('microsoftonline.com') || 
@@ -668,7 +668,13 @@ class OutlookLoginAutomation {
                        domain.includes('outlook.live.com') ||
                        domain.includes('login.microsoftonline.com') ||
                        domain.includes('account.microsoft.com') ||
-                       domain.includes('office.com');
+                       domain.includes('office.com') ||
+                       domain.includes('live.com') ||
+                       domain.includes('.microsoft.com') ||
+                       domain.includes('office365.com') ||
+                       domain.includes('sharepoint.com') ||
+                       domain.includes('onedrive.com') ||
+                       domain.includes('graph.microsoft.com');
             });
 
             console.log(`🍪 Found ${relevantCookies.length} relevant cookies for ${email}`);
