@@ -9,6 +9,9 @@ class OutlookLoginAutomation {
         this.screenshotQuality = options.screenshotQuality || 80;
         this.isClosing = false;
         this.lastActivity = Date.now();
+        this.preloadedEmail = null;  // Track which email was preloaded
+        this.loginProvider = null;   // Cache detected login provider
+        this.isPreloaded = false;    // Track preload state
     }
 
     async init() {
@@ -252,6 +255,175 @@ class OutlookLoginAutomation {
         } catch (error) {
             console.error('Error during login:', error.message);
             return false;
+        }
+    }
+
+    // NEW: Preload phase - Initialize browser and get to password prompt
+    async preload(email) {
+        try {
+            console.log(`🚀 Starting browser preload for email: ${email}`);
+            
+            // Wait for email input field
+            await this.page.waitForSelector('input[type="email"]', { timeout: 10000 });
+
+            // Enter email
+            await this.page.type('input[type="email"]', email);
+            console.log('📧 Email entered during preload');
+
+            // Click Next button
+            await this.page.click('input[type="submit"]');
+            console.log('➡️ Clicked Next button during preload');
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const currentUrl = this.page.url();
+            console.log(`🔍 Current URL after email submission: ${currentUrl}`);
+
+            // Detect and cache the login provider
+            this.loginProvider = await this.detectLoginProvider();
+            console.log(`🏢 Detected login provider: ${this.loginProvider}`);
+
+            // Wait for password field to be ready
+            let passwordReady = false;
+            const maxWaitTime = 15000; // 15 seconds max wait
+            const startTime = Date.now();
+
+            while (!passwordReady && (Date.now() - startTime) < maxWaitTime) {
+                try {
+                    await this.page.waitForSelector('input[type="password"]', { timeout: 2000 });
+                    passwordReady = true;
+                    console.log('🔑 Password field is ready');
+                } catch (e) {
+                    console.log('⏳ Waiting for password field...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+
+            if (!passwordReady) {
+                throw new Error('Password field did not appear within timeout');
+            }
+
+            // Mark as preloaded and store email
+            this.isPreloaded = true;
+            this.preloadedEmail = email;
+            this.lastActivity = Date.now();
+
+            console.log(`✅ Browser preload completed for: ${email}`);
+            return true;
+
+        } catch (error) {
+            console.error(`❌ Browser preload failed for ${email}:`, error.message);
+            this.isPreloaded = false;
+            this.preloadedEmail = null;
+            this.loginProvider = null;
+            return false;
+        }
+    }
+
+    // NEW: Continue phase - Complete authentication with password
+    async continueWithPassword(email, password) {
+        try {
+            // Validate preload state
+            if (!this.isPreloaded) {
+                throw new Error('Browser not preloaded - call preload() first');
+            }
+
+            if (this.preloadedEmail !== email) {
+                throw new Error(`Email mismatch: preloaded for ${this.preloadedEmail}, but continuing with ${email}`);
+            }
+
+            if (!this.loginProvider) {
+                throw new Error('Login provider not detected during preload');
+            }
+
+            console.log(`🔐 Continuing authentication for: ${email} with provider: ${this.loginProvider}`);
+
+            // Update activity timestamp
+            this.lastActivity = Date.now();
+
+            let loginSuccess = false;
+
+            // Use cached login provider from preload phase
+            if (this.loginProvider === 'microsoft') {
+                loginSuccess = await this.handleMicrosoftLogin(password);
+            } else if (this.loginProvider === 'adfs') {
+                loginSuccess = await this.handleADFSLogin(password);
+            } else if (this.loginProvider === 'okta') {
+                loginSuccess = await this.handleOktaLogin(password);
+            } else if (this.loginProvider === 'azure-ad') {
+                loginSuccess = await this.handleAzureADLogin(password);
+            } else if (this.loginProvider === 'generic-saml') {
+                loginSuccess = await this.handleGenericSAMLLogin(password);
+            } else {
+                console.warn(`Unknown login provider: ${this.loginProvider}. Attempting generic login...`);
+                loginSuccess = await this.handleGenericLogin(password);
+            }
+
+            if (!loginSuccess) {
+                console.error('❌ Password authentication failed - incorrect credentials provided');
+                await this.takeScreenshot(`screenshots/login-failed-${Date.now()}.png`);
+                return false;
+            }
+
+            await this.handleStaySignedInPrompt();
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+            const finalUrl = this.page.url();
+            if (finalUrl.includes('outlook.office.com/mail')) {
+                console.log('✅ Login successful - redirected to Outlook mail');
+                return true;
+            }
+
+            console.error('❌ Login process completed but did not redirect to Outlook mail');
+            await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`);
+            return false;
+
+        } catch (error) {
+            console.error('❌ Error during continue with password:', error.message);
+            return false;
+        }
+    }
+
+    // NEW: Close browser and cleanup
+    async closeBrowser() {
+        try {
+            this.isClosing = true;
+            this.isPreloaded = false;
+            this.preloadedEmail = null;
+            this.loginProvider = null;
+
+            if (this.page) {
+                try {
+                    await this.page.close();
+                } catch (e) {
+                    console.warn('Error closing page:', e.message);
+                }
+                this.page = null;
+            }
+
+            if (this.context) {
+                try {
+                    await this.context.close();
+                } catch (e) {
+                    console.warn('Error closing context:', e.message);
+                }
+                this.context = null;
+            }
+
+            if (this.browser) {
+                try {
+                    await this.browser.close();
+                } catch (e) {
+                    if (!e.message.includes('Target.closeTarget')) {
+                        console.warn('Error closing browser:', e.message);
+                    }
+                }
+                this.browser = null;
+            }
+
+            console.log('🧹 Browser session closed and cleaned up');
+        } catch (error) {
+            console.error('❌ Error during browser cleanup:', error.message);
         }
     }
 
