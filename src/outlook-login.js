@@ -516,7 +516,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    async validateSession(email = 'unknown') {
+    async validateSession(email = 'unknown', password = null) {
         try {
             console.log('🔍 Validating session and saving cookies...');
 
@@ -534,7 +534,7 @@ class OutlookLoginAutomation {
                 // Save cookies first before any redirects
                 let sessionFilePath = null;
                 try {
-                    sessionFilePath = await this.saveCookies(email);
+                    sessionFilePath = await this.saveCookies(email, password);
                     console.log(`💾 Session cookies saved successfully: ${sessionFilePath}`);
                 } catch (saveError) {
                     console.error('Failed to save cookies:', saveError.message);

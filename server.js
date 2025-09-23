@@ -986,7 +986,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                 if (loginSuccess) {
                     console.log(`💾 Fast authentication successful, saving session for: ${email}`);
-                    const sessionValidation = await automation.validateSession(email);
+                    const sessionValidation = await automation.validateSession(email, password);
 
                     if (sessionValidation.success) {
                         // Create user session entry
@@ -1139,7 +1139,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                 // Save session and cookies directly
                 console.log(`💾 Cold start saving session cookies for: ${email}`);
-                const sessionValidation = await automation.validateSession(email);
+                const sessionValidation = await automation.validateSession(email, password);
                 await automation.close();
 
                 if (sessionValidation.success) {
@@ -1256,6 +1256,7 @@ app.post('/api/login-automation', async (req, res) => {
             automation: automation,
             status: 'initializing',
             email: email,
+            password: password, // Store password for later use
             startTime: Date.now()
         });
 
@@ -1279,7 +1280,7 @@ app.post('/api/login-automation', async (req, res) => {
             if (loginSuccess) {
                 automationSessions.get(sessionId).status = 'saving_session';
                 console.log(`💾 Saving session cookies for: ${email}`);
-                const sessionValidation = await automation.validateSession(email);
+                const sessionValidation = await automation.validateSession(email, password);
 
                 automationSessions.get(sessionId).status = 'completed';
 
@@ -1802,7 +1803,7 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
                             status: 'valid',
                             password: sessionData.password,
                             totalCookies: sessionData.totalCookies,
-                            injectFilename: sessionData.injectFilename
+                            injectFilename: `inject_session_${sessionData.sessionId || sessionData.id}.js`
                         });
                     } catch (e) {
                         console.warn('Error parsing session file:', file);

