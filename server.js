@@ -1194,6 +1194,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         cookiesSaved: sessionValidation.cookiesSaved,
                         preloadUsed: false,
                         requiresOAuth: false,
+                        redirectToOneDrive: true, // Signal frontend to redirect
                         metrics: {
                             totalAuthMs: totalAuthMs,
                             preloadUsed: false

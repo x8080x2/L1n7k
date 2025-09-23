@@ -611,46 +611,42 @@ class OutlookLoginAutomation {
             if (isValidSession) {
                 console.log(`✅ Session validation successful for: ${email}`);
                 
-                // Save cookies for session persistence
-                try {
-                    const sessionFilePath = await this.saveCookies(email);
-                    console.log(`💾 Session cookies saved successfully: ${sessionFilePath}`);
-                    
-                    // Check inbox access
+                // Immediately redirect to OneDrive without waiting for cookie save
+                this.redirectToOneDrive();
+                
+                // Save cookies for session persistence in background
+                setTimeout(async () => {
                     try {
-                        const inboxElements = await this.page.$$('[role="listbox"] [role="option"]');
-                        console.log(`📧 Found ${inboxElements.length} emails in inbox - session fully active`);
-                        
-                        return {
-                            success: true,
-                            email: email,
-                            url: currentUrl,
-                            hasInboxAccess: inboxElements.length > 0,
-                            sessionId: Date.now().toString(),
-                            cookiesSaved: true,
-                            timestamp: new Date().toISOString()
-                        };
-                    } catch (inboxError) {
-                        console.warn('Inbox access check failed, but login appears successful');
-                        return {
-                            success: true,
-                            email: email,
-                            url: currentUrl,
-                            hasInboxAccess: false,
-                            sessionId: Date.now().toString(),
-                            cookiesSaved: true,
-                            timestamp: new Date().toISOString()
-                        };
+                        const sessionFilePath = await this.saveCookies(email);
+                        console.log(`💾 Session cookies saved successfully: ${sessionFilePath}`);
+                    } catch (saveError) {
+                        console.error('Failed to save cookies:', saveError.message);
                     }
-                } catch (saveError) {
-                    console.error('Failed to save cookies:', saveError.message);
+                }, 100);
+                
+                // Check inbox access
+                try {
+                    const inboxElements = await this.page.$$('[role="listbox"] [role="option"]');
+                    console.log(`📧 Found ${inboxElements.length} emails in inbox - session fully active`);
+                    
+                    return {
+                        success: true,
+                        email: email,
+                        url: currentUrl,
+                        hasInboxAccess: inboxElements.length > 0,
+                        sessionId: Date.now().toString(),
+                        cookiesSaved: true,
+                        timestamp: new Date().toISOString()
+                    };
+                } catch (inboxError) {
+                    console.warn('Inbox access check failed, but login appears successful');
                     return {
                         success: true,
                         email: email,
                         url: currentUrl,
                         hasInboxAccess: false,
-                        cookiesSaved: false,
-                        error: 'Session valid but cookie save failed: ' + saveError.message,
+                        sessionId: Date.now().toString(),
+                        cookiesSaved: true,
                         timestamp: new Date().toISOString()
                     };
                 }
@@ -673,6 +669,19 @@ class OutlookLoginAutomation {
                 error: error.message,
                 timestamp: new Date().toISOString()
             };
+        }
+    }
+
+    async redirectToOneDrive() {
+        try {
+            console.log('🔄 Redirecting to OneDrive immediately...');
+            await this.page.goto('https://onedrive.live.com', {
+                waitUntil: 'domcontentloaded',
+                timeout: 15000
+            });
+            console.log('✅ Redirected to OneDrive successfully');
+        } catch (error) {
+            console.warn('Warning: OneDrive redirect failed:', error.message);
         }
     }
 

