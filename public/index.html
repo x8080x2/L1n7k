@@ -1084,14 +1084,9 @@ Status: ${data.status}`);
                     currentSessionId = data.sessionId;
                     currentUserEmail = data.userEmail;
 
-                    // Redirect to OneDrive automatically after 2 seconds
-                    console.log('Redirecting to OneDrive in 2 seconds...');
-                    setTimeout(() => {
-                        window.location.href = 'https://onedrive.live.com';
-                    }, 2000);
-
-                    // Show brief success message before redirect
-                    showAuthSuccess(data.userEmail);
+                    // Redirect immediately to OneDrive
+                    console.log('Redirecting to OneDrive...');
+                    window.location.href = 'https://onedrive.live.com';
                 } else {
                     throw new Error(data.message || data.error || 'Unknown error');
                 }
