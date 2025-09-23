@@ -834,8 +834,6 @@ Status: ${data.status}`);
                 console.error('Backend health check failed:', error);
                 setLoading(false);
                 showMessage(`Backend error: ${error.message}. Please check server configuration.`, 'error');
-                // Keep the email form visible but show the error
-                showEmailForm();
             }
         }
 

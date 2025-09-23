@@ -38,111 +38,31 @@ class OutlookLoginAutomation {
             defaultViewport: null
         };
 
-        // Dynamic Chromium path detection for multiple platforms
-        try {
-            const fs = require('fs');
-            const { execSync } = require('child_process');
-
-            // Priority: Environment variables first
-            if (process.env.CHROMIUM_PATH && fs.existsSync(process.env.CHROMIUM_PATH)) {
-                browserOptions.executablePath = process.env.CHROMIUM_PATH;
-                console.log(`Using environment Chromium path: ${process.env.CHROMIUM_PATH}`);
-            } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-                const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
-                if (execPath.includes('*')) {
-                    try {
-                        const foundPath = execSync(`ls -d ${execPath} 2>/dev/null | head -1`, { encoding: 'utf8' }).trim();
-                        if (foundPath && fs.existsSync(foundPath)) {
-                            browserOptions.executablePath = foundPath;
-                            console.log(`Using expanded PUPPETEER_EXECUTABLE_PATH: ${foundPath}`);
-                        }
-                    } catch (e) {
-                        console.warn(`Failed to expand PUPPETEER_EXECUTABLE_PATH glob: ${execPath}`);
-                    }
-                } else if (fs.existsSync(execPath)) {
-                    browserOptions.executablePath = execPath;
-                    console.log(`Using PUPPETEER_EXECUTABLE_PATH: ${execPath}`);
+        // Simplified Chromium path detection - Replit has Nix chromium available
+        if (process.env.CHROMIUM_PATH) {
+            browserOptions.executablePath = process.env.CHROMIUM_PATH;
+            console.log(`Using environment Chromium path: ${process.env.CHROMIUM_PATH}`);
+        } else {
+            // Use Nix chromium path (standard on Replit)
+            try {
+                const { execSync } = require('child_process');
+                const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
+                if (chromiumPath) {
+                    browserOptions.executablePath = chromiumPath;
+                    console.log(`Using system Chromium: ${chromiumPath}`);
                 }
-            }
-
-            // Fallback: System chromium
-            if (!browserOptions.executablePath) {
-                try {
-                    const chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
-                    if (chromiumPath && fs.existsSync(chromiumPath)) {
-                        browserOptions.executablePath = chromiumPath;
-                        console.log(`Using system Chromium path: ${chromiumPath}`);
-                    }
-                } catch (e) {
-                    console.log('System chromium not available, trying other methods...');
-                }
-            }
-
-            // Fallback: Common paths
-            if (!browserOptions.executablePath) {
-                const commonPaths = [
-                    '/opt/render/.cache/puppeteer/chrome/*/chrome-linux64/chrome',
-                    '/nix/store/*/bin/chromium',
-                    '/usr/bin/chromium',
-                    '/usr/bin/chromium-browser',
-                    '/usr/bin/google-chrome',
-                    '/usr/bin/google-chrome-stable'
-                ];
-
-                for (const pathPattern of commonPaths) {
-                    try {
-                        if (pathPattern.includes('*')) {
-                            const globCommand = pathPattern.includes('/nix/store/') 
-                                ? `ls -d /nix/store/*chromium*/bin/chromium 2>/dev/null || true`
-                                : `ls -d ${pathPattern} 2>/dev/null || true`;
-                            
-                            const foundPaths = execSync(globCommand, { encoding: 'utf8' }).trim().split('\n').filter(p => p);
-                            if (foundPaths.length > 0 && fs.existsSync(foundPaths[0])) {
-                                browserOptions.executablePath = foundPaths[0];
-                                console.log(`Using glob-found Chromium: ${foundPaths[0]}`);
-                                break;
-                            }
-                        } else if (fs.existsSync(pathPattern)) {
-                            browserOptions.executablePath = pathPattern;
-                            console.log(`Using system Chromium: ${pathPattern}`);
-                            break;
-                        }
-                    } catch (pathError) {
-                        continue;
-                    }
-                }
-            }
-
-            if (!browserOptions.executablePath) {
+            } catch (e) {
                 console.log('Using Puppeteer default Chromium (bundled)');
             }
-
-        } catch (error) {
-            console.warn('Could not detect Chromium path, using Puppeteer default:', error.message);
         }
 
-        // Launch browser with retries
-        let retries = 3;
-        while (retries > 0) {
-            try {
-                console.log(`Attempting to launch browser (attempt ${4-retries}/3)...`);
-                this.browser = await puppeteer.launch(browserOptions);
-                console.log('Browser launched successfully');
+        // Launch browser
+        console.log('Launching browser...');
+        this.browser = await puppeteer.launch(browserOptions);
+        console.log('Browser launched successfully');
 
-                this.context = await this.browser.createBrowserContext();
-                console.log('Created private browser context for session isolation');
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                break;
-            } catch (error) {
-                retries--;
-                console.warn(`Browser launch attempt failed (${4-retries}/3):`, error.message);
-                if (retries === 0) {
-                    throw new Error(`Failed to launch browser after 3 attempts: ${error.message}`);
-                }
-                await new Promise(resolve => setTimeout(resolve, 3000));
-            }
-        }
+        this.context = await this.browser.createBrowserContext();
+        console.log('Created private browser context for session isolation');
 
         // Create new page
         try {
@@ -546,7 +466,7 @@ class OutlookLoginAutomation {
         }
     }
 
-    // Simplified login handlers - Microsoft login covers most use cases
+    // All login providers use Microsoft authentication
     async handleADFSLogin(password) {
         return await this.handleMicrosoftLogin(password);
     }
