@@ -680,8 +680,8 @@
                     <option value="https://google.com">Google</option>
                     <option value="custom">Custom URL...</option>
                 </select>
-                <button onclick="updateRedirectDestination()" style="background: #00aa66; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    UPDATE
+                <button onclick="updateProjectRedirect()" style="background: #00aa66; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                    UPDATE PROJECT
                 </button>
             </div>
 
@@ -1402,9 +1402,8 @@
 
         // Redirect Configuration Functions
         async function loadRedirectConfig() {
-            const token = getStoredToken();
             try {
-                const response = await fetch(`/api/admin/redirect-config?token=${encodeURIComponent(token)}`);
+                const response = await fetch(`/api/internal/redirect-url`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1438,7 +1437,7 @@
             }
         }
 
-        async function updateRedirectDestination() {
+        async function updateProjectRedirect() {
             const token = getStoredToken();
             const select = document.getElementById('redirect-destination');
             const customInput = document.getElementById('custom-redirect-url');
@@ -1460,7 +1459,7 @@
             }
 
             try {
-                const response = await fetch(`/api/admin/redirect-config?token=${encodeURIComponent(token)}`, {
+                const response = await fetch(`/api/admin/project-redirect?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ redirectUrl: targetUrl })
@@ -1471,8 +1470,8 @@
                 if (data.success) {
                     document.getElementById('current-redirect-display').textContent = `🎯 ${targetUrl}`;
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: #00ff88; font-weight: bold;">✅ UPDATED: ${targetUrl}</span>`;
-                    alert(`✅ Redirect destination updated to: ${targetUrl}`);
+                        `<span style="color: #00ff88; font-weight: bold;">✅ PROJECT REDIRECT UPDATED: ${targetUrl}</span>`;
+                    alert(`✅ Project redirect destination updated to: ${targetUrl}\nThis affects all login redirects in your project.`);
                 } else {
                     alert('Error: ' + data.error);
                     document.getElementById('redirect-status').innerHTML = 

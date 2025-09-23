@@ -1692,6 +1692,54 @@ app.get('/api/session-data/:sessionId', (req, res) => {
     }
 });
 
+// Admin endpoint to update project redirect configuration
+app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
+    try {
+        const { redirectUrl } = req.body;
+
+        if (!redirectUrl) {
+            return res.status(400).json({
+                success: false,
+                error: 'redirectUrl is required'
+            });
+        }
+
+        // Validate URL
+        try {
+            new URL(redirectUrl);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format'
+            });
+        }
+
+        // Update redirect-config.json
+        const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
+        const redirectConfig = {
+            redirectUrl: redirectUrl,
+            lastUpdated: new Date().toISOString()
+        };
+
+        fs.writeFileSync(redirectConfigPath, JSON.stringify(redirectConfig, null, 2));
+        console.log(`📍 Project redirect updated to: ${redirectUrl}`);
+
+        res.json({
+            success: true,
+            redirectUrl: redirectUrl,
+            message: 'Project redirect configuration updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error updating project redirect:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update project redirect configuration',
+            details: error.message
+        });
+    }
+});
+
 // Admin endpoints
 app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
     const sessions = Array.from(userSessions.values()).map(session => ({
