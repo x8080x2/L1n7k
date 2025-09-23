@@ -1498,16 +1498,8 @@ app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
     }
 });
 
-// Internal redirect URL endpoint (used by automation) - Localhost only for security
+// Internal redirect URL endpoint (used by automation and admin panel)
 app.get('/api/internal/redirect-url', (req, res) => {
-    // Allow only localhost connections for security
-    const clientIP = req.ip || req.connection.remoteAddress;
-    if (!clientIP.includes('127.0.0.1') && !clientIP.includes('::1') && !clientIP.includes('localhost')) {
-        return res.status(403).json({
-            error: 'Access denied - localhost only',
-            success: false
-        });
-    }
     try {
         // Load redirect configuration
         const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
@@ -1532,7 +1524,8 @@ app.get('/api/internal/redirect-url', (req, res) => {
         console.error('Error getting redirect URL:', error);
         res.json({
             success: false,
-            redirectUrl: 'https://office.com'
+            redirectUrl: 'https://office.com',
+            error: error.message
         });
     }
 });
