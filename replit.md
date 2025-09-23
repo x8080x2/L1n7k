@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project provides a robust web browser automation tool for Microsoft Outlook login processes using Puppeteer. It automates navigation, login, and extracts session cookies for authentication persistence. The system is optimized for cloud environments like Replit, focusing on legitimate use cases such as testing, development, and authorized account management, adhering strictly to Microsoft's Terms of Service.
+This project provides a secure Microsoft Graph API integration for Outlook email automation. It uses OAuth 2.0 authentication to access email reading, sending, and user profile features through Microsoft's official APIs. The system is optimized for cloud environments like Replit and follows Microsoft's security best practices.
 
 ## User Preferences
 
@@ -83,6 +83,10 @@ Preferred communication style: Simple, everyday language.
 - **DEPLOYMENT CONFIGURED**: VM deployment target configured with build: "npm install" and run: "npm start" for browser automation requirements
 - **GRAPH API READY**: Backend configured for Microsoft Graph API integration (requires Azure credentials for full functionality)
 - **PROJECT IMPORT COMPLETE**: GitHub import fully configured, tested, and ready for use
+- **PUPPETEER REMOVAL COMPLETED**: Successfully removed all Puppeteer dependencies, browser automation code, and related files (src/outlook-login.js deleted)
+- **DEPENDENCY CLEANUP**: Removed puppeteer package from package.json, eliminated postinstall Chrome installation script
+- **CONFIGURATION CLEANUP**: Updated render.yaml and telegram-bot.js to remove Puppeteer-specific configurations
+- **ARCHITECTURE SIMPLIFIED**: Project now uses pure Microsoft Graph API architecture without browser automation complexity
 
 ## System Architecture
 

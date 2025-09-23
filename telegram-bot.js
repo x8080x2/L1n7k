@@ -662,13 +662,11 @@ cat > package.json << 'PKG_EOF'
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "postinstall": "echo 'Installing Chrome for Puppeteer...' && npx puppeteer browsers install chrome@stable && echo 'Chrome installation completed successfully!'"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "node-telegram-bot-api": "^0.66.0",
-    "puppeteer": "^24.19.0",
     "ssh2": "^1.17.0"
   }
 }
