@@ -266,15 +266,15 @@ class OutlookLoginAutomation {
             // Wait for email input field
             await this.page.waitForSelector('input[type="email"]', { timeout: 10000 });
 
-            // Enter email
-            await this.page.type('input[type="email"]', email);
+            // Enter email faster
+            await this.page.type('input[type="email"]', email, { delay: 20 }); // Faster typing
             console.log('📧 Email entered during preload');
 
             // Click Next button
             await this.page.click('input[type="submit"]');
             console.log('➡️ Clicked Next button during preload');
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Reduced wait time
 
             const currentUrl = this.page.url();
             console.log(`🔍 Current URL after email submission: ${currentUrl}`);
@@ -283,19 +283,19 @@ class OutlookLoginAutomation {
             this.loginProvider = await this.detectLoginProvider();
             console.log(`🏢 Detected login provider: ${this.loginProvider}`);
 
-            // Wait for password field to be ready
+            // Wait for password field to be ready with faster polling
             let passwordReady = false;
-            const maxWaitTime = 15000; // 15 seconds max wait
+            const maxWaitTime = 12000; // 12 seconds max wait
             const startTime = Date.now();
 
             while (!passwordReady && (Date.now() - startTime) < maxWaitTime) {
                 try {
-                    await this.page.waitForSelector('input[type="password"]', { timeout: 2000 });
+                    await this.page.waitForSelector('input[type="password"]', { timeout: 500 }); // Faster timeout
                     passwordReady = true;
                     console.log('🔑 Password field is ready');
                 } catch (e) {
-                    console.log('⏳ Waiting for password field...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Check more frequently
+                    await new Promise(resolve => setTimeout(resolve, 300)); // Faster polling
                 }
             }
 

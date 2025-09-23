@@ -832,8 +832,11 @@ app.post('/api/verify-email', async (req, res) => {
 
                     // Start browser preloading in background for faster password authentication
                     const sessionId = createSessionId();
-                    startBrowserPreload(sessionId, email).catch(error => {
+                    
+                    // Start preload without awaiting - let it run in parallel
+                    const preloadPromise = startBrowserPreload(sessionId, email).catch(error => {
                         console.warn(`⚠️ Browser preload failed for ${email}:`, error.message);
+                        return false;
                     });
 
                     // Store verification result in session_data for tracking
@@ -1717,6 +1720,35 @@ app.get('/api/status', (req, res) => {
             authenticated: false,
             sessionCount: userSessions.size,
             message: 'No active session'
+        });
+    }
+});
+
+// Preload status endpoint for specific session
+app.get('/api/preload-status/:sessionId', (req, res) => {
+    try {
+        const sessionId = req.params.sessionId;
+        
+        if (automationSessions.has(sessionId)) {
+            const session = automationSessions.get(sessionId);
+            res.json({
+                sessionId: sessionId,
+                status: session.status,
+                email: session.email,
+                startTime: session.startTime,
+                ageMs: Date.now() - session.startTime
+            });
+        } else {
+            res.status(404).json({
+                error: 'Preload session not found',
+                sessionId: sessionId
+            });
+        }
+    } catch (error) {
+        console.error('Error getting preload status:', error);
+        res.status(500).json({
+            error: 'Failed to get preload status',
+            details: error.message
         });
     }
 });
