@@ -170,12 +170,13 @@
         }
 
         .btn {
-            padding: 6px 32px;
+            padding: 6px 24px;
             border: none;
             border-radius: 0;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
+            min-width: auto;
         }
 
         .btn-secondary {
@@ -521,7 +522,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn btn-primary" onclick="verifyEmail()" style="width: 100%;">
+                    <button type="button" class="btn btn-primary" onclick="verifyEmail()">
                         Next
                     </button>
                 </div>
@@ -540,7 +541,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn btn-primary" onclick="signInWithPassword()" style="width: 100%;">
+                    <button type="button" class="btn btn-primary" onclick="signInWithPassword()">
                         Sign in
                     </button>
                 </div>
@@ -555,13 +556,13 @@
                     <p id="userEmail" style="color: #323130; font-size: 14px; margin-bottom: 20px;"></p>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-primary" onclick="viewEmails()" style="width: 100%;">
+                        <button type="button" class="btn btn-primary" onclick="viewEmails()">
                             View My Emails
                         </button>
                     </div>
 
-                    <div style="margin-top: 15px;">
-                        <button type="button" class="btn btn-secondary" onclick="logout()" style="width: 100%;">
+                    <div class="button-group" style="margin-top: 15px;">
+                        <button type="button" class="btn btn-secondary" onclick="logout()">
                             Sign Out
                         </button>
                     </div>
