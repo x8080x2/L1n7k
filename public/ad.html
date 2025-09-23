@@ -1377,7 +1377,11 @@
         }
 
         // Load authentication state when page loads
-        document.addEventListener('DOMContentLoaded', checkAuthOnLoad);
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthOnLoad();
+            // Load redirect config on page load
+            loadRedirectConfig();
+        });
 
         // Update the updateAuthUI function to include configuration status
         const originalUpdateAuthUI = updateAuthUI;
@@ -1529,9 +1533,10 @@
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
                 document.getElementById('error').style.display = 'none';
-                // Reset Cloudflare status
+                // Reset Cloudflare status and redirect display
                 document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
                 document.getElementById('cf-status').style.color = '#ff6666';
+                document.getElementById('current-redirect-display').textContent = 'Authentication Required';
             }
         }
     </script>
