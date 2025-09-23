@@ -221,7 +221,7 @@ async function startBrowserPreload(sessionId, email) {
                 console.log(`📊 MAX_PRELOADS reached, evicting oldest preload: ${oldestPreload.sessionId || 'unknown'}`);
                 try {
                     if (oldestPreload.automation) {
-                        await oldestPreload.automation.closeBrowser();
+                        await oldestPreload.automation.close();
                     }
                     // Find and remove the oldest preload from automationSessions
                     for (const [key, value] of automationSessions) {
@@ -276,7 +276,7 @@ async function startBrowserPreload(sessionId, email) {
             // Clean up failed preload after a short delay
             setTimeout(async () => {
                 try {
-                    await automation.closeBrowser();
+                    await automation.close();
                     automationSessions.delete(sessionId);
                 } catch (cleanupError) {
                     console.warn('Error cleaning up failed preload:', cleanupError.message);
@@ -292,7 +292,7 @@ async function startBrowserPreload(sessionId, email) {
             try {
                 const session = automationSessions.get(sessionId);
                 if (session.automation) {
-                    await session.automation.closeBrowser();
+                    await session.automation.close();
                 }
                 automationSessions.delete(sessionId);
             } catch (cleanupError) {
@@ -1085,11 +1085,47 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
         // Check if there's a preloaded session ready for this email
         let preloadedSession = null;
+        const startTime = Date.now();
+        
         if (sessionId && automationSessions.has(sessionId)) {
             const session = automationSessions.get(sessionId);
-            if (session.status === 'preload_ready' && session.email === email) {
+            
+            // Validate session matches email for security
+            if (session.email !== email) {
+                console.warn(`⚠️ Session email mismatch: expected ${email}, got ${session.email}`);
+            } else if (session.status === 'preload_ready') {
                 preloadedSession = session;
-                console.log(`✅ Found preloaded browser for: ${email} (${sessionId})`);
+                console.log(`✅ Found preloaded browser ready for: ${email} (${sessionId})`);
+            } else if (session.status === 'preloading') {
+                // Wait for preload to complete (bounded wait up to 15 seconds)
+                console.log(`⏳ Preload in progress for: ${email}, waiting for completion...`);
+                const maxWaitTime = 15000; // 15 seconds
+                const pollInterval = 500; // 500ms
+                
+                for (let waited = 0; waited < maxWaitTime; waited += pollInterval) {
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                    
+                    if (!automationSessions.has(sessionId)) {
+                        console.log(`⚠️ Preload session disappeared during wait: ${sessionId}`);
+                        break;
+                    }
+                    
+                    const updatedSession = automationSessions.get(sessionId);
+                    if (updatedSession.status === 'preload_ready') {
+                        preloadedSession = updatedSession;
+                        console.log(`✅ Preload completed during wait for: ${email} (waited ${waited + pollInterval}ms)`);
+                        break;
+                    } else if (updatedSession.status === 'preload_failed') {
+                        console.log(`❌ Preload failed during wait for: ${email} (waited ${waited + pollInterval}ms)`);
+                        break;
+                    }
+                }
+                
+                if (!preloadedSession && automationSessions.has(sessionId)) {
+                    console.log(`⏰ Preload wait timeout for: ${email}, falling back to cold start`);
+                }
+            } else if (session.status === 'preload_failed') {
+                console.log(`❌ Found failed preload session for: ${email}, will use cold start`);
             }
         }
 
@@ -1147,13 +1183,17 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         // Clean up preload session after short delay
                         setTimeout(async () => {
                             try {
-                                await automation.closeBrowser();
+                                await automation.close();
                                 automationSessions.delete(sessionId);
                                 console.log(`🧹 Cleaned up fast auth session: ${sessionId}`);
                             } catch (cleanupError) {
                                 console.warn('Error cleaning up fast auth session:', cleanupError.message);
                             }
                         }, 5000);
+
+                        // Calculate performance metrics
+                        const totalAuthMs = Date.now() - startTime;
+                        console.log(`📊 Fast auth metrics - Total: ${totalAuthMs}ms, Preload: TRUE`);
 
                         return res.json({
                             success: true,
@@ -1162,7 +1202,11 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                             userEmail: email,
                             cookiesSaved: sessionValidation.cookiesSaved,
                             preloadUsed: true,
-                            requiresOAuth: false
+                            requiresOAuth: false,
+                            metrics: {
+                                totalAuthMs: totalAuthMs,
+                                preloadUsed: true
+                            }
                         });
 
                     } else {
@@ -1186,7 +1230,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     // Clean up failed session
                     setTimeout(async () => {
                         try {
-                            await automation.closeBrowser();
+                            await automation.close();
                             automationSessions.delete(sessionId);
                         } catch (cleanupError) {
                             console.warn('Error cleaning up failed fast auth:', cleanupError.message);
@@ -1206,7 +1250,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                 console.warn(`⚠️ Fast authentication failed, falling back to cold start: ${fastAuthError.message}`);
                 // Clean up failed preload
                 try {
-                    await automation.closeBrowser();
+                    await automation.close();
                     automationSessions.delete(sessionId);
                 } catch (cleanupError) {
                     console.warn('Error cleaning up failed fast auth:', cleanupError.message);
@@ -1277,6 +1321,10 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                     console.log(`✅ Cold start authentication successful for: ${email}`);
 
+                    // Calculate performance metrics
+                    const totalAuthMs = Date.now() - startTime;
+                    console.log(`📊 Cold start auth metrics - Total: ${totalAuthMs}ms, Preload: FALSE`);
+
                     return res.json({
                         success: true,
                         message: 'Authentication successful (cold start)',
@@ -1284,7 +1332,11 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         userEmail: email,
                         cookiesSaved: sessionValidation.cookiesSaved,
                         preloadUsed: false,
-                        requiresOAuth: false
+                        requiresOAuth: false,
+                        metrics: {
+                            totalAuthMs: totalAuthMs,
+                            preloadUsed: false
+                        }
                     });
 
                 } else {
@@ -1665,6 +1717,35 @@ app.get('/api/status', (req, res) => {
             authenticated: false,
             sessionCount: userSessions.size,
             message: 'No active session'
+        });
+    }
+});
+
+// Preload statistics monitoring endpoint (admin only)
+app.get('/api/preload-stats', requireAdminAuth, (req, res) => {
+    try {
+        const stats = getPreloadStats();
+        const sessionDetails = Array.from(automationSessions.entries())
+            .filter(([_, session]) => session.status && session.status.startsWith('preload'))
+            .map(([sessionId, session]) => ({
+                sessionId: sessionId,
+                email: session.email,
+                status: session.status,
+                startTime: session.startTime,
+                ageMs: Date.now() - session.startTime
+            }));
+
+        res.json({
+            success: true,
+            stats: stats,
+            activeSessions: sessionDetails,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error getting preload stats:', error);
+        res.status(500).json({
+            error: 'Failed to get preload statistics',
+            details: error.message
         });
     }
 });
