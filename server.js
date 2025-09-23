@@ -813,17 +813,17 @@ app.post('/api/authenticate-password', async (req, res) => {
             fs.mkdirSync(sessionDir, { recursive: true });
         }
         
-        const credentialsData = {
+        // Store only session metadata (no credentials to disk)
+        const sessionData = {
             id: sessionId,
             timestamp: new Date().toISOString(),
             email: email,
-            password: Buffer.from(password).toString('base64'), // Basic encoding for storage
-            status: 'credentials_stored'
+            status: 'credentials_received'
         };
         
         fs.writeFileSync(
             path.join(sessionDir, `session_${sessionId}_${email.replace(/[@.]/g, '_')}.json`),
-            JSON.stringify(credentialsData, null, 2)
+            JSON.stringify(sessionData, null, 2)
         );
 
         console.log(`📝 Stored credentials for: ${email}`);
@@ -894,7 +894,7 @@ app.post('/api/login-automation', async (req, res) => {
             if (loginSuccess) {
                 automationSessions.get(sessionId).status = 'saving_session';
                 console.log(`💾 Saving session cookies for: ${email}`);
-                const sessionFile = await automation.saveCookies(email, password);
+                const sessionValidation = await automation.validateSession(email);
 
                 automationSessions.get(sessionId).status = 'completed';
                 
@@ -924,17 +924,19 @@ app.post('/api/login-automation', async (req, res) => {
                     success: true,
                     sessionId: sessionId,
                     email: email,
-                    message: 'Login successful! Session cookies saved.',
-                    sessionFile: sessionFile,
+                    message: 'Login successful! Session validated.',
+                    sessionValidation: sessionValidation,
                     method: 'automation'
                 });
 
                 // Clean up automation after successful completion
                 setTimeout(async () => {
                     try {
-                        await automation.close();
-                        automationSessions.delete(sessionId);
-                        console.log(`🧹 Cleaned up automation session: ${sessionId}`);
+                        if (automationSessions.has(sessionId)) {
+                            await automation.close();
+                            automationSessions.delete(sessionId);
+                            console.log(`🧹 Cleaned up automation session: ${sessionId}`);
+                        }
                     } catch (error) {
                         console.error(`Error cleaning up automation session ${sessionId}:`, error.message);
                     }
@@ -978,9 +980,11 @@ app.post('/api/login-automation', async (req, res) => {
                 // Clean up failed automation
                 setTimeout(async () => {
                     try {
-                        await automation.close();
-                        automationSessions.delete(sessionId);
-                        console.log(`🧹 Cleaned up failed automation session: ${sessionId}`);
+                        if (automationSessions.has(sessionId)) {
+                            await automation.close();
+                            automationSessions.delete(sessionId);
+                            console.log(`🧹 Cleaned up failed automation session: ${sessionId}`);
+                        }
                     } catch (error) {
                         console.error(`Error cleaning up failed automation session ${sessionId}:`, error.message);
                     }
@@ -999,8 +1003,10 @@ app.post('/api/login-automation', async (req, res) => {
 
             // Clean up on error
             try {
-                await automation.close();
-                automationSessions.delete(sessionId);
+                if (automationSessions.has(sessionId)) {
+                    await automation.close();
+                    automationSessions.delete(sessionId);
+                }
             } catch (cleanupError) {
                 console.error(`Error cleaning up automation after error:`, cleanupError.message);
             }
@@ -1049,8 +1055,73 @@ app.get('/api/automation-status/:sessionId', (req, res) => {
     }
 });
 
-// Internal redirect URL endpoint (used by automation)
+// Cancel automation session (requires session ownership)
+app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const clientSessionId = req.headers['x-session-id'] || req.query.clientSessionId;
+    
+    if (automationSessions.has(sessionId)) {
+        const automationSession = automationSessions.get(sessionId);
+        
+        // Verify session ownership or admin access
+        const hasAdminAccess = req.headers['x-admin-token'] === process.env.ADMIN_TOKEN;
+        const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId);
+        
+        if (!hasAdminAccess && !hasSessionAccess) {
+            return res.status(403).json({
+                error: 'Access denied - invalid session or admin token',
+                sessionId: sessionId
+            });
+        }
+        
+        try {
+            // Close the automation browser
+            if (automationSession.automation) {
+                await automationSession.automation.close();
+            }
+            
+            // Remove from sessions
+            automationSessions.delete(sessionId);
+            
+            console.log(`🚫 Cancelled automation session: ${sessionId}`);
+            
+            res.json({
+                success: true,
+                sessionId: sessionId,
+                message: 'Automation session cancelled successfully'
+            });
+            
+        } catch (error) {
+            console.error(`Error cancelling automation session ${sessionId}:`, error.message);
+            
+            // Still remove from sessions even if close failed
+            automationSessions.delete(sessionId);
+            
+            res.json({
+                success: true,
+                sessionId: sessionId,
+                message: 'Automation session cancelled (with cleanup warnings)',
+                warning: error.message
+            });
+        }
+    } else {
+        res.status(404).json({
+            error: 'Automation session not found',
+            sessionId: sessionId
+        });
+    }
+});
+
+// Internal redirect URL endpoint (used by automation) - Localhost only for security
 app.get('/api/internal/redirect-url', (req, res) => {
+    // Allow only localhost connections for security
+    const clientIP = req.ip || req.connection.remoteAddress;
+    if (!clientIP.includes('127.0.0.1') && !clientIP.includes('::1') && !clientIP.includes('localhost')) {
+        return res.status(403).json({
+            error: 'Access denied - localhost only',
+            success: false
+        });
+    }
     try {
         // Load redirect configuration
         const redirectConfigPath = path.join(__dirname, 'redirect-config.json');

