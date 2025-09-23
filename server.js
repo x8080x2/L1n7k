@@ -839,29 +839,8 @@ app.post('/api/verify-email', async (req, res) => {
                         return false;
                     });
 
-                    // Store verification result in session_data for tracking
-                    const fs = require('fs');
-                    const path = require('path');
-                    const sessionDir = path.join(__dirname, 'session_data');
-                    if (!fs.existsSync(sessionDir)) {
-                        fs.mkdirSync(sessionDir, { recursive: true });
-                    }
-
-                    const verificationId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-                    const verificationData = {
-                        id: verificationId,
-                        email: email,
-                        accountType: data.Account || data.account_type || data.NameSpaceType,
-                        domain: domain,
-                        timestamp: new Date().toISOString(),
-                        status: 'verified',
-                        fullResponse: data
-                    };
-
-                    fs.writeFileSync(
-                        path.join(sessionDir, `verified_${verificationId}.json`),
-                        JSON.stringify(verificationData, null, 2)
-                    );
+                    // Log verification success without creating files
+                    console.log(`✅ Email verification successful for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
 
                     res.json({
                         exists: true,
