@@ -892,7 +892,7 @@ Status: ${data.status}`);
 
                     // Wait for preload to be ready before showing password form
                     if (verifyData.preloadStarted) {
-                        setLoading(true, 'Signing you in');
+                        setLoading(true, 'Taking you to your organization...');
                         await waitForPreloadReady(verifyData.sessionId, email);
                     }
 
