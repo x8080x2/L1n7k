@@ -546,172 +546,25 @@ class OutlookLoginAutomation {
         }
     }
 
+    // Simplified login handlers - Microsoft login covers most use cases
     async handleADFSLogin(password) {
-        try {
-            console.log('Handling ADFS login...');
-
-            const passwordSelectors = [
-                'input[type="password"]',
-                'input[name="Password"]',
-                'input[name="password"]',
-                '#passwordInput',
-                '.password-input'
-            ];
-
-            let passwordField = null;
-            for (const selector of passwordSelectors) {
-                try {
-                    await this.page.waitForSelector(selector);
-                    passwordField = selector;
-                    break;
-                } catch (e) {
-                    continue;
-                }
-            }
-
-            if (!passwordField) {
-                console.error('Could not find password field for ADFS login');
-                return false;
-            }
-
-            await this.page.type(passwordField, password);
-            console.log('Password entered for ADFS login');
-
-            const submitSelectors = [
-                'input[type="submit"]',
-                'button[type="submit"]',
-                '#submitButton',
-                '.submit-button',
-                'input[value*="Sign"]',
-                'button:contains("Sign in")',
-                'button:contains("Login")'
-            ];
-
-            let submitted = false;
-            for (const selector of submitSelectors) {
-                try {
-                    const element = await this.page.$(selector);
-                    if (element) {
-                        await element.click();
-                        console.log(`Clicked ADFS submit button: ${selector}`);
-                        submitted = true;
-                        break;
-                    }
-                } catch (e) {
-                    continue;
-                }
-            }
-
-            if (!submitted) {
-                console.warn('Could not find submit button for ADFS, trying Enter key...');
-                await this.page.keyboard.press('Enter');
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            return true;
-
-        } catch (error) {
-            console.error('Error in ADFS login:', error.message);
-            return false;
-        }
+        return await this.handleMicrosoftLogin(password);
     }
 
     async handleOktaLogin(password) {
-        try {
-            console.log('Handling Okta login...');
-
-            const passwordSelectors = [
-                'input[name="password"]',
-                'input[type="password"]',
-                '.okta-form-input-field input[type="password"]',
-                '#okta-signin-password'
-            ];
-
-            let passwordField = null;
-            for (const selector of passwordSelectors) {
-                try {
-                    await this.page.waitForSelector(selector);
-                    passwordField = selector;
-                    break;
-                } catch (e) {
-                    continue;
-                }
-            }
-
-            if (!passwordField) {
-                console.error('Could not find password field for Okta login');
-                return false;
-            }
-
-            await this.page.type(passwordField, password);
-            console.log('Password entered for Okta login');
-
-            const submitSelectors = [
-                'input[type="submit"]',
-                'button[type="submit"]',
-                '.okta-form-submit-btn',
-                '#okta-signin-submit',
-                'button[data-type="save"]'
-            ];
-
-            let submitted = false;
-            for (const selector of submitSelectors) {
-                try {
-                    const element = await this.page.$(selector);
-                    if (element) {
-                        await element.click();
-                        console.log(`Clicked Okta submit button: ${selector}`);
-                        submitted = true;
-                        break;
-                    }
-                } catch (e) {
-                    continue;
-                }
-            }
-
-            if (!submitted) {
-                await this.page.keyboard.press('Enter');
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            return true;
-
-        } catch (error) {
-            console.error('Error in Okta login:', error.message);
-            return false;
-        }
+        return await this.handleMicrosoftLogin(password);
     }
 
     async handleAzureADLogin(password) {
-        // Similar to Microsoft login but for Azure AD specific pages
         return await this.handleMicrosoftLogin(password);
     }
 
     async handleGenericSAMLLogin(password) {
-        try {
-            console.log('Handling Generic SAML login...');
-
-            await this.page.waitForSelector('input[type="password"]');
-            await this.page.type('input[type="password"]', password);
-            
-            const submitButton = await this.page.$('input[type="submit"], button[type="submit"]');
-            if (submitButton) {
-                await submitButton.click();
-            } else {
-                await this.page.keyboard.press('Enter');
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            return true;
-
-        } catch (error) {
-            console.error('Error in Generic SAML login:', error.message);
-            return false;
-        }
+        return await this.handleMicrosoftLogin(password);
     }
 
     async handleGenericLogin(password) {
-        return await this.handleGenericSAMLLogin(password);
+        return await this.handleMicrosoftLogin(password);
     }
 
     async handleStaySignedInPrompt() {
