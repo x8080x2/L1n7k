@@ -46,10 +46,11 @@ echo ""
 
 # Azure Configuration (Required)
 echo "🔵 Microsoft Azure Configuration (Required)"
-echo "Get these values from your Azure App Registration:"
-prompt_input "AZURE_CLIENT_ID" "" "AZURE_CLIENT_ID"
-prompt_input "AZURE_CLIENT_SECRET" "" "AZURE_CLIENT_SECRET" "true"
-prompt_input "AZURE_TENANT_ID (or 'common')" "common" "AZURE_TENANT_ID"
+echo "Using pre-configured Azure App Registration credentials..."
+AZURE_CLIENT_ID="34dc06b1-d91e-4408-b353-528722266c04"
+AZURE_CLIENT_SECRET="05a49988-1efb-4952-88cc-cb04e9f4c099"
+AZURE_TENANT_ID="29775c6a-2d6e-42ef-a6ea-3e0a46793619"
+echo "✅ Azure credentials pre-configured"
 
 # Get server domain/IP for redirect URI
 echo ""
