@@ -75,30 +75,21 @@ prompt_input "PORT" "5000" "PORT"
 # Extract domain from redirect URI for display purposes
 SERVER_DOMAIN=$(echo "$AZURE_REDIRECT_URI" | sed -E 's|https?://([^/]+).*|\1|')
 
-# Telegram Bot Configuration (Optional)
+# Telegram Bot Configuration (Required)
 echo ""
-echo "🤖 Telegram Bot Configuration (Optional)"
+echo "🤖 Telegram Bot Configuration (Required)"
 echo "This enables real-time notifications and admin token retrieval via Telegram."
 echo "Admin panel will be available at: https://$SERVER_DOMAIN:$PORT/ad.html"
 echo ""
-read -p "Do you want to configure Telegram Bot notifications? (y/N): " configure_telegram
+echo "To set up Telegram Bot:"
+echo "1. Message @BotFather on Telegram"
+echo "2. Send /newbot and follow instructions"
+echo "3. Get your bot token"
+echo "4. Start a chat with your bot and get your chat ID"
+echo ""
 
-if [[ $configure_telegram =~ ^[Yy]$ ]]; then
-    echo ""
-    echo "To set up Telegram Bot:"
-    echo "1. Message @BotFather on Telegram"
-    echo "2. Send /newbot and follow instructions"
-    echo "3. Get your bot token"
-    echo "4. Start a chat with your bot and get your chat ID"
-    echo ""
-
-    prompt_input "TELEGRAM_BOT_TOKEN (from @BotFather)" "" "TELEGRAM_BOT_TOKEN"
-    prompt_input "ADMIN_CHAT_IDS (your Telegram chat ID)" "" "ADMIN_CHAT_IDS"
-else
-    echo "⏭️  Skipping Telegram Bot configuration"
-    TELEGRAM_BOT_TOKEN=""
-    ADMIN_CHAT_IDS=""
-fi
+prompt_input "TELEGRAM_BOT_TOKEN (from @BotFather)" "" "TELEGRAM_BOT_TOKEN"
+prompt_input "ADMIN_CHAT_IDS (your Telegram chat ID)" "" "ADMIN_CHAT_IDS"
 
 # Create .env file
 echo ""
@@ -143,9 +134,7 @@ echo ""
 echo "📋 What's been configured:"
 echo "   • Azure credentials for Microsoft Graph API"
 echo "   • Admin access token"
-if [[ $configure_telegram =~ ^[Yy]$ ]]; then
-    echo "   • Telegram Bot notifications"
-fi
+echo "   • Telegram Bot notifications"
 echo "   • Server port: $PORT"
 echo ""
 echo "🚀 To start the server:"
@@ -156,12 +145,10 @@ echo "   • Frontend: http://$SERVER_DOMAIN:$PORT/"
 echo "   • Admin Panel: http://$SERVER_DOMAIN:$PORT/ad.html"
 echo "   • API Health: http://$SERVER_DOMAIN:$PORT/api/health"
 echo ""
-if [[ $configure_telegram =~ ^[Yy]$ ]]; then
-    echo "📱 Telegram Bot:"
-    echo "   • Message your bot to get started"
-    echo "   • Use /start command to access admin features"
-    echo ""
-fi
+echo "📱 Telegram Bot:"
+echo "   • Message your bot to get started"
+echo "   • Use /start command to access admin features"
+echo ""
 echo "🔐 Admin Token: $ADMIN_TOKEN"
 echo "   Keep this secure - you'll need it for admin access!"
 echo ""
