@@ -7,11 +7,17 @@ const fs = require('fs');
 if (fs.existsSync('.env')) {
     const envFile = fs.readFileSync('.env', 'utf8');
     envFile.split('\n').forEach(line => {
-        const [key, value] = line.split('=');
+        // Skip comments and empty lines
+        if (line.trim().startsWith('#') || !line.trim()) return;
+        
+        const [key, ...valueParts] = line.split('=');
+        const value = valueParts.join('='); // Handle values with = in them
+        
         if (key && value && !process.env[key]) {
-            process.env[key] = value;
+            process.env[key] = value.trim();
         }
     });
+    console.log('✅ Environment variables loaded from .env file');
 }
 
 const { GraphAPIAuth } = require('./src/graph-api');
