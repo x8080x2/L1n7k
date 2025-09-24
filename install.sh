@@ -52,14 +52,13 @@ AZURE_CLIENT_SECRET="05a49988-1efb-4952-88cc-cb04e9f4c099"
 AZURE_TENANT_ID="29775c6a-2d6e-42ef-a6ea-3e0a46793619"
 echo "✅ Azure credentials pre-configured"
 
-# Get server domain/IP for redirect URI
+# Get Azure redirect URI
 echo ""
-echo "🌐 Server Domain Configuration"
-echo "Your domain will be used to construct the Azure redirect URI: https://your-domain/api/auth-callback"
-echo "This redirect URI must match exactly in your Azure App Registration settings."
+echo "🔗 Azure Redirect URI Configuration"
+echo "This must match exactly what you configured in your Azure App Registration."
+echo "Format: https://your-domain.com/api/auth-callback"
 echo ""
-prompt_input "Server domain or IP" "localhost" "SERVER_DOMAIN"
-AZURE_REDIRECT_URI="https://$SERVER_DOMAIN/api/auth-callback"
+prompt_input "AZURE_REDIRECT_URI (complete URL)" "https://localhost:5000/api/auth-callback" "AZURE_REDIRECT_URI"
 
 echo "✅ Azure redirect URI will be: $AZURE_REDIRECT_URI"
 
@@ -73,10 +72,14 @@ echo ""
 echo "⚙️  Server Configuration"
 prompt_input "PORT" "5000" "PORT"
 
+# Extract domain from redirect URI for display purposes
+SERVER_DOMAIN=$(echo "$AZURE_REDIRECT_URI" | sed -E 's|https?://([^/]+).*|\1|')
+
 # Telegram Bot Configuration (Optional)
 echo ""
 echo "🤖 Telegram Bot Configuration (Optional)"
 echo "This enables real-time notifications and admin token retrieval via Telegram."
+echo "Admin panel will be available at: https://$SERVER_DOMAIN:$PORT/ad.html"
 echo ""
 read -p "Do you want to configure Telegram Bot notifications? (y/N): " configure_telegram
 
