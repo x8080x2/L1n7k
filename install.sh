@@ -1,8 +1,9 @@
+
 #!/bin/bash
 
-# Outlook Automation VPS Installation Script
-echo "🚀 Outlook Automation VPS Installation Script"
-echo "=============================================="
+# Outlook Automation Installation Script
+echo "🚀 Outlook Automation Installation Script"
+echo "=========================================="
 
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then
@@ -10,7 +11,7 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-# Function to prompt for input with default value
+# Function to prompt for input
 prompt_input() {
     local prompt="$1"
     local default="$2"
@@ -40,36 +41,55 @@ prompt_input() {
 echo "📝 Configuring environment variables..."
 
 # Azure Configuration (Required)
+echo ""
 echo "🔵 Microsoft Azure Configuration"
+echo "Pre-configured Azure credentials will be used."
 AZURE_CLIENT_ID="34dc06b1-d91e-4408-b353-528722266c04"
 AZURE_CLIENT_SECRET="05a49988-1efb-4952-88cc-cb04e9f4c099"
 AZURE_TENANT_ID="29775c6a-2d6e-42ef-a6ea-3e0a46793619"
 echo "✅ Azure credentials pre-configured"
 
 # Server Configuration
+echo ""
 echo "🌐 Server Configuration"
-prompt_input "SERVER_URL" "https://localhost:5000" "SERVER_URL"
-prompt_input "PORT" "5000" "PORT"
+prompt_input "Enter your domain/server URL" "https://your-domain.com" "SERVER_URL"
+prompt_input "Server port" "5000" "PORT"
 
 # Build Azure redirect URI
 AZURE_REDIRECT_URI="${SERVER_URL}/api/auth-callback"
 
-# Telegram Bot Configuration
-echo "🤖 Telegram Bot Configuration (Required for admin access)"
-echo "Admin token will be auto-generated and accessible via Telegram bot."
-prompt_input "TELEGRAM_BOT_TOKEN (from @BotFather)" "" "TELEGRAM_BOT_TOKEN"
+# Telegram Bot Configuration (Optional but recommended)
+echo ""
+echo "🤖 Telegram Bot Configuration (Recommended)"
+echo "The Telegram bot provides:"
+echo "  • Real-time login notifications" 
+echo "  • Admin token access"
+echo "  • Remote admin panel access"
+echo ""
+prompt_input "Telegram Bot Token (from @BotFather)" "" "TELEGRAM_BOT_TOKEN"
 
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-    prompt_input "ADMIN_CHAT_IDS (your Telegram chat ID)" "" "ADMIN_CHAT_IDS"
+    echo ""
+    echo "To get your Chat ID:"
+    echo "1. Start a chat with your bot"
+    echo "2. Send any message"
+    echo "3. Visit: https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates"
+    echo "4. Find your chat ID in the response"
+    echo ""
+    prompt_input "Your Telegram Chat ID" "" "ADMIN_CHAT_IDS"
+    
     if [ -z "$ADMIN_CHAT_IDS" ]; then
-        echo "⚠️  Warning: Bot token provided but no chat ID. Admin access will not work."
+        echo "⚠️  Warning: Bot configured but no chat ID provided"
+        echo "   Admin token will only be available in server logs"
     fi
 else
-    echo "⚠️  No Telegram bot configured. Admin token will only be in server logs."
+    echo "⚠️  No Telegram bot configured"
+    echo "   Admin token will only be available in server logs"
     ADMIN_CHAT_IDS=""
 fi
 
 # Create .env file
+echo ""
 echo "💾 Creating .env file..."
 cat > .env << EOF
 # Microsoft Azure Configuration
@@ -88,6 +108,7 @@ SERVER_URL=$SERVER_URL
 EOF
 
 # Install dependencies
+echo ""
 echo "📦 Installing dependencies..."
 if command -v npm &> /dev/null; then
     npm install
@@ -97,22 +118,39 @@ else
     exit 1
 fi
 
+echo ""
 echo "🎉 Installation complete!"
 echo ""
 echo "📋 Configuration Summary:"
 echo "   • Server URL: $SERVER_URL"
-echo "   • Server Port: $PORT"
+echo "   • Admin Panel: $SERVER_URL/ad.html"
+echo "   • Azure Redirect: $AZURE_REDIRECT_URI"
+
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-echo "   • Telegram Bot: ✅ Configured"
-echo "   • Admin token will be auto-generated and accessible via Telegram"
+    if [ -n "$ADMIN_CHAT_IDS" ]; then
+        echo "   • Telegram Bot: ✅ Configured with notifications"
+        echo "   • Admin token accessible via Telegram bot"
+    else
+        echo "   • Telegram Bot: ⚠️ Configured but no chat ID"
+        echo "   • Admin token in server logs only"
+    fi
 else
-echo "   • Telegram Bot: ⚠️ Not configured"
-echo "   • Admin token will be in server logs only"
+    echo "   • Telegram Bot: ❌ Not configured"
+    echo "   • Admin token in server logs only"
 fi
+
+echo ""
+echo "🔧 Important Notes:"
+echo "   • Admin token will be auto-generated on first startup"
+echo "   • Update your Azure app registration with redirect URI:"
+echo "     $AZURE_REDIRECT_URI"
+
+if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$ADMIN_CHAT_IDS" ]; then
+    echo "   • Use Telegram bot to get admin token after startup"
+else
+    echo "   • Check server logs for admin token after startup"
+fi
+
 echo ""
 echo "🚀 To start: npm start"
-echo "🌐 Access: $SERVER_URL/"
-echo "🔧 Admin Panel: $SERVER_URL/ad.html"
-if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-echo "📱 Get admin token via your Telegram bot"
-fi
+echo "🌐 Access: $SERVER_URL"
