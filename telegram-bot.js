@@ -115,11 +115,6 @@ Choose an option from the menu below:
 🔧 **Admin Features:**
 • Admin Panel - Access admin token and management URL
 
-🌐 **VPS Management:**
-• Domain Setup - Configure domain and SSL
-• System Status - Check server health
-• Configuration - Manage settings
-
 ❓ **Help:**
 • Help - Get information about available commands and features
         `;
@@ -128,13 +123,6 @@ Choose an option from the menu below:
             inline_keyboard: [
                 [
                     { text: '🔧 Admin Panel', callback_data: 'admin_panel' }
-                ],
-                [
-                    { text: '🌐 Domain Setup', callback_data: 'domain_setup' },
-                    { text: '📊 System Status', callback_data: 'system_status' }
-                ],
-                [
-                    { text: '⚙️ Configuration', callback_data: 'vps_config' }
                 ],
                 [
                     { text: '❓ Help', callback_data: 'help' }
@@ -172,7 +160,7 @@ Choose an option from the menu below:
 • **/help** - Show this help message  
 • **/menu** - Return to main menu
 
-**Need Help?**
+<b>Need Help?</b>
 This bot provides notifications and admin access for the Outlook automation project.
         `;
 
@@ -220,18 +208,6 @@ This bot provides notifications and admin access for the Outlook automation proj
 
             case 'admin_panel':
                 await this.handleAdminPanel(chatId, messageId);
-                break;
-
-            case 'domain_setup':
-                await this.handleDomainSetup(chatId, messageId);
-                break;
-
-            case 'system_status':
-                await this.handleSystemStatus(chatId, messageId);
-                break;
-
-            case 'vps_config':
-                await this.handleVPSConfig(chatId, messageId);
                 break;
 
             case 'help':
@@ -335,189 +311,6 @@ ${adminUrl}
 
     getSubscribedUsers() {
         return this.chatIds.size;
-    }
-
-    // VPS Management Functions
-    async handleDomainSetup(chatId, messageId) {
-        const exec = require('child_process').exec;
-        
-        // Get current VPS IP
-        exec('curl -s ifconfig.me', async (error, stdout, stderr) => {
-            const currentIP = stdout.trim() || 'Unable to detect';
-            
-            const domainMessage = `
-🌐 <b>Domain Setup Guide</b>
-
-<b>Your VPS IP Address:</b> <code>${currentIP}</code>
-
-<b>🔧 Setup Steps:</b>
-
-<b>1. Configure DNS Records:</b>
-At your domain provider, add these records:
-• <code>A Record: @  →  ${currentIP}</code>
-• <code>A Record: www  →  ${currentIP}</code>
-
-<b>2. Update Nginx Configuration:</b>
-Commands to run on your VPS:
-
-<pre>sudo nano /etc/nginx/sites-available/outlook-automation
-# Change: server_name yourdomain.com www.yourdomain.com;
-sudo nginx -t
-sudo systemctl restart nginx</pre>
-
-<b>3. Add SSL Certificate:</b>
-<pre>sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com</pre>
-
-<b>🌐 Popular Domain Providers:</b>
-• Namecheap • GoDaddy • Cloudflare • Google Domains
-
-<b>⏱️ DNS Propagation:</b> 1-24 hours (usually 1-2 hours)
-
-<b>✅ Test when ready:</b>
-<code>ping yourdomain.com</code> (should return ${currentIP})
-            `;
-
-            this.bot.editMessageText(domainMessage, {
-                chat_id: chatId,
-                message_id: messageId,
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '📋 Copy IP Address', callback_data: `copy_ip_${currentIP}` }],
-                        [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
-                    ]
-                }
-            });
-        });
-    }
-
-    async handleSystemStatus(chatId, messageId) {
-        const exec = require('child_process').exec;
-        const fs = require('fs');
-
-        // Run multiple system checks
-        const checks = [
-            'systemctl is-active outlook-automation',
-            'systemctl is-active nginx',
-            'df -h /',
-            'free -h',
-            'uptime'
-        ];
-
-        let statusResults = [];
-        let completed = 0;
-
-        const updateStatus = () => {
-            const statusMessage = `
-📊 <b>VPS System Status</b>
-
-<b>🚀 Services:</b>
-${statusResults.join('\n')}
-
-<b>💾 Disk Usage:</b>
-<pre>${statusResults[2] || 'Checking...'}</pre>
-
-<b>🧠 Memory Usage:</b>
-<pre>${statusResults[3] || 'Checking...'}</pre>
-
-<b>⏱️ Server Uptime:</b>
-<pre>${statusResults[4] || 'Checking...'}</pre>
-
-<b>📈 Application Analytics:</b>
-${fs.existsSync('./analytics.json') ? 
-    `• Analytics file exists\n• Size: ${Math.round(fs.statSync('./analytics.json').size / 1024)}KB` : 
-    '• No analytics data found'}
-            `;
-
-            this.bot.editMessageText(statusMessage, {
-                chat_id: chatId,
-                message_id: messageId,
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🔄 Refresh Status', callback_data: 'system_status' }],
-                        [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
-                    ]
-                }
-            });
-        };
-
-        // Execute each check
-        checks.forEach((cmd, index) => {
-            exec(cmd, (error, stdout, stderr) => {
-                if (index === 0) {
-                    statusResults[0] = `• Outlook Service: ${stdout.trim() === 'active' ? '✅ Running' : '❌ Stopped'}`;
-                } else if (index === 1) {
-                    statusResults[1] = `• Nginx Service: ${stdout.trim() === 'active' ? '✅ Running' : '❌ Stopped'}`;
-                } else {
-                    statusResults[index] = stdout.trim();
-                }
-                
-                completed++;
-                if (completed === checks.length) {
-                    updateStatus();
-                }
-            });
-        });
-
-        // Initial message
-        statusResults = ['Checking...', 'Checking...', 'Checking...', 'Checking...', 'Checking...'];
-        updateStatus();
-    }
-
-    async handleVPSConfig(chatId, messageId) {
-        const configMessage = `
-⚙️ <b>VPS Configuration Management</b>
-
-<b>📂 Important File Locations:</b>
-
-<b>Application:</b>
-• App Directory: <code>/opt/outlook-automation</code>
-• Configuration: <code>/opt/outlook-automation/.env</code>
-• Logs: <code>sudo journalctl -u outlook-automation -f</code>
-
-<b>Nginx:</b>
-• Config File: <code>/etc/nginx/sites-available/outlook-automation</code>
-• Access Logs: <code>/var/log/nginx/access.log</code>
-• Error Logs: <code>/var/log/nginx/error.log</code>
-
-<b>🔧 Common Commands:</b>
-
-<b>Service Management:</b>
-<pre>sudo systemctl status outlook-automation
-sudo systemctl restart outlook-automation
-sudo systemctl restart nginx</pre>
-
-<b>View Logs:</b>
-<pre>sudo journalctl -u outlook-automation -f
-sudo tail -f /var/log/nginx/error.log</pre>
-
-<b>🔐 Environment Variables (.env):</b>
-<pre>AZURE_CLIENT_ID=your_client_id
-AZURE_CLIENT_SECRET=your_secret
-AZURE_TENANT_ID=your_tenant
-AZURE_REDIRECT_URI=https://yourdomain.com/api/auth-callback
-ADMIN_TOKEN=your_secure_token
-TELEGRAM_BOT_TOKEN=your_bot_token</pre>
-
-<b>🛡️ Security:</b>
-• Admin Token: Protected
-• Firewall: Port 5000 blocked (nginx proxy only)
-• SSL: Managed by Let's Encrypt
-        `;
-
-        this.bot.editMessageText(configMessage, {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: '🔄 Restart Services', callback_data: 'restart_services' }],
-                    [{ text: '📝 View Logs', callback_data: 'view_logs' }],
-                    [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
-                ]
-            }
-        });
     }
 }
 

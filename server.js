@@ -16,7 +16,7 @@ if (fs.existsSync('.env')) {
 
 const { GraphAPIAuth } = require('./src/graph-api');
 const { OutlookLoginAutomation } = require('./src/outlook-login');
-const VPSManagementBot = require('./telegram-bot');
+const OutlookNotificationBot = require('./telegram-bot');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,7 +31,7 @@ global.adminToken = ADMIN_TOKEN;
 let telegramBot = null;
 try {
     if (process.env.TELEGRAM_BOT_TOKEN) {
-        telegramBot = new VPSManagementBot();
+        telegramBot = new OutlookNotificationBot();
         console.log('🤖 Telegram Bot initialized successfully');
     } else {
         console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
