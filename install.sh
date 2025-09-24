@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Outlook Automation VPS Installation Script
@@ -20,24 +19,24 @@ prompt_input() {
     local default="$2"
     local var_name="$3"
     local is_secret="$4"
-    
+
     echo -n "$prompt"
     if [ -n "$default" ]; then
         echo -n " (default: $default)"
     fi
     echo -n ": "
-    
+
     if [ "$is_secret" = "true" ]; then
         read -s input
         echo ""
     else
         read input
     fi
-    
+
     if [ -z "$input" ] && [ -n "$default" ]; then
         input="$default"
     fi
-    
+
     eval "$var_name='$input'"
 }
 
@@ -54,8 +53,14 @@ prompt_input "AZURE_TENANT_ID (or 'common')" "common" "AZURE_TENANT_ID"
 
 # Get server domain/IP for redirect URI
 echo ""
-prompt_input "Server domain or IP (for redirect URI)" "localhost" "SERVER_DOMAIN"
+echo "🌐 Server Domain Configuration"
+echo "Your domain will be used to construct the Azure redirect URI: https://your-domain/api/auth-callback"
+echo "This redirect URI must match exactly in your Azure App Registration settings."
+echo ""
+prompt_input "Server domain or IP" "localhost" "SERVER_DOMAIN"
 AZURE_REDIRECT_URI="https://$SERVER_DOMAIN/api/auth-callback"
+
+echo "✅ Azure redirect URI will be: $AZURE_REDIRECT_URI"
 
 # Admin Configuration
 echo ""
@@ -82,7 +87,7 @@ if [[ $configure_telegram =~ ^[Yy]$ ]]; then
     echo "3. Get your bot token"
     echo "4. Start a chat with your bot and get your chat ID"
     echo ""
-    
+
     prompt_input "TELEGRAM_BOT_TOKEN (from @BotFather)" "" "TELEGRAM_BOT_TOKEN"
     prompt_input "ADMIN_CHAT_IDS (your Telegram chat ID)" "" "ADMIN_CHAT_IDS"
 else
