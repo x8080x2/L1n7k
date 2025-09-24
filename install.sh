@@ -311,3 +311,129 @@ print_warning "- Keep your admin token secure"
 print_warning "- Set up automated backups (crontab)"
 echo ""
 echo -e "${GREEN}🚀 Your Outlook Automation is ready!${NC}"
+#!/bin/bash
+
+# Outlook Automation VPS Installation Script
+# Supports Ubuntu/Debian systems
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+APP_NAME="outlook-automation"
+APP_USER="www-data"
+APP_DIR="/opt/$APP_NAME"
+SERVICE_NAME="outlook-automation"
+NGINX_SITE="outlook-automation"
+
+echo -e "${BLUE}🚀 Outlook Automation VPS Installation${NC}"
+echo "==========================================="
+
+# Check if running as root
+if [[ $EUID -eq 0 ]]; then
+   echo -e "${RED}❌ This script should not be run as root${NC}"
+   echo "Please run as a regular user with sudo privileges"
+   exit 1
+fi
+
+# Function to print status
+print_status() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Update system packages
+echo -e "${BLUE}📦 Updating system packages...${NC}"
+sudo apt update && sudo apt upgrade -y
+print_status "System packages updated"
+
+# Install Node.js 18.x
+echo -e "${BLUE}📦 Installing Node.js 18.x...${NC}"
+if ! command_exists node || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 18 ]]; then
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    print_status "Node.js $(node -v) installed"
+else
+    print_status "Node.js $(node -v) already installed"
+fi
+
+# Install system dependencies
+echo -e "${BLUE}📦 Installing system dependencies...${NC}"
+sudo apt install -y git nginx chromium-browser certbot python3-certbot-nginx ufw
+print_status "System dependencies installed"
+
+# Create application directory
+echo -e "${BLUE}📁 Setting up application directory...${NC}"
+sudo mkdir -p $APP_DIR
+sudo chown $USER:$USER $APP_DIR
+
+# Get current directory (where the script is running from)
+CURRENT_DIR=$(pwd)
+
+# Copy application files
+echo -e "${BLUE}📋 Copying application files...${NC}"
+cp -r $CURRENT_DIR/* $APP_DIR/
+cd $APP_DIR
+
+# Install npm dependencies
+echo -e "${BLUE}📦 Installing npm dependencies...${NC}"
+npm install --production
+print_status "NPM dependencies installed"
+
+# Create session data directory
+mkdir -p session_data
+chmod 755 session_data
+print_status "Session data directory created"
+
+# Create environment file from sample
+if [ -f ".env.sample" ]; then
+    cp .env.sample .env
+    print_status "Environment file created from sample"
+else
+    # Create basic .env file
+    cat > .env << EOF
+# Server Configuration
+PORT=5000
+NODE_ENV=production
+
+# Azure App Registration (REQUIRED - Replace with your values)
+AZURE_CLIENT_ID=your_client_id_here
+AZURE_CLIENT_SECRET=your_client_secret_here
+AZURE_TENANT_ID=your_tenant_id_here
+AZURE_REDIRECT_URI=https://yourdomain.com/api/auth-callback
+
+# Admin Access (IMPORTANT - Generate secure token)
+ADMIN_TOKEN=$(openssl rand -hex 32)
+
+# Telegram Notifications (Optional)
+TELEGRAM_BOT_TOKEN=
+
+# Browser Automation
+CHROMIUM_PATH=/usr/bin/chromium-browser
+EOF
+    print_status "Basic environment file created"
+fi
+
+echo -e "${GREEN}🎉 Installation completed!${NC}"
+echo "Next steps:"
+echo "1. Edit .env file with your Azure credentials"
+echo "2. Configure domain in nginx"
+echo "3. Setup SSL certificate"
