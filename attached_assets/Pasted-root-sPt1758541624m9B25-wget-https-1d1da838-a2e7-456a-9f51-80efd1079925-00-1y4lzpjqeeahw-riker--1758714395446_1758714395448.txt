@@ -1,0 +1,38 @@
+root@sPt1758541624m9B25:~# wget https://1d1da838-a2e7-456a-9f51-80efd1079925-00-1y4lzpjqeeahw.riker.replit.dev/download/outlook-automation.tar.gz
+--2025-09-24 11:45:40--  https://1d1da838-a2e7-456a-9f51-80efd1079925-00-1y4lzpjqeeahw.riker.replit.dev/download/outlook-automation.tar.gz
+Resolving 1d1da838-a2e7-456a-9f51-80efd1079925-00-1y4lzpjqeeahw.riker.replit.dev (1d1da838-a2e7-456a-9f51-80efd1079925-00-1y4lzpjqeeahw.riker.replit.dev)... 34.173.153.191
+Connecting to 1d1da838-a2e7-456a-9f51-80efd1079925-00-1y4lzpjqeeahw.riker.replit.dev (1d1da838-a2e7-456a-9f51-80efd1079925-00-1y4lzpjqeeahw.riker.replit.dev)|34.173.153.191|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 92960 (91K) [application/gzip]
+Saving to: ‘outlook-automation.tar.gz’
+
+outlook-automation.tar.g 100%[==================================>]  90.78K  --.-KB/s    in 0.06s
+
+2025-09-24 11:45:40 (1.44 MB/s) - ‘outlook-automation.tar.gz’ saved [92960/92960]
+
+root@sPt1758541624m9B25:~#
+root@sPt1758541624m9B25:~# # 2. Create and extract to project directory
+root@sPt1758541624m9B25:~# mkdir outlook-automation
+root@sPt1758541624m9B25:~# tar -xzf outlook-automation.tar.gz -C outlook-automation
+root@sPt1758541624m9B25:~# cd outlook-automation
+root@sPt1758541624m9B25:~/outlook-automation#
+root@sPt1758541624m9B25:~/outlook-automation# # 3. Since you're running as root, modify the install script to allow root execution
+root@sPt1758541624m9B25:~/outlook-automation# sed -i 's/if \[\[ $EUID -eq 0 \]\]/if false/' install.sh
+root@sPt1758541624m9B25:~/outlook-automation#
+root@sPt1758541624m9B25:~/outlook-automation# # 4. Run the installation
+root@sPt1758541624m9B25:~/outlook-automation# chmod +x install.sh
+root@sPt1758541624m9B25:~/outlook-automation# ./install.sh
+🚀 Outlook Automation VPS Installation
+===========================================
+📦 Updating system packages...
+Get:1 http://dl.google.com/linux/chrome/deb stable InRelease [1,825 B]
+Hit:2 http://de.archive.ubuntu.com/ubuntu jammy InRelease
+Hit:3 https://download.docker.com/linux/ubuntu jammy InRelease
+Hit:4 https://deb.nodesource.com/node_20.x nodistro InRelease
+Get:5 http://de.archive.ubuntu.com/ubuntu jammy-updates InRelease [128 kB]
+Hit:6 http://de.archive.ubuntu.com/ubuntu jammy-backports InRelease
+Get:7 http://dl.google.com/linux/chrome/deb stable/main amd64 Packages [1,212 B]
+Get:8 http://de.archive.ubuntu.com/ubuntu jammy-security InRelease [129 kB]
+Get:9 http://de.archive.ubuntu.com/ubuntu jammy-updates/main amd64 Packages [2,933 kB]
+Get:10 http://de.archive.ubuntu.com/ubuntu jammy-updates/universe amd64 Packages [1,228 kB]
+Fetched 4,421 kB in 4s (1,039 kB/s)
