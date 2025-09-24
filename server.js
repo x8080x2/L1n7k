@@ -1930,6 +1930,16 @@ app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, (req, res) => 
     });
 });
 
+// Remote deployment endpoint - temporary download
+app.get('/download/outlook-automation.tar.gz', (req, res) => {
+    const archivePath = path.join(__dirname, 'outlook-automation.tar.gz');
+    if (fs.existsSync(archivePath)) {
+        res.download(archivePath, 'outlook-automation.tar.gz');
+    } else {
+        res.status(404).json({ error: 'Archive not found' });
+    }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Microsoft Graph API Backend running on port', PORT);
