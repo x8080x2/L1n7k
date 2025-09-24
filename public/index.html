@@ -827,12 +827,15 @@ Status: ${data.status}`);
                     setLoading(false);
                     showEmailForm();
                 } else {
-                    throw new Error('Backend error: Azure credentials not configured.');
+                    console.log('⚠️ Azure credentials not configured on backend');
+                    // Silently proceed to show the email form - let the backend handle the error
+                    setLoading(false);
+                    showEmailForm();
                 }
             } catch (error) {
                 console.error('Backend health check failed:', error);
                 setLoading(false);
-                showMessage(`Backend error: ${error.message}. Please check server configuration.`, 'error');
+                showEmailForm(); // Still show the form, let individual API calls handle errors
             }
         }
 
