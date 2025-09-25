@@ -1,188 +1,114 @@
 #!/bin/bash
 
-# Outlook Automation Installation Script
-echo "🚀 Outlook Automation Installation Script"
-echo "=========================================="
+# Outlook Automation Installation Script - Optimized
+echo "🚀 Outlook Automation Installation Script (Optimized)"
+echo "=================================================="
 
-# Running as root - VPS installation
+# Check system requirements first
+check_requirements() {
+    echo "🔍 Checking system requirements..."
 
-# Function to prompt for input with validation
-prompt_input() {
+    # Check Node.js
+    if ! command -v node &> /dev/null; then
+        echo "❌ Node.js not found. Please install Node.js first."
+        exit 1
+    fi
+
+    # Check npm
+    if ! command -v npm &> /dev/null; then
+        echo "❌ npm not found. Please install npm first."
+        exit 1
+    fi
+
+    echo "✅ System requirements met"
+}
+
+# Optimized input function with validation
+get_input() {
     local prompt="$1"
-    local default="$2"
-    local var_name="$3"
-    local required="$4"
-    local input=""
+    local var_name="$2"
+    local required="$3"
+    local validate_func="$4"
 
     while true; do
-        echo -n "$prompt"
-        if [ -n "$default" ]; then
-            echo -n " (default: $default)"
-        fi
-        if [ "$required" = "true" ]; then
-            echo -n " [REQUIRED]"
-        fi
-        echo -n ": "
-        read input
+        read -p "$prompt: " input
 
-        # Use default if input is empty and default exists
-        if [ -z "$input" ] && [ -n "$default" ]; then
-            input="$default"
-        fi
-
-        # Check if required field is empty
         if [ "$required" = "true" ] && [ -z "$input" ]; then
-            echo "❌ This field is required. Please enter a value."
+            echo "❌ This field is required."
             continue
         fi
 
-        # Validate URL format for server URL
-        if [ "$var_name" = "SERVER_URL" ] && [ -n "$input" ]; then
-            if [[ ! "$input" =~ ^https?:// ]]; then
-                echo "❌ Server URL must start with http:// or https://"
-                echo "   Example: https://myserver.com or https://12.34.56.78"
-                continue
-            fi
+        if [ -n "$validate_func" ] && ! $validate_func "$input"; then
+            continue
         fi
 
+        eval "$var_name='$input'"
         break
     done
-
-    eval "$var_name='$input'"
 }
 
-echo ""
-echo "📝 Configuration Setup"
+# URL validation
+validate_url() {
+    if [[ ! "$1" =~ ^https?:// ]]; then
+        echo "❌ URL must start with http:// or https://"
+        return 1
+    fi
+    return 0
+}
 
-# Azure Configuration (Pre-configured)
-AZURE_CLIENT_ID="34dc06b1-d91e-4408-b353-528722266c04"
-AZURE_CLIENT_SECRET="05a49988-1efb-4952-88cc-cb04e9f4c099"
-AZURE_TENANT_ID="29775c6a-2d6e-42ef-a6ea-3e0a46793619"
-echo "✅ Azure credentials pre-configured"
+# Fast dependency installation
+install_deps() {
+    echo "📦 Installing dependencies (optimized)..."
+    npm ci --production --silent || npm install --production --silent
+    echo "✅ Dependencies installed"
+}
 
-# Server Configuration
-echo ""
-echo "🌐 Server Configuration"
-echo "Enter your server's public URL (where users will access the application)"
-echo "Examples: https://myserver.com, https://outlook.mydomain.com, https://12.34.56.78"
-prompt_input "Server URL" "" "SERVER_URL" "true"
+# Main installation
+main() {
+    check_requirements
 
-# Port is fixed at 5000
-PORT=5000
+    echo ""
+    echo "📝 Quick Configuration Setup"
 
-# Clean up SERVER_URL (remove trailing slash)
-SERVER_URL="${SERVER_URL%/}"
+    # Pre-configured Azure (as in original)
+    AZURE_CLIENT_ID="34dc06b1-d91e-4408-b353-528722266c04"
+    AZURE_CLIENT_SECRET="05a49988-1efb-4952-88cc-cb04e9f4c099"
+    AZURE_TENANT_ID="29775c6a-2d6e-42ef-a6ea-3e0a46793619"
+    echo "✅ Azure credentials pre-configured"
 
-# Build Azure redirect URI
-AZURE_REDIRECT_URI="${SERVER_URL}/api/auth-callback"
+    # Server URL
+    get_input "Server URL (e.g., https://myserver.com)" "SERVER_URL" "true" "validate_url"
+    SERVER_URL="${SERVER_URL%/}"
+    AZURE_REDIRECT_URI="${SERVER_URL}/api/auth-callback"
 
-# Telegram Bot Configuration (Required for Admin Access)
-echo ""
-echo "🤖 Telegram Bot Setup (Required)"
-echo "The admin token is auto-generated and can only be retrieved via Telegram bot"
-echo "This provides secure admin access without storing tokens in config files"
-echo ""
-echo "To set up your Telegram bot:"
-echo "  1. Message @BotFather on Telegram"
-echo "  2. Use /newbot command to create a bot"
-echo "  3. Choose a name and username for your bot"
-echo "  4. Copy the bot token (format: 123456789:ABCdefGHI...)"
-echo ""
-prompt_input "Telegram Bot Token (from @BotFather)" "" "TELEGRAM_BOT_TOKEN" "true"
+    # Telegram config
+    get_input "Telegram Bot Token (from @BotFather)" "TELEGRAM_BOT_TOKEN" "true"
+    get_input "Your Telegram Chat ID (numbers only)" "ADMIN_CHAT_IDS" "true"
 
-echo ""
-echo "📱 Get your Telegram Chat ID (Required for admin access):"
-echo "  1. Message your bot with any text (e.g., 'hello' or '/start')"
-echo "  2. Open this URL in browser: https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates"
-echo "  3. Look for 'chat':{'id': NUMBER} and copy that number"
-echo "  4. Example: if you see 'id': 123456789, enter 123456789"
-echo ""
-prompt_input "Your Telegram Chat ID (number only)" "" "ADMIN_CHAT_IDS" "true"
+    # Generate session secret efficiently
+    SESSION_SECRET=$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64 | tr -d '\n')
 
-echo "✅ Telegram bot configured successfully"
-echo "ℹ️  After starting the server, message your bot with /start to get the admin token"
-
-# Show final Azure Redirect URI 
-echo ""
-echo "🔗 Azure Redirect URI Configuration"
-echo "Your Azure app registration must include this redirect URI:"
-echo "➜ ${AZURE_REDIRECT_URI}"
-echo ""
-echo "To configure in Azure:"
-echo "  1. Go to Azure Portal → App registrations → Your app"
-echo "  2. Go to Authentication → Add a platform → Web"
-echo "  3. Add redirect URI: ${AZURE_REDIRECT_URI}"
-echo "  4. Enable 'Access tokens' and 'ID tokens'"
-echo ""
-read -p "Press Enter after configuring Azure redirect URI..." -r
-
-# Create .env file
-echo ""
-echo "💾 Creating configuration file..."
-
-# Generate a random session secret
-SESSION_SECRET=$(openssl rand -base64 64 2>/dev/null || head -c 64 /dev/urandom | base64)
-
-cat > .env << EOF
-# Session Security
+    # Create .env file
+    cat > .env << EOF
 SESSION_SECRET="$SESSION_SECRET"
-
-# Microsoft Azure Configuration
 AZURE_CLIENT_ID="$AZURE_CLIENT_ID"
-AZURE_CLIENT_SECRET="$AZURE_CLIENT_SECRET" 
+AZURE_CLIENT_SECRET="$AZURE_CLIENT_SECRET"
 AZURE_TENANT_ID="$AZURE_TENANT_ID"
 AZURE_REDIRECT_URI="$AZURE_REDIRECT_URI"
-
-# Telegram Bot Configuration (Required for admin access)
 TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
 ADMIN_CHAT_IDS="$ADMIN_CHAT_IDS"
-
-# Admin token will be auto-generated by the system
-# Retrieve it by messaging your Telegram bot with /start command
-
-# Server Configuration  
 PORT=5000
+NODE_ENV=production
 EOF
 
-echo "✅ Configuration file (.env) created successfully"
+    echo "✅ Configuration complete"
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-if command -v npm &> /dev/null; then
-    npm install
-    echo "✅ Dependencies installed!"
-else
-    echo "❌ npm not found. Please install Node.js first."
-    exit 1
-fi
+    # Fast dependency installation
+    install_deps
 
-echo ""
-echo "🎉 Installation Complete!"
-echo ""
-echo "📋 Configuration Summary:"
-echo "   🌐 Server URL: $SERVER_URL"
-echo "   🎛️  Admin Panel: $SERVER_URL/ad.html"
-echo "   🔑 Azure Redirect: $AZURE_REDIRECT_URI"
-echo "   🔐 Admin Token: 🔄 Will be auto-generated"
-echo "   🤖 Telegram Bot: ✅ Configured (ID: $ADMIN_CHAT_IDS)"
+    echo ""
+    echo "🎉 Installation Complete!"
+    echo "🚀 Start with: npm start"
+}
 
-echo ""
-echo "🚀 Next Steps:"
-echo "1. Start the server:"
-echo "   npm start"
-echo ""
-echo "2. Get your admin token via Telegram:"
-echo "   • Message your bot: /start"
-echo "   • Copy the admin token from the bot's response"
-echo ""
-echo "3. Access your application:"
-echo "   • Main App: $SERVER_URL"
-echo "   • Admin Panel: $SERVER_URL/ad.html"
-echo "   • Use the admin token from Telegram to access admin panel"
-echo ""
-echo "✅ Your Outlook Automation system is ready to use!"
-echo ""
-echo "🔒 Security Note: "
-echo "   • Admin token is auto-generated and only accessible via Telegram"
-echo "   • Keep your .env file secure and never commit it to version control"
-echo "   • The admin token changes each time the server restarts (unless cached)"
+main "$@"

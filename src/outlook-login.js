@@ -31,11 +31,16 @@ class OutlookLoginAutomation {
                 '--disable-sync',
                 '--no-default-browser-check',
                 '--disable-popup-blocking',
-                '--disable-translate'
+                '--disable-translate',
+                '--memory-pressure-off',
+                '--max_old_space_size=512',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding'
             ],
             dumpio: false,
             ignoreHTTPSErrors: true,
-            defaultViewport: null
+            defaultViewport: { width: 1280, height: 720 }
         };
 
         // Simplified Chromium path detection - Replit has Nix chromium available

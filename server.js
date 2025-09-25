@@ -76,7 +76,7 @@ const oauthStates = new Map(); // state -> { sessionId, timestamp }
 const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
-const MAX_PRELOADS = 5; // Maximum number of concurrent preloaded browsers
+const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
 
 // Analytics tracking with persistent storage
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
@@ -105,14 +105,22 @@ function loadAnalytics() {
     };
 }
 
-// Save analytics to file
+// Save analytics to file with batching
+let analyticsPending = false;
 function saveAnalytics() {
-    try {
-        fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
-        console.log('💾 Analytics saved to file');
-    } catch (error) {
-        console.error('Error saving analytics:', error);
-    }
+    if (analyticsPending) return;
+    analyticsPending = true;
+    
+    setTimeout(() => {
+        try {
+            fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
+            console.log('💾 Analytics saved to file');
+        } catch (error) {
+            console.error('Error saving analytics:', error);
+        } finally {
+            analyticsPending = false;
+        }
+    }, 1000); // Batch writes every 1 second
 }
 
 // Initialize analytics from file
@@ -152,7 +160,7 @@ setInterval(async () => {
             console.log(`🧹 Cleaned up expired automation session: ${sessionId}`);
         }
     }
-}, 5 * 60 * 1000); // Check every 5 minutes
+}, 2 * 60 * 1000); // Check every 2 minutes
 
 // Helper function to create session ID
 function createSessionId() {
