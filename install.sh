@@ -46,10 +46,17 @@ prompt_input "Port" "5000" "PORT"
 # Build Azure redirect URI
 AZURE_REDIRECT_URI="${SERVER_URL}/api/auth-callback"
 
+# Admin Configuration
+echo ""
+echo "🔐 Admin Access Setup (Required)"
+echo "Admin token provides access to admin panel and session management"
+prompt_input "Admin Token (secure password)" "" "ADMIN_TOKEN"
+
 # Telegram Bot Configuration
 echo ""
-echo "🤖 Telegram Bot Setup (Optional)"
+echo "🤖 Telegram Bot Setup (Required for notifications)"
 echo "Provides: notifications, admin token access, remote management"
+echo "Get bot token from @BotFather on Telegram"
 prompt_input "Telegram Bot Token (from @BotFather)" "" "TELEGRAM_BOT_TOKEN"
 
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
@@ -61,6 +68,12 @@ if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
     prompt_input "Your Telegram Chat ID" "" "ADMIN_CHAT_IDS"
 fi
 
+# Azure Redirect URI Configuration
+echo ""
+echo "🔗 Azure Redirect URI Setup (Required)"
+echo "This should match your Azure app registration redirect URI"
+prompt_input "Azure Redirect URI" "${SERVER_URL}/api/auth-callback" "AZURE_REDIRECT_URI"
+
 # Create .env file
 echo ""
 echo "💾 Creating configuration..."
@@ -70,6 +83,9 @@ AZURE_CLIENT_ID=$AZURE_CLIENT_ID
 AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET
 AZURE_TENANT_ID=$AZURE_TENANT_ID
 AZURE_REDIRECT_URI=$AZURE_REDIRECT_URI
+
+# Admin Access Configuration
+ADMIN_TOKEN=$ADMIN_TOKEN
 
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
@@ -98,6 +114,12 @@ echo "   Server: $SERVER_URL"
 echo "   Admin Panel: $SERVER_URL/ad.html"
 echo "   Azure Redirect: $AZURE_REDIRECT_URI"
 
+if [ -n "$ADMIN_TOKEN" ]; then
+    echo "   Admin Token: ✅ Configured"
+else
+    echo "   Admin Token: ❌ Not configured (will auto-generate)"
+fi
+
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
     if [ -n "$ADMIN_CHAT_IDS" ]; then
         echo "   Telegram: ✅ Configured"
@@ -112,8 +134,15 @@ echo ""
 echo "🔧 Next Steps:"
 echo "1. Update Azure app with redirect URI: $AZURE_REDIRECT_URI"
 echo "2. Start server: npm start"
-if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$ADMIN_CHAT_IDS" ]; then
-    echo "3. Get admin token via Telegram bot"
+if [ -n "$ADMIN_TOKEN" ]; then
+    echo "3. Access admin panel with your configured admin token"
+    if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$ADMIN_CHAT_IDS" ]; then
+        echo "4. Use Telegram bot for notifications and remote access"
+    fi
 else
-    echo "3. Check server logs for admin token"
+    if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$ADMIN_CHAT_IDS" ]; then
+        echo "3. Get auto-generated admin token via Telegram bot"
+    else
+        echo "3. Check server logs for auto-generated admin token"
+    fi
 fi
