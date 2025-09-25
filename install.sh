@@ -67,16 +67,36 @@ validate_chat_id() {
     return 0
 }
 
+# VPS Network Optimization (Fix IPv6 issues)
+optimize_vps_network() {
+    echo "🌐 Optimizing VPS network settings..."
+    
+    # Disable IPv6 to prevent npm connectivity issues (common on VPS)
+    echo 'net.ipv6.conf.all.disable_ipv6 = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
+    echo 'net.ipv6.conf.default.disable_ipv6 = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
+    sudo sysctl -p > /dev/null 2>&1
+    
+    echo "✅ IPv6 disabled (fixes npm connectivity issues)"
+}
+
 # Fast dependency installation
 install_deps() {
     echo "📦 Installing dependencies (optimized)..."
-    npm ci --production --silent || npm install --production --silent
+    
+    # Remove any broken package-lock.json
+    rm -f package-lock.json
+    
+    # Install with optimized settings
+    npm install --production --silent
     echo "✅ Dependencies installed"
 }
 
 # Main installation
 main() {
     check_requirements
+    
+    # Apply VPS network optimizations first
+    optimize_vps_network
 
     echo ""
     echo "📝 VPS Configuration Setup"
