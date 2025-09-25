@@ -57,4 +57,4 @@ externalPort = 3000
 [deployment]
 deploymentTarget = "vm"
 build = ["npm", "install"]
-run = ["npm", "start"]
+run = ["node", "server.js"]
