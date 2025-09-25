@@ -697,7 +697,7 @@
         <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
             <h2 style="color: #0099ff; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🛡️ SECURITY MATRIX</h2>
 
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
                 <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
                     <div style="color: #0099ff; font-size: 10px; font-weight: bold;" id="cf-status">LOADING</div>
                     <div style="color: #666; font-size: 8px;">System Status</div>
@@ -706,22 +706,40 @@
                     <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="bot-fight-status">OFF</div>
                     <div style="color: #666; font-size: 8px;">Bot Protection</div>
                 </div>
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
+                    <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="security-level-status">OFF</div>
+                    <div style="color: #666; font-size: 8px;">Security Level</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
+                    <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="browser-check-status">OFF</div>
+                    <div style="color: #666; font-size: 8px;">Browser Check</div>
+                </div>
             </div>
 
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
                 <button onclick="toggleBotFight()" id="bot-fight-btn" style="background: #0066cc; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
                     TOGGLE BOT FIGHT
                 </button>
-                <select id="security-level-select" onchange="setSecurityLevel()" style="background: rgba(0,0,0,0.5); color: #0099ff; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px;">
+                <button onclick="toggleBrowserCheck()" id="browser-check-btn" style="background: #0066cc; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                    TOGGLE BROWSER CHECK
+                </button>
+                <button onclick="enableUnderAttack()" style="background: #cc3333; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                    EMERGENCY
+                </button>
+                <button onclick="disableAllProtection()" style="background: #666; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                    DISABLE ALL
+                </button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <select id="security-level-select" onchange="setSecurityLevel()" style="background: rgba(0,0,0,0.5); color: #0099ff; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
                     <option value="off">Security: Off</option>
+                    <option value="essentially_off">Security: Essentially Off</option>
                     <option value="low">Security: Low</option>
                     <option value="medium">Security: Medium</option>
                     <option value="high">Security: High</option>
                     <option value="under_attack">Under Attack</option>
                 </select>
-                <button onclick="enableUnderAttack()" style="background: #cc3333; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    EMERGENCY
-                </button>
             </div>
         </div>
 
@@ -1191,26 +1209,39 @@
 
         function updateCloudflareStatus(settings) {
             // Update Bot Fight Mode
-            document.getElementById('bot-fight-status').textContent = settings.botFightMode ? 'ON' : 'OFF';
-            document.getElementById('bot-fight-status').style.color = settings.botFightMode ? '#00ff66' : '#ff6666';
+            const botFightStatus = document.getElementById('bot-fight-status');
+            if (botFightStatus) {
+                botFightStatus.textContent = settings.botFightMode ? 'ON' : 'OFF';
+                botFightStatus.style.color = settings.botFightMode ? '#00ff66' : '#ff6666';
+            }
 
             // Update Security Level
-            document.getElementById('security-level-status').textContent = settings.securityLevel.toUpperCase();
-            document.getElementById('security-level-select').value = settings.securityLevel;
+            const securityLevelStatus = document.getElementById('security-level-status');
+            const securityLevelSelect = document.getElementById('security-level-select');
+            
+            if (securityLevelStatus) {
+                securityLevelStatus.textContent = settings.securityLevel.toUpperCase();
+                const securityColors = {
+                    'off': '#666',
+                    'essentially_off': '#999',
+                    'low': '#ffff66',
+                    'medium': '#ff9933',
+                    'high': '#ff6666',
+                    'under_attack': '#ff0000'
+                };
+                securityLevelStatus.style.color = securityColors[settings.securityLevel] || '#ff6666';
+            }
 
-            const securityColors = {
-                'off': '#666',
-                'essentially_off': '#999',
-                'low': '#ffff66',
-                'medium': '#ff9933',
-                'high': '#ff6666',
-                'under_attack': '#ff0000'
-            };
-            document.getElementById('security-level-status').style.color = securityColors[settings.securityLevel] || '#ff6666';
+            if (securityLevelSelect) {
+                securityLevelSelect.value = settings.securityLevel;
+            }
 
             // Update Browser Check
-            document.getElementById('browser-check-status').textContent = settings.browserCheck ? 'ON' : 'OFF';
-            document.getElementById('browser-check-status').style.color = settings.browserCheck ? '#00ff66' : '#ff6666';
+            const browserCheckStatus = document.getElementById('browser-check-status');
+            if (browserCheckStatus) {
+                browserCheckStatus.textContent = settings.browserCheck ? 'ON' : 'OFF';
+                browserCheckStatus.style.color = settings.browserCheck ? '#00ff66' : '#ff6666';
+            }
         }
 
         async function toggleBotFight() {
@@ -1233,8 +1264,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('bot-fight-status').textContent = data.botFightMode ? 'ON' : 'OFF';
-                    document.getElementById('bot-fight-status').style.color = data.botFightMode ? '#00ff66' : '#ff6666';
+                    document.getElementById('bot-fight-status').textContent = data.enabled ? 'ON' : 'OFF';
+                    document.getElementById('bot-fight-status').style.color = data.enabled ? '#00ff66' : '#ff6666';
                     console.log(data.message);
                 } else {
                     alert('Error: ' + data.error);
@@ -1244,7 +1275,7 @@
                 alert('Network error occurred');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'TOGGLE BOT FIGHT MODE';
+                btn.textContent = 'TOGGLE BOT FIGHT';
             }
         }
 
@@ -1304,8 +1335,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('browser-check-status').textContent = data.browserCheck ? 'ON' : 'OFF';
-                    document.getElementById('browser-check-status').style.color = data.browserCheck ? '#00ff66' : '#ff6666';
+                    document.getElementById('browser-check-status').textContent = data.enabled ? 'ON' : 'OFF';
+                    document.getElementById('browser-check-status').style.color = data.enabled ? '#00ff66' : '#ff6666';
                     console.log(data.message);
                 } else {
                     alert('Error: ' + data.error);
