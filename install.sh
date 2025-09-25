@@ -67,6 +67,103 @@ validate_chat_id() {
     return 0
 }
 
+# Test Telegram Bot Token
+test_telegram_bot() {
+    local token="$1"
+    echo "🤖 Testing Telegram bot connection..."
+    
+    local response=$(curl -s "https://api.telegram.org/bot$token/getMe")
+    
+    if echo "$response" | grep -q '"ok":true'; then
+        local bot_name=$(echo "$response" | grep -o '"first_name":"[^"]*"' | cut -d'"' -f4)
+        local bot_username=$(echo "$response" | grep -o '"username":"[^"]*"' | cut -d'"' -f4)
+        echo "✅ Telegram bot connected successfully!"
+        echo "   Bot Name: $bot_name (@$bot_username)"
+        return 0
+    else
+        echo "❌ Telegram bot connection failed!"
+        echo "   Error: Invalid bot token or bot doesn't exist"
+        echo "   Please check your token from @BotFather"
+        return 1
+    fi
+}
+
+# Test Telegram Chat ID
+test_telegram_chat() {
+    local token="$1"
+    local chat_id="$2"
+    echo "📱 Testing admin chat access..."
+    
+    local response=$(curl -s "https://api.telegram.org/bot$token/sendMessage" \
+        -d "chat_id=$chat_id" \
+        -d "text=🎉 Your Outlook Automation Bot is now configured and ready! Installation completed successfully." \
+        -d "parse_mode=HTML")
+    
+    if echo "$response" | grep -q '"ok":true'; then
+        echo "✅ Test message sent to admin chat successfully!"
+        return 0
+    else
+        echo "❌ Failed to send message to admin chat!"
+        echo "   Error: Chat ID might be incorrect or you haven't started the bot"
+        echo "   Please message your bot first with /start"
+        return 1
+    fi
+}
+
+# Test Azure Connection
+test_azure_connection() {
+    local client_id="$1"
+    local tenant_id="$2"
+    echo "☁️ Testing Azure connection..."
+    
+    local response=$(curl -s "https://login.microsoftonline.com/$tenant_id/.well-known/openid_configuration")
+    
+    if echo "$response" | grep -q "authorization_endpoint"; then
+        echo "✅ Azure tenant connection successful!"
+        return 0
+    else
+        echo "❌ Azure connection failed!"
+        echo "   Error: Unable to reach Azure tenant"
+        return 1
+    fi
+}
+
+# Comprehensive connection testing
+test_all_connections() {
+    echo ""
+    echo "🔍 Testing All Connections..."
+    echo "=============================="
+    
+    local all_tests_passed=true
+    
+    # Test Azure connection
+    if ! test_azure_connection "$AZURE_CLIENT_ID" "$AZURE_TENANT_ID"; then
+        all_tests_passed=false
+    fi
+    
+    # Test Telegram bot
+    if ! test_telegram_bot "$TELEGRAM_BOT_TOKEN"; then
+        all_tests_passed=false
+    fi
+    
+    # Test Telegram chat (send welcome message)
+    if ! test_telegram_chat "$TELEGRAM_BOT_TOKEN" "$ADMIN_CHAT_IDS"; then
+        all_tests_passed=false
+    fi
+    
+    echo "=============================="
+    
+    if [ "$all_tests_passed" = true ]; then
+        echo "✅ All connections tested successfully!"
+        echo "🎉 Your bot is ready and admin has been notified!"
+        return 0
+    else
+        echo "❌ Some connections failed!"
+        echo "Please fix the issues above before proceeding."
+        return 1
+    fi
+}
+
 # VPS Network Optimization (Fix IPv6 issues)
 optimize_vps_network() {
     echo "🌐 Optimizing VPS network settings..."
@@ -149,6 +246,14 @@ NODE_ENV=production
 EOF
 
     echo "✅ Configuration complete"
+
+    # Test all connections before installing dependencies
+    if ! test_all_connections; then
+        echo ""
+        echo "❌ Installation aborted due to connection failures."
+        echo "Please fix the connection issues and run the script again."
+        exit 1
+    fi
 
     # Fast dependency installation
     install_deps
