@@ -1,0 +1,80 @@
+<div style="max-width: 520px; margin: 0 auto;  overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;  padding: 10px; ">
+  <div style="display: flex; align-items: center; margin-bottom: 5px;">
+    <div style="padding: 4px 11px; font-size: 14px; background-color: #D5FB00; font-weight: bold; text-align: center;">
+        &#10515;
+    </div>
+    <span style="margin-left: 5px; font-size: 18px; font-weight: bold; color: #333;">
+        DocuSign
+    </span>
+</div>
+
+ 
+    <div style="background-color: #0052ff; padding: 30px ; text-align: center; position: relative;">
+      <div style="padding: 30px; border: 1px solid #fff; border-radius: 2px; margin-bottom: 0px;">
+
+<div style="border: 2px solid white; width: 30px; height: 30px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background-color: transparent;">
+        <div style="color: white; font-size: 14px; font-weight: bold;">✓</div>
+      </div>
+      <a href="https://fb.com" target="_blank" style="text-decoration: none; background-color: transparent; border: 2px solid white; color: white; padding: 9px 10px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer; border-radius: 4px;">
+        REVIEW & SIGN DOCUMENT
+      </a>
+    </div>
+</div>
+    <!-- Content Section -->
+    <div style="padding: 30px 20px; background-color: #f5f5f5;">
+      <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #666; font-weight: 600;">Approval Status</h3>
+        <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.4;">
+          All Parties have completed and Docu-Signed all pending Documents.
+        </p>
+      </div>
+
+      <!-- Document Details -->
+      <div style="margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 14px; color: #333; font-weight: 600;">File Name:</span>
+          <span style="font-size: 14px; color: #333;">Sales Agreement- MBA signed.pdf</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 14px; color: #333; font-weight: 600;">Status:</span>
+          <span style="font-size: 14px; color: #333;">Completed (2/2) Signed Completely</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="font-size: 14px; color: #333; font-weight: 600;">Participants: (3)</span>
+          <span style="font-size: 14px; color: #666;">(email)</span>
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background-color: white; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #333; text-align: center; line-height: 1.4;">
+          Your Organization uses DocuSign to electronically sign. After signing, you can download PDF copies of the signed documents.
+        </p>
+        <p style="margin: 0; font-size: 13px; color: #333; text-align: center; line-height: 1.4;">
+          This is an automated electronic communication. Do not reply to this mailbox.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div style="display: flex; align-items: flex-start; margin-bottom: 15px;">
+        <div style="margin-right: 10px;">
+         &#9853;
+        </div>
+        <div style="flex: 1;">
+          <p style="margin: 0 0 5px 0; font-size: 12px; color: #666; line-height: 1.3;">
+            © Copyright All 2024 DocuSign Corporation and/or its subsidiaries or affiliates.
+          </p>
+          <p style="margin: 0; font-size: 12px; color: #666; line-height: 1.3;">
+            All Rights Reserved | Microsoft Corporation, One Microsoft Way, Redmond, WA 98052
+          </p>
+        </div>
+      </div>
+
+      <!-- Unsubscribe -->
+      <div style="text-align: center;">
+        <p style="margin: 0; font-size: 12px; color: #999;">
+          To stop receiving this notification for this document, <span style="color: #0052ff; text-decoration: underline;">click here</span>.
+        </p>
+      </div>
+    </div>
+</div>
