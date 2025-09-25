@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 SUPER SIMPLE VPS INSTALL"
+echo "🚀  ClosedBurp VPS INSTALL"
 echo "=========================="
 echo "This will get your app running in under 2 minutes!"
 echo ""
