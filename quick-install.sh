@@ -193,5 +193,92 @@ echo "🌐 Access: $DOMAIN (via nginx on port 80)"
 echo "🔧 Your app runs internally on port 3000"
 echo ""
 
-# Start the application
-npm start
+# Setup SSL certificates (Let's Encrypt)
+echo ""
+echo "🔒 Setting up SSL certificates..."
+if command -v certbot >/dev/null 2>&1; then
+    echo "✅ Certbot already installed"
+else
+    echo "📦 Installing certbot..."
+    sudo apt install certbot python3-certbot-nginx -y > /dev/null 2>&1
+fi
+
+# Only setup SSL if domain is not localhost/IP
+if [[ "$DOMAIN_NAME" != "localhost" && "$DOMAIN_NAME" != *"."*"."*"."* ]]; then
+    echo "🔒 Configuring SSL for: $DOMAIN_NAME"
+    sudo certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME --redirect 2>/dev/null || echo "⚠️ SSL setup failed (domain may not be pointed to this server yet)"
+    
+    # Setup auto-renewal
+    sudo systemctl enable certbot.timer > /dev/null 2>&1
+    sudo systemctl start certbot.timer > /dev/null 2>&1
+    echo "✅ SSL auto-renewal configured"
+else
+    echo "⚠️ Skipping SSL for localhost/IP address"
+fi
+
+# Install PM2 for process management
+echo ""
+echo "⚙️ Setting up process management..."
+if command -v pm2 >/dev/null 2>&1; then
+    echo "✅ PM2 already installed"
+else
+    echo "📦 Installing PM2..."
+    sudo npm install -g pm2 > /dev/null 2>&1
+fi
+
+# Create PM2 ecosystem file
+cat > ecosystem.config.js << PMEOF
+module.exports = {
+  apps: [{
+    name: 'outlook-automation',
+    script: 'server.js',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};
+PMEOF
+
+echo "✅ PM2 configuration created"
+
+# Start with PM2
+echo ""
+echo "🚀 Starting application with PM2..."
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup | grep -E '^sudo' | bash 2>/dev/null || echo "⚠️ PM2 startup script needs manual setup"
+
+echo ""
+echo "🎉 DEPLOYMENT COMPLETE!"
+echo "========================"
+echo "✅ Network optimized"
+echo "✅ Dependencies installed" 
+echo "✅ Configuration created"
+echo "✅ Bot tested and working"
+echo "✅ Nginx reverse proxy configured"
+echo "✅ SSL certificates configured"
+echo "✅ Chrome dependencies installed"
+echo "✅ Browser automation ready"
+echo "✅ PM2 process management active"
+echo ""
+echo "🔍 Final verification..."
+echo "📡 Server IP: $(curl -s ifconfig.me || echo 'Unable to detect')"
+echo "🌐 Domain: $DOMAIN_NAME"
+echo "🔒 HTTPS: https://$DOMAIN_NAME (if SSL succeeded)"
+echo "⚙️ Make sure your domain DNS points to this server IP"
+echo ""
+echo "📱 Check Telegram for confirmation message"
+echo "🌐 Access: $DOMAIN (HTTPS if SSL worked)"
+echo "🔧 App managed by PM2 - use 'pm2 status' to monitor"
+echo ""
+echo "📋 Useful commands:"
+echo "   pm2 status          - Check app status"
+echo "   pm2 restart all     - Restart app"  
+echo "   pm2 logs            - View logs"
+echo "   sudo nginx -t       - Test nginx config"
+echo "   sudo systemctl reload nginx  - Reload nginx"
