@@ -205,4 +205,29 @@ Preferred communication style: Simple, everyday language.
 - ⚠️ **Security Concerns**: Unprotected cookie endpoints and plain text storage
 - ⚠️ **Admin Token**: Requires proper configuration for secure admin access
 
+## VPS Deployment Setup
+
+**Note**: User declined GitHub integration setup for automated deployment. Manual deployment process required.
+
+### Manual VPS Deployment Process:
+
+1. **Domain Setup on VPS**:
+   - Point domain DNS A record to VPS IP address
+   - Configure Nginx/Apache virtual host for the domain
+   - Set document root to `/var/www/yourdomain.com/html`
+
+2. **Code Deployment**:
+   - Manual file transfer via SCP/SFTP
+   - Git clone directly on VPS
+   - Environment variables need manual configuration
+
+3. **Process Management**:
+   - Use PM2 or systemd for process management
+   - Configure Nginx proxy to Node.js application on port 5000
+
+4. **Required Environment Variables for VPS**:
+   - `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` for Graph API
+   - `TELEGRAM_BOT_TOKEN` (optional) for admin notifications
+   - `ADMIN_TOKEN` (optional) or auto-generated
+
 This documentation reflects the actual hybrid architecture and security posture of the current system.
