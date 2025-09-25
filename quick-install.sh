@@ -77,6 +77,9 @@ DOMAIN_NAME=$(echo "$DOMAIN" | sed 's|https\?://||' | sed 's|www\.||')
 echo "⚙️ Creating nginx configuration..."
 # Remove any existing directory or file with the same name
 sudo rm -rf /etc/nginx/sites-available/$DOMAIN_NAME
+sudo rm -rf /etc/nginx/sites-available/$DOMAIN_NAME/
+# Ensure the sites-available directory exists
+sudo mkdir -p /etc/nginx/sites-available
 sudo tee /etc/nginx/sites-available/$DOMAIN_NAME > /dev/null << EOF
 server {
     listen 80;
@@ -103,12 +106,26 @@ sudo rm -f /etc/nginx/sites-enabled/default > /dev/null 2>&1
 
 # Test and restart nginx
 echo "🧪 Testing nginx configuration..."
-if sudo nginx -t > /dev/null 2>&1; then
-    sudo systemctl restart nginx > /dev/null 2>&1
-    sudo systemctl enable nginx > /dev/null 2>&1
-    echo "✅ Nginx configured and running"
+if sudo nginx -t 2>&1; then
+    echo "✅ Nginx configuration test passed"
+    sudo systemctl restart nginx
+    sudo systemctl enable nginx
+    if sudo systemctl is-active --quiet nginx; then
+        echo "✅ Nginx configured and running"
+        echo "🌐 Testing connection to backend..."
+        if curl -s http://localhost:3000/api/health > /dev/null; then
+            echo "✅ Backend is responding on port 3000"
+        else
+            echo "⚠️ Backend not responding on port 3000"
+        fi
+    else
+        echo "❌ Nginx failed to start"
+        sudo systemctl status nginx --no-pager -l
+    fi
 else
-    echo "⚠️ Nginx configuration warning - continuing anyway"
+    echo "❌ Nginx configuration test failed:"
+    sudo nginx -t
+    echo "⚠️ Continuing anyway, but manual fix may be needed"
 fi
 
 echo ""
@@ -119,6 +136,11 @@ echo "✅ Dependencies installed"
 echo "✅ Configuration created"
 echo "✅ Bot tested and working"
 echo "✅ Nginx reverse proxy configured"
+echo ""
+echo "🔍 Final verification..."
+echo "📡 Server IP: $(curl -s ifconfig.me || echo 'Unable to detect')"
+echo "🌐 Domain: $DOMAIN_NAME"
+echo "⚙️ Make sure your domain DNS points to this server IP"
 echo ""
 echo "🚀 Starting your app now..."
 echo "📱 Check Telegram for confirmation message"
