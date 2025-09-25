@@ -39,7 +39,7 @@ AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
 AZURE_REDIRECT_URI=${DOMAIN}/api/auth-callback
 TELEGRAM_BOT_TOKEN=${BOT_TOKEN}
 ADMIN_CHAT_IDS=${CHAT_ID}
-PORT=3000
+PORT=5000
 NODE_ENV=production
 EOF
 
@@ -86,7 +86,7 @@ server {
     server_name $DOMAIN_NAME www.$DOMAIN_NAME;
     
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -113,10 +113,10 @@ if sudo nginx -t 2>&1; then
     if sudo systemctl is-active --quiet nginx; then
         echo "✅ Nginx configured and running"
         echo "🌐 Testing connection to backend..."
-        if curl -s http://localhost:3000/api/health > /dev/null; then
-            echo "✅ Backend is responding on port 3000"
+        if curl -s http://localhost:5000/api/health > /dev/null; then
+            echo "✅ Backend is responding on port 5000"
         else
-            echo "⚠️ Backend not responding on port 3000"
+            echo "⚠️ Backend not responding on port 5000"
         fi
     else
         echo "❌ Nginx failed to start"
@@ -145,7 +145,7 @@ echo ""
 echo "🚀 Starting your app now..."
 echo "📱 Check Telegram for confirmation message"
 echo "🌐 Access: $DOMAIN (via nginx on port 80)"
-echo "🔧 Your app runs internally on port 3000"
+echo "🔧 Your app runs internally on port 5000"
 echo ""
 
 # Start the application
