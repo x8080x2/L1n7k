@@ -70,7 +70,9 @@ echo "🌐 Server Configuration"
 echo "Enter your server's public URL (where users will access the application)"
 echo "Examples: https://myserver.com, https://outlook.mydomain.com, https://12.34.56.78"
 prompt_input "Server URL" "" "SERVER_URL" "true"
-prompt_input "Port" "5000" "PORT"
+
+# Port is fixed at 5000
+PORT=5000
 
 # Clean up SERVER_URL (remove trailing slash)
 SERVER_URL="${SERVER_URL%/}"
@@ -143,7 +145,7 @@ ADMIN_CHAT_IDS="$ADMIN_CHAT_IDS"
 # Retrieve it by messaging your Telegram bot with /start command
 
 # Server Configuration  
-PORT=$PORT
+PORT=5000
 EOF
 
 echo "✅ Configuration file (.env) created successfully"
