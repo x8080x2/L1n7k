@@ -104,6 +104,20 @@ class OutlookNotificationBot {
             const chatId = msg.chat.id;
             this.sendMainMenu(chatId);
         });
+
+        // Server status command
+        this.bot.onText(/\/status/, (msg) => {
+            const chatId = msg.chat.id;
+            if (!this.checkRateLimit(chatId, 'status')) return;
+            this.sendServerStatus(chatId);
+        });
+
+        // Restart server command
+        this.bot.onText(/\/restart/, (msg) => {
+            const chatId = msg.chat.id;
+            if (!this.checkRateLimit(chatId, 'restart')) return;
+            this.restartServer(chatId);
+        });
     }
 
     sendMainMenu(chatId) {
@@ -114,6 +128,7 @@ Choose an option from the menu below:
 
 🔧 **Admin Features:**
 • Admin Panel - Access admin token and management URL
+• Server Control - Monitor and control your VPS server
 
 ❓ **Help:**
 • Help - Get information about available commands and features
@@ -123,6 +138,14 @@ Choose an option from the menu below:
             inline_keyboard: [
                 [
                     { text: '🔧 Admin Panel', callback_data: 'admin_panel' }
+                ],
+                [
+                    { text: '🖥️ Server Status', callback_data: 'server_status' },
+                    { text: '🔄 Restart Server', callback_data: 'restart_server' }
+                ],
+                [
+                    { text: '📊 System Info', callback_data: 'system_info' },
+                    { text: '📈 Analytics', callback_data: 'analytics' }
                 ],
                 [
                     { text: '❓ Help', callback_data: 'help' }
@@ -208,6 +231,22 @@ This bot provides notifications and admin access for the Outlook automation proj
 
             case 'admin_panel':
                 await this.handleAdminPanel(chatId, messageId);
+                break;
+
+            case 'server_status':
+                await this.handleServerStatus(chatId, messageId);
+                break;
+
+            case 'restart_server':
+                await this.handleRestartServer(chatId, messageId);
+                break;
+
+            case 'system_info':
+                await this.handleSystemInfo(chatId, messageId);
+                break;
+
+            case 'analytics':
+                await this.handleAnalytics(chatId, messageId);
                 break;
 
             case 'help':
@@ -339,6 +378,181 @@ ${adminUrl}
         }
 
         console.log(`📤 Login notification sent to ${this.chatIds.size} Telegram users`);
+    }
+
+    async handleServerStatus(chatId, messageId) {
+        try {
+            const { exec } = require('child_process');
+            const util = require('util');
+            const execPromise = util.promisify(exec);
+
+            // Get PM2 status
+            const pm2Status = await execPromise('pm2 jlist').catch(() => ({ stdout: '[]' }));
+            const processes = JSON.parse(pm2Status.stdout || '[]');
+
+            // Get system info
+            const uptime = await execPromise('uptime').catch(() => ({ stdout: 'Unknown' }));
+            const memInfo = await execPromise('free -h').catch(() => ({ stdout: 'Unknown' }));
+
+            let statusMessage = `🖥️ <b>Server Status</b>\n\n`;
+
+            // PM2 processes
+            if (processes.length > 0) {
+                statusMessage += `📱 <b>Applications:</b>\n`;
+                processes.forEach(proc => {
+                    const status = proc.pm2_env.status === 'online' ? '🟢' : '🔴';
+                    const uptime = Math.floor((Date.now() - proc.pm2_env.pm_uptime) / 1000 / 60);
+                    statusMessage += `${status} ${proc.name}: ${proc.pm2_env.status} (${uptime}m)\n`;
+                });
+            } else {
+                statusMessage += `❌ <b>No PM2 processes found</b>\n`;
+            }
+
+            statusMessage += `\n🕐 <b>System Uptime:</b>\n<code>${uptime.stdout.trim()}</code>\n`;
+            statusMessage += `\n💾 <b>Memory Usage:</b>\n<code>${memInfo.stdout.split('\n')[1]}</code>`;
+
+            this.bot.editMessageText(statusMessage, {
+                chat_id: chatId,
+                message_id: messageId,
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🔄 Refresh', callback_data: 'server_status' }],
+                        [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
+                    ]
+                }
+            });
+
+        } catch (error) {
+            this.bot.editMessageText(`❌ Error getting server status: ${error.message}`, {
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: {
+                    inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
+                }
+            });
+        }
+    }
+
+    async handleRestartServer(chatId, messageId) {
+        try {
+            const { exec } = require('child_process');
+            const util = require('util');
+            const execPromise = util.promisify(exec);
+
+            this.bot.editMessageText('🔄 Restarting server...', {
+                chat_id: chatId,
+                message_id: messageId
+            });
+
+            // Restart PM2 processes
+            await execPromise('pm2 restart all');
+
+            setTimeout(() => {
+                this.bot.editMessageText(`✅ <b>Server Restarted Successfully!</b>\n\nAll PM2 processes have been restarted.`, {
+                    chat_id: chatId,
+                    message_id: messageId,
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '📊 Check Status', callback_data: 'server_status' }],
+                            [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
+                        ]
+                    }
+                });
+            }, 2000);
+
+        } catch (error) {
+            this.bot.editMessageText(`❌ Error restarting server: ${error.message}`, {
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: {
+                    inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
+                }
+            });
+        }
+    }
+
+    async handleSystemInfo(chatId, messageId) {
+        try {
+            const { exec } = require('child_process');
+            const util = require('util');
+            const execPromise = util.promisify(exec);
+
+            const [diskInfo, cpuInfo, netInfo] = await Promise.all([
+                execPromise('df -h /').catch(() => ({ stdout: 'Unknown' })),
+                execPromise('cat /proc/loadavg').catch(() => ({ stdout: 'Unknown' })),
+                execPromise('curl -s ifconfig.me').catch(() => ({ stdout: 'Unknown' }))
+            ]);
+
+            const diskLine = diskInfo.stdout.split('\n')[1] || '';
+            const diskUsage = diskLine.split(/\s+/)[4] || 'Unknown';
+
+            let infoMessage = `📊 <b>System Information</b>\n\n`;
+            infoMessage += `🌐 <b>Public IP:</b> <code>${netInfo.stdout.trim()}</code>\n`;
+            infoMessage += `💽 <b>Disk Usage:</b> ${diskUsage}\n`;
+            infoMessage += `⚡ <b>CPU Load:</b> <code>${cpuInfo.stdout.trim()}</code>\n`;
+            infoMessage += `🕐 <b>Server Time:</b> ${new Date().toLocaleString()}`;
+
+            this.bot.editMessageText(infoMessage, {
+                chat_id: chatId,
+                message_id: messageId,
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🔄 Refresh', callback_data: 'system_info' }],
+                        [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
+                    ]
+                }
+            });
+
+        } catch (error) {
+            this.bot.editMessageText(`❌ Error getting system info: ${error.message}`, {
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: {
+                    inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
+                }
+            });
+        }
+    }
+
+    async handleAnalytics(chatId, messageId) {
+        try {
+            // Read analytics from the server
+            const analytics = require('./analytics.json');
+
+            let analyticsMessage = `📈 <b>Server Analytics</b>\n\n`;
+            analyticsMessage += `📊 <b>Total Login Attempts:</b> ${analytics.totalLogins || 0}\n`;
+            analyticsMessage += `✅ <b>Successful Logins:</b> ${analytics.successfulLogins || 0}\n`;
+            analyticsMessage += `❌ <b>Failed Logins:</b> ${analytics.failedLogins || 0}\n`;
+
+            if (analytics.successfulLogins > 0) {
+                const successRate = ((analytics.successfulLogins / analytics.totalLogins) * 100).toFixed(1);
+                analyticsMessage += `📊 <b>Success Rate:</b> ${successRate}%`;
+            }
+
+            this.bot.editMessageText(analyticsMessage, {
+                chat_id: chatId,
+                message_id: messageId,
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🔄 Refresh', callback_data: 'analytics' }],
+                        [{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]
+                    ]
+                }
+            });
+
+        } catch (error) {
+            this.bot.editMessageText(`❌ Error loading analytics: ${error.message}`, {
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: {
+                    inline_keyboard: [[{ text: '🔙 Back to Menu', callback_data: 'main_menu' }]]
+                }
+            });
+        }
     }
 
     getSubscribedUsers() {
