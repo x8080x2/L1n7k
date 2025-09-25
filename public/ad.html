@@ -732,7 +732,7 @@
                     DISABLE ALL
                 </button>
             </div>
-            
+
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <select id="security-level-select" onchange="setSecurityLevel()" style="background: rgba(0,0,0,0.5); color: #0099ff; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
                     <option value="off">Security: Off</option>
@@ -1223,7 +1223,7 @@
             // Update Security Level
             const securityLevelStatus = document.getElementById('security-level-status');
             const securityLevelSelect = document.getElementById('security-level-select');
-            
+
             if (securityLevelStatus) {
                 securityLevelStatus.textContent = settings.securityLevel.toUpperCase();
                 const securityColors = {
@@ -1300,7 +1300,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('security-level-status').textContent = data.securityLevel.toUpperCase();
+                    document.getElementById('security-level-status').textContent = data.level.toUpperCase();
                     const securityColors = {
                         'off': '#666',
                         'essentially_off': '#999',
@@ -1309,14 +1309,15 @@
                         'high': '#ff6666',
                         'under_attack': '#ff0000'
                     };
-                    document.getElementById('security-level-status').style.color = securityColors[data.securityLevel] || '#ff6666';
+                    document.getElementById('security-level-status').style.color = securityColors[data.level] || '#ff6666';
                     console.log(data.message);
                 } else {
-                    alert('Error: ' + data.error);
+                    console.error('Security level error:', data.error || 'Unknown error');
+                    alert('Error: ' + (data.error || data.message || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('Error setting security level:', error);
-                alert('Network error occurred');
+                console.error('Error setting security level:', error.message || error);
+                alert('Network error occurred: ' + (error.message || error));
             }
         }
 
@@ -1422,8 +1423,11 @@
         // Load authentication state when page loads
         document.addEventListener('DOMContentLoaded', function() {
             checkAuthOnLoad();
-            // Load redirect config on page load regardless of auth status
-            setTimeout(() => loadRedirectConfig(), 500);
+            // Load analytics and redirect config on page load regardless of auth status
+            setTimeout(() => {
+                loadAnalytics();
+                loadRedirectConfig();
+            }, 500);
         });
 
         // Update the updateAuthUI function to include configuration status
@@ -1482,7 +1486,7 @@
                 document.getElementById('current-redirect-display').textContent = '❌ Failed to load';
                 document.getElementById('redirect-status').innerHTML = 
                     `<span style="color: #ff3333; font-weight: bold;">❌ ERROR: ${error.message}</span>`;
-                
+
                 // Set default values
                 const select = document.getElementById('redirect-destination');
                 select.value = 'https://office.com';
