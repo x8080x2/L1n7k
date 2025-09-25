@@ -633,7 +633,9 @@
             <h2 style="color: #ff6666; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🔧 CLOUDFLARE</h2>
 
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <input type="password" id="cf-api-token" placeholder="API Token..." 
+                <input type="email" id="cf-email" placeholder="Cloudflare Email..." 
+                       style="background: rgba(0,0,0,0.5); color: #ff6666; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
+                <input type="password" id="cf-api-key" placeholder="Global API Key..." 
                        style="background: rgba(0,0,0,0.5); color: #ff6666; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
                 <input type="text" id="cf-zone-id" placeholder="Zone ID..." 
                        style="background: rgba(0,0,0,0.5); color: #ff6666; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
@@ -1087,15 +1089,15 @@
 
         // Cloudflare Configuration Functions
         function toggleTokenVisibility() {
-            const tokenInput = document.getElementById('cf-api-token');
+            const apiKeyInput = document.getElementById('cf-api-key');
             const toggleBtn = document.getElementById('toggle-token-btn');
 
-            if (tokenInput.type === 'password') {
-                tokenInput.type = 'text';
-                toggleBtn.textContent = 'HIDE TOKEN';
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleBtn.textContent = 'HIDE';
             } else {
-                tokenInput.type = 'password';
-                toggleBtn.textContent = 'SHOW TOKEN';
+                apiKeyInput.type = 'password';
+                toggleBtn.textContent = 'SHOW';
             }
         }
 
@@ -1105,12 +1107,13 @@
                 return;
             }
 
-            const apiToken = document.getElementById('cf-api-token').value.trim();
+            const email = document.getElementById('cf-email').value.trim();
+            const apiKey = document.getElementById('cf-api-key').value.trim();
             const zoneId = document.getElementById('cf-zone-id').value.trim();
             const saveBtn = document.getElementById('save-config-btn');
 
-            if (!apiToken || !zoneId) {
-                alert('⚠️ BOTH API TOKEN AND ZONE ID ARE REQUIRED');
+            if (!email || !apiKey || !zoneId) {
+                alert('⚠️ EMAIL, API KEY, AND ZONE ID ARE ALL REQUIRED');
                 return;
             }
 
@@ -1123,7 +1126,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        apiToken: apiToken, 
+                        email: email,
+                        apiKey: apiKey, 
                         zoneId: zoneId 
                     })
                 });
@@ -1135,7 +1139,8 @@
                         '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & SYNCED SUCCESSFULLY</span>';
 
                     // Clear the input fields for security
-                    document.getElementById('cf-api-token').value = '';
+                    document.getElementById('cf-email').value = '';
+                    document.getElementById('cf-api-key').value = '';
                     document.getElementById('cf-zone-id').value = '';
 
                     // Load Cloudflare status immediately
@@ -1152,7 +1157,7 @@
                 alert('❌ CONFIGURATION FAILED: ' + error.message);
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'SAVE & SYNC CONFIGURATION';
+                saveBtn.textContent = 'SAVE';
             }
         }
 
