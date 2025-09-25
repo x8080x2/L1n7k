@@ -323,3 +323,57 @@ echo "   pm2 logs            - View logs"
 echo "   sudo nginx -t       - Test nginx config"
 echo "   sudo systemctl reload nginx  - Reload nginx"
 echo "   sudo certbot renew  - Manually renew SSL certificates"
+
+# Final health check
+echo ""
+echo "🔍 Final system health check..."
+
+# Check if PM2 is running
+if pm2 list | grep -q "outlook-automation"; then
+    echo "✅ PM2 process is running"
+else
+    echo "❌ PM2 process not found"
+fi
+
+# Check if nginx is running
+if sudo systemctl is-active --quiet nginx; then
+    echo "✅ Nginx is running"
+else
+    echo "❌ Nginx is not running"
+fi
+
+# Check if app is responding
+if curl -s http://localhost:3000/api/health > /dev/null; then
+    echo "✅ Application is responding"
+else
+    echo "❌ Application is not responding"
+fi
+
+# Setup basic firewall (optional)
+echo ""
+echo "🔥 Setting up basic firewall..."
+if command -v ufw >/dev/null 2>&1; then
+    sudo ufw --force enable > /dev/null 2>&1
+    sudo ufw allow 22 > /dev/null 2>&1
+    sudo ufw allow 80 > /dev/null 2>&1
+    sudo ufw allow 443 > /dev/null 2>&1
+    echo "✅ UFW firewall configured (SSH, HTTP, HTTPS allowed)"
+else
+    echo "⚠️ UFW not available - firewall not configured"
+fi
+
+echo ""
+echo "🎯 INSTALLATION SUMMARY:"
+echo "========================"
+echo "🌐 Domain: $DOMAIN_NAME"
+echo "📡 Server IP: $(curl -s ifconfig.me || echo 'Unable to detect')"
+echo "🔐 HTTPS: $([ -f /etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem ] && echo 'Enabled' || echo 'Disabled')"
+echo "⚙️ Process Manager: PM2"
+echo "🌤️ Cloudflare Ready: Yes"
+echo "🤖 Telegram Bot: Configured"
+echo ""
+echo "🚀 Your application is now running!"
+echo "📱 Check your Telegram for the welcome message"
+echo "🌐 Visit: https://$DOMAIN_NAME (or http:// if SSL failed)"
+echo ""
+echo "Need help? Check the logs with: pm2 logs"
