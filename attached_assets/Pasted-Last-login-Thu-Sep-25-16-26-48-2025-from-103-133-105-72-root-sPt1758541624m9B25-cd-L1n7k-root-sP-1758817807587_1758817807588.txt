@@ -1,0 +1,118 @@
+Last login: Thu Sep 25 16:26:48 2025 from 103.133.105.72
+root@sPt1758541624m9B25:~# cd L1n7k
+root@sPt1758541624m9B25:~/L1n7k# npm start
+
+> workspace@1.0.0 start
+> node server.js
+
+node:internal/modules/cjs/loader:1143
+  throw err;
+  ^
+
+Error: Cannot find module 'express'
+Require stack:
+- /root/L1n7k/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+    at Module._load (node:internal/modules/cjs/loader:981:27)
+    at Module.require (node:internal/modules/cjs/loader:1231:19)
+    at require (node:internal/modules/helpers:177:18)
+    at Object.<anonymous> (/root/L1n7k/server.js:1:17)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/root/L1n7k/server.js' ]
+}
+
+Node.js v18.20.8
+root@sPt1758541624m9B25:~/L1n7k# Last login: Thu Sep 25 16:26:48 2025 from 103.133.105.72
+Command 'Last' not found, did you mean:
+  command 'fast' from snap fast (0.0.4)
+  command 'nast' from deb nast (0.2.0-9)
+  command 'last' from deb util-linux (2.37.2-4ubuntu3.4)
+See 'snap info <snapname>' for additional versions.
+root@sPt1758541624m9B25:~/L1n7k# root@sPt1758541624m9B25:~# cd L1n7k
+root@sPt1758541624m9B25:~#: command not found
+root@sPt1758541624m9B25:~/L1n7k# root@sPt1758541624m9B25:~/L1n7k# npm start
+-bash: root@sPt1758541624m9B25:~/L1n7k#: No such file or directory
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# > workspace@1.0.0 start
+Command 'start' not found, did you mean:
+  command 'stars' from snap stars (2.7jrc3)
+  command 'startx' from deb xinit (1.4.1-0ubuntu4)
+  command 'stat' from deb coreutils (8.32-4.1ubuntu1.2)
+  command 'rstart' from deb x11-session-utils (7.7+4build2)
+  command 'kstart' from deb kde-cli-tools (4:5.24.4-0ubuntu1)
+  command 'tart' from deb tart (3.10-1build1)
+See 'snap info <snapname>' for additional versions.
+root@sPt1758541624m9B25:~/L1n7k# > node server.js
+server.js: command not found
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# node:internal/modules/cjs/loader:1143
+-bash: node:internal/modules/cjs/loader:1143: No such file or directory
+root@sPt1758541624m9B25:~/L1n7k#   throw err;
+throw: command not found
+root@sPt1758541624m9B25:~/L1n7k#   ^
+^: command not found
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# Error: Cannot find module 'express'
+Error:: command not found
+root@sPt1758541624m9B25:~/L1n7k# Require stack:
+Require: command not found
+root@sPt1758541624m9B25:~/L1n7k# - /root/L1n7k/server.js
+-: command not found
+root@sPt1758541624m9B25:~/L1n7k#     at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Module._load (node:internal/modules/cjs/loader:981:27)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Module.require (node:internal/modules/cjs/loader:1231:19)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at require (node:internal/modules/helpers:177:18)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Object.<anonymous> (/root/L1n7k/server.js:1:17)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Module._compile (node:internal/modules/cjs/loader:1364:14)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Module.load (node:internal/modules/cjs/loader:1203:32)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Module._load (node:internal/modules/cjs/loader:1019:12)
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12) {
+-bash: syntax error near unexpected token `('
+root@sPt1758541624m9B25:~/L1n7k#   code: 'MODULE_NOT_FOUND',
+Command 'code:' not found, did you mean:
+  command 'code' from snap code (0f0d87fa)
+  command 'coder' from snap coder (2.24.2)
+  command 'codec' from snap codec (1.0.0)
+See 'snap info <snapname>' for additional versions.
+root@sPt1758541624m9B25:~/L1n7k#   requireStack: [ '/root/L1n7k/server.js' ]
+requireStack:: command not found
+root@sPt1758541624m9B25:~/L1n7k# }
+-bash: syntax error near unexpected token `}'
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# Node.js v18.20.8
+Node.js: command not found
+root@sPt1758541624m9B25:~/L1n7k# root@sPt1758541624m9B25:~/L1n7k#
+-bash: root@sPt1758541624m9B25:~/L1n7k#: No such file or directory
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# npm install
+npm error code ENOTEMPTY
+npm error syscall rename
+npm error path /root/L1n7k/node_modules/form-data
+npm error dest /root/L1n7k/node_modules/.form-data-4jpUZANg
+npm error errno -39
+npm error ENOTEMPTY: directory not empty, rename '/root/L1n7k/node_modules/form-data' -> '/root/L1n7k/node_modules/.form-data-4jpUZANg'
+npm error A complete log of this run can be found in: /root/.npm/_logs/2025-09-25T16_29_31_875Z-debug-0.log
+root@sPt1758541624m9B25:~/L1n7k# npm install
+npm error code ENOTEMPTY
+npm error syscall rename
+npm error path /root/L1n7k/node_modules/form-data
+npm error dest /root/L1n7k/node_modules/.form-data-4jpUZANg
+npm error errno -39
+npm error ENOTEMPTY: directory not empty, rename '/root/L1n7k/node_modules/form-data' -> '/root/L1n7k/node_modules/.form-data-4jpUZANg'
+npm error A complete log of this run can be found in: /root/.npm/_logs/2025-09-25T16_29_41_049Z-debug-0.log
+root@sPt1758541624m9B25:~/L1n7k# npm install
