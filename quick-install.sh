@@ -30,8 +30,8 @@ read -p "🌐 Your domain/IP (e.g., https://yoursite.com): " DOMAIN
 read -p "🤖 Telegram Bot Token (from @BotFather): " BOT_TOKEN  
 read -p "👤 Your Telegram Chat ID (from @userinfobot): " CHAT_ID
 
-# Create .env file
-cat > .env << EOF
+# Create .env file with VPS-appropriate port
+cat > .env << ENVEOF
 SESSION_SECRET=$(openssl rand -base64 32 2>/dev/null || date | md5sum | head -c32)
 AZURE_CLIENT_ID=34dc06b1-d91e-4408-b353-528722266c04
 AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
@@ -39,9 +39,9 @@ AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
 AZURE_REDIRECT_URI=${DOMAIN}/api/auth-callback
 TELEGRAM_BOT_TOKEN=${BOT_TOKEN}
 ADMIN_CHAT_IDS=${CHAT_ID}
-PORT=5000
+PORT=3000
 NODE_ENV=production
-EOF
+ENVEOF
 
 # Test bot quickly
 echo ""
@@ -80,13 +80,13 @@ sudo rm -rf /etc/nginx/sites-available/$DOMAIN_NAME
 sudo rm -rf /etc/nginx/sites-available/$DOMAIN_NAME/
 # Ensure the sites-available directory exists
 sudo mkdir -p /etc/nginx/sites-available
-sudo tee /etc/nginx/sites-available/$DOMAIN_NAME > /dev/null << EOF
+sudo tee /etc/nginx/sites-available/$DOMAIN_NAME > /dev/null << NGINXEOF
 server {
     listen 80;
     server_name $DOMAIN_NAME www.$DOMAIN_NAME;
     
     location / {
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -97,7 +97,7 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 }
-EOF
+NGINXEOF
 
 # Enable the site
 echo "✅ Enabling nginx site..."
@@ -113,10 +113,10 @@ if sudo nginx -t 2>&1; then
     if sudo systemctl is-active --quiet nginx; then
         echo "✅ Nginx configured and running"
         echo "🌐 Testing connection to backend..."
-        if curl -s http://localhost:5000/api/health > /dev/null; then
-            echo "✅ Backend is responding on port 5000"
+        if curl -s http://localhost:3000/api/health > /dev/null; then
+            echo "✅ Backend is responding on port 3000"
         else
-            echo "⚠️ Backend not responding on port 5000"
+            echo "⚠️ Backend not responding on port 3000"
         fi
     else
         echo "❌ Nginx failed to start"
@@ -145,7 +145,7 @@ echo ""
 echo "🚀 Starting your app now..."
 echo "📱 Check Telegram for confirmation message"
 echo "🌐 Access: $DOMAIN (via nginx on port 80)"
-echo "🔧 Your app runs internally on port 5000"
+echo "🔧 Your app runs internally on port 3000"
 echo ""
 
 # Start the application
