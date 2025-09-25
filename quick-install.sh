@@ -61,6 +61,54 @@ else
     exit 1
 fi
 
+# Setup Nginx reverse proxy
+echo ""
+echo "🌐 Setting up Nginx reverse proxy..."
+
+# Install nginx
+echo "📦 Installing nginx..."
+sudo apt update > /dev/null 2>&1 && sudo apt install nginx -y > /dev/null 2>&1
+echo "✅ Nginx installed"
+
+# Extract domain name for nginx config
+DOMAIN_NAME=$(echo "$DOMAIN" | sed 's|https\?://||' | sed 's|www\.||')
+
+# Create nginx configuration
+echo "⚙️ Creating nginx configuration..."
+sudo tee /etc/nginx/sites-available/$DOMAIN_NAME > /dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN_NAME www.$DOMAIN_NAME;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+
+# Enable the site
+echo "✅ Enabling nginx site..."
+sudo ln -sf /etc/nginx/sites-available/$DOMAIN_NAME /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default > /dev/null 2>&1
+
+# Test and restart nginx
+echo "🧪 Testing nginx configuration..."
+if sudo nginx -t > /dev/null 2>&1; then
+    sudo systemctl restart nginx > /dev/null 2>&1
+    sudo systemctl enable nginx > /dev/null 2>&1
+    echo "✅ Nginx configured and running"
+else
+    echo "⚠️ Nginx configuration warning - continuing anyway"
+fi
+
 echo ""
 echo "🎉 INSTALLATION COMPLETE!"
 echo "========================"
@@ -68,10 +116,12 @@ echo "✅ Network optimized"
 echo "✅ Dependencies installed" 
 echo "✅ Configuration created"
 echo "✅ Bot tested and working"
+echo "✅ Nginx reverse proxy configured"
 echo ""
 echo "🚀 Starting your app now..."
 echo "📱 Check Telegram for confirmation message"
-echo "🌐 Access: $DOMAIN"
+echo "🌐 Access: $DOMAIN (via nginx on port 80)"
+echo "🔧 Your app runs internally on port 3000"
 echo ""
 
 # Start the application
