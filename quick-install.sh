@@ -206,12 +206,47 @@ fi
 # Only setup SSL if domain is not localhost/IP
 if [[ "$DOMAIN_NAME" != "localhost" && "$DOMAIN_NAME" != *"."*"."*"."* ]]; then
     echo "🔒 Configuring SSL for: $DOMAIN_NAME"
-    sudo certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME --redirect 2>/dev/null || echo "⚠️ SSL setup failed (domain may not be pointed to this server yet)"
     
-    # Setup auto-renewal
-    sudo systemctl enable certbot.timer > /dev/null 2>&1
-    sudo systemctl start certbot.timer > /dev/null 2>&1
-    echo "✅ SSL auto-renewal configured"
+    # Check if domain is using Cloudflare (common case)
+    echo "🌤️ Checking DNS configuration..."
+    NS_RECORD=$(dig +short NS $DOMAIN_NAME | head -1)
+    if [[ "$NS_RECORD" == *"cloudflare"* ]]; then
+        echo "⚠️ CLOUDFLARE DETECTED!"
+        echo "📋 IMPORTANT CLOUDFLARE SETUP NOTES:"
+        echo "   1. Set DNS records to 'DNS Only' (gray cloud) temporarily for SSL setup"
+        echo "   2. After SSL is configured, you can re-enable proxy (orange cloud)"
+        echo "   3. Configure Cloudflare SSL mode to 'Full (Strict)' for best security"
+        echo "   4. Your app includes Cloudflare management tools in the admin panel"
+        echo ""
+        read -p "⏳ Press Enter when you've set DNS to 'DNS Only' mode in Cloudflare..."
+    fi
+    
+    # Attempt SSL certificate generation
+    if sudo certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME --redirect 2>/dev/null; then
+        echo "✅ SSL certificate configured successfully!"
+        
+        # Setup auto-renewal
+        sudo systemctl enable certbot.timer > /dev/null 2>&1
+        sudo systemctl start certbot.timer > /dev/null 2>&1
+        echo "✅ SSL auto-renewal configured"
+        
+        if [[ "$NS_RECORD" == *"cloudflare"* ]]; then
+            echo ""
+            echo "🌤️ CLOUDFLARE USERS - NEXT STEPS:"
+            echo "   ✅ 1. SSL certificate is now installed"
+            echo "   🔄 2. Go back to Cloudflare DNS settings"
+            echo "   🟠 3. Re-enable proxy (orange cloud) for your domain"
+            echo "   🛡️ 4. Set SSL/TLS mode to 'Full (Strict)'"
+            echo "   🔧 5. Use your app's admin panel to manage Cloudflare settings"
+            echo ""
+        fi
+    else
+        echo "⚠️ SSL setup failed - this is normal if:"
+        echo "   • Domain DNS is not pointing to this server yet"
+        echo "   • Cloudflare proxy is enabled (orange cloud)"
+        echo "   • Domain propagation is still in progress"
+        echo "   📌 You can run 'sudo certbot --nginx -d $DOMAIN_NAME' manually later"
+    fi
 else
     echo "⚠️ Skipping SSL for localhost/IP address"
 fi
@@ -276,9 +311,15 @@ echo "📱 Check Telegram for confirmation message"
 echo "🌐 Access: $DOMAIN (HTTPS if SSL worked)"
 echo "🔧 App managed by PM2 - use 'pm2 status' to monitor"
 echo ""
+echo "🌤️ CLOUDFLARE INTEGRATION:"
+echo "   🔗 Admin panel: $DOMAIN/ad.html"
+echo "   🛡️ Built-in Cloudflare management tools available"
+echo "   ⚙️ Configure API token in admin panel for full control"
+echo ""
 echo "📋 Useful commands:"
 echo "   pm2 status          - Check app status"
 echo "   pm2 restart all     - Restart app"  
 echo "   pm2 logs            - View logs"
 echo "   sudo nginx -t       - Test nginx config"
 echo "   sudo systemctl reload nginx  - Reload nginx"
+echo "   sudo certbot renew  - Manually renew SSL certificates"
