@@ -1903,45 +1903,219 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
     }
 });
 
-// Cloudflare management endpoints (placeholder - requires CF credentials)
-app.get('/api/admin/cloudflare/status', requireAdminAuth, (req, res) => {
-    res.json({
-        success: false,
-        error: 'Cloudflare not configured',
-        message: 'Configure Cloudflare API credentials to enable management features'
-    });
+// Cloudflare configuration storage
+let cloudflareConfig = {
+    apiToken: null,
+    zoneId: null,
+    configured: false
+};
+
+// Load Cloudflare config from file if exists
+const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
+if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
+    try {
+        const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
+        cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
+        console.log('🌤️ Cloudflare configuration loaded from file');
+    } catch (error) {
+        console.warn('Error loading Cloudflare config:', error.message);
+    }
+}
+
+// Helper function to make Cloudflare API calls
+async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
+    if (!cloudflareConfig.configured) {
+        throw new Error('Cloudflare not configured');
+    }
+
+    const url = `https://api.cloudflare.com/client/v4/zones/${cloudflareConfig.zoneId}${endpoint}`;
+    const options = {
+        method: method,
+        headers: {
+            'Authorization': `Bearer ${cloudflareConfig.apiToken}`,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        options.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, options);
+    const result = await response.json();
+
+    if (!result.success) {
+        throw new Error(result.errors?.[0]?.message || 'Cloudflare API error');
+    }
+
+    return result;
+}
+
+// Cloudflare management endpoints
+app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
+    try {
+        if (!cloudflareConfig.configured) {
+            return res.json({
+                success: false,
+                error: 'Cloudflare not configured',
+                message: 'Configure Cloudflare API credentials to enable management features'
+            });
+        }
+
+        // Get zone settings
+        const [botFightResult, securityResult, browserCheckResult] = await Promise.all([
+            callCloudflareAPI('/settings/bot_fight_mode'),
+            callCloudflareAPI('/settings/security_level'),
+            callCloudflareAPI('/settings/browser_check')
+        ]);
+
+        res.json({
+            success: true,
+            settings: {
+                botFightMode: botFightResult.result.value === 'on',
+                securityLevel: securityResult.result.value,
+                browserCheck: browserCheckResult.result.value === 'on'
+            }
+        });
+
+    } catch (error) {
+        console.error('Cloudflare status error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to get Cloudflare status',
+            message: error.message
+        });
+    }
 });
 
-app.post('/api/admin/cloudflare/configure', requireAdminAuth, (req, res) => {
-    res.json({
-        success: false,
-        error: 'Cloudflare configuration not implemented',
-        message: 'This feature requires additional setup'
-    });
+app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) => {
+    try {
+        const { apiToken, zoneId } = req.body;
+
+        if (!apiToken || !zoneId) {
+            return res.status(400).json({
+                success: false,
+                error: 'API token and Zone ID are required'
+            });
+        }
+
+        // Test the credentials by making a simple API call
+        const testConfig = { apiToken, zoneId, configured: true };
+        const originalConfig = { ...cloudflareConfig };
+        cloudflareConfig = testConfig;
+
+        try {
+            await callCloudflareAPI('');
+            
+            // Save configuration to file
+            fs.writeFileSync(CLOUDFLARE_CONFIG_FILE, JSON.stringify(testConfig, null, 2));
+            console.log('🌤️ Cloudflare configuration saved successfully');
+
+            res.json({
+                success: true,
+                message: 'Cloudflare configured successfully'
+            });
+
+        } catch (testError) {
+            // Restore original config on test failure
+            cloudflareConfig = originalConfig;
+            throw new Error(`Invalid credentials: ${testError.message}`);
+        }
+
+    } catch (error) {
+        console.error('Cloudflare configuration error:', error.message);
+        res.json({
+            success: false,
+            error: 'Configuration failed',
+            message: error.message
+        });
+    }
 });
 
-app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, (req, res) => {
-    res.json({
-        success: false,
-        error: 'Cloudflare not configured',
-        message: 'Configure Cloudflare API credentials first'
-    });
+app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) => {
+    try {
+        const { enabled } = req.body;
+        
+        await callCloudflareAPI('/settings/bot_fight_mode', 'PATCH', {
+            value: enabled ? 'on' : 'off'
+        });
+
+        console.log(`🤖 Bot Fight Mode ${enabled ? 'enabled' : 'disabled'}`);
+
+        res.json({
+            success: true,
+            enabled: enabled,
+            message: `Bot Fight Mode ${enabled ? 'enabled' : 'disabled'}`
+        });
+
+    } catch (error) {
+        console.error('Bot Fight Mode error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to update Bot Fight Mode',
+            message: error.message
+        });
+    }
 });
 
-app.post('/api/admin/cloudflare/security-level', requireAdminAuth, (req, res) => {
-    res.json({
-        success: false,
-        error: 'Cloudflare not configured',
-        message: 'Configure Cloudflare API credentials first'
-    });
+app.post('/api/admin/cloudflare/security-level', requireAdminAuth, async (req, res) => {
+    try {
+        const { level } = req.body;
+        const validLevels = ['off', 'essentially_off', 'low', 'medium', 'high', 'under_attack'];
+        
+        if (!validLevels.includes(level)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid security level'
+            });
+        }
+
+        await callCloudflareAPI('/settings/security_level', 'PATCH', {
+            value: level
+        });
+
+        console.log(`🔒 Security Level set to: ${level}`);
+
+        res.json({
+            success: true,
+            level: level,
+            message: `Security Level set to ${level}`
+        });
+
+    } catch (error) {
+        console.error('Security Level error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to update Security Level',
+            message: error.message
+        });
+    }
 });
 
-app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, (req, res) => {
-    res.json({
-        success: false,
-        error: 'Cloudflare not configured',
-        message: 'Configure Cloudflare API credentials first'
-    });
+app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, res) => {
+    try {
+        const { enabled } = req.body;
+        
+        await callCloudflareAPI('/settings/browser_check', 'PATCH', {
+            value: enabled ? 'on' : 'off'
+        });
+
+        console.log(`🌐 Browser Check ${enabled ? 'enabled' : 'disabled'}`);
+
+        res.json({
+            success: true,
+            enabled: enabled,
+            message: `Browser Check ${enabled ? 'enabled' : 'disabled'}`
+        });
+
+    } catch (error) {
+        console.error('Browser Check error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to update Browser Check',
+            message: error.message
+        });
+    }
 });
 
 
