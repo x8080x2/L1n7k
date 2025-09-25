@@ -1918,7 +1918,16 @@ if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
     try {
         const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
         cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
+        
+        // Override with environment variables if available (more secure)
+        if (process.env.CLOUDFLARE_EMAIL) {
+            cloudflareConfig.email = process.env.CLOUDFLARE_EMAIL;
+        }
+        
         console.log('🌤️ Cloudflare configuration loaded from file');
+        if (cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
+            console.log('✅ Global API Key authentication configured');
+        }
     } catch (error) {
         console.warn('Error loading Cloudflare config:', error.message);
     }
