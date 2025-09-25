@@ -27,8 +27,8 @@ const OutlookNotificationBot = require('./telegram-bot');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security configuration - Only use environment variable (no fallback)
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+// Security configuration - Always auto-generate
+const ADMIN_TOKEN = 'admin-' + Math.random().toString(36).substr(2, 24);
 
 // Make admin token available globally for Telegram bot
 global.adminToken = ADMIN_TOKEN;
@@ -58,13 +58,6 @@ function requireAdminAuth(req, res, next) {
     const token = req.headers['authorization']?.replace('Bearer ', '') || 
                   (req.query && req.query.token) || 
                   (req.body && req.body.token);
-
-    if (!ADMIN_TOKEN) {
-        return res.status(503).json({ 
-            error: 'Admin access not configured',
-            message: 'ADMIN_TOKEN environment variable not set and Telegram bot not configured'
-        });
-    }
 
     if (!token || token !== ADMIN_TOKEN) {
         return res.status(401).json({ 
@@ -1503,7 +1496,7 @@ app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
         const automationSession = automationSessions.get(sessionId);
 
         // Verify session ownership or admin access
-        const hasAdminAccess = req.headers['x-admin-token'] === process.env.ADMIN_TOKEN;
+        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId);
 
         if (!hasAdminAccess && !hasSessionAccess) {
@@ -1969,9 +1962,6 @@ app.listen(PORT, '0.0.0.0', () => {
 
     if (!telegramBot) {
         console.log('❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications');
-        if (!ADMIN_TOKEN) {
-            console.log('⚠️ Admin access disabled - Set ADMIN_TOKEN environment variable or configure Telegram bot');
-        }
     } else {
         console.log('🔑 Admin token available via Telegram bot - Use /start to access');
     }
