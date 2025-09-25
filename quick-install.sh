@@ -75,13 +75,15 @@ DOMAIN_NAME=$(echo "$DOMAIN" | sed 's|https\?://||' | sed 's|www\.||')
 
 # Create nginx configuration
 echo "⚙️ Creating nginx configuration..."
+# Remove any existing directory or file with the same name
+sudo rm -rf /etc/nginx/sites-available/$DOMAIN_NAME
 sudo tee /etc/nginx/sites-available/$DOMAIN_NAME > /dev/null << EOF
 server {
     listen 80;
     server_name $DOMAIN_NAME www.$DOMAIN_NAME;
     
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
