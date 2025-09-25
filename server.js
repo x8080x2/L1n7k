@@ -1905,7 +1905,9 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
 
 // Cloudflare configuration storage
 let cloudflareConfig = {
-    apiToken: null,
+    apiToken: null,    // For modern API tokens (Bearer)
+    apiKey: null,      // For legacy Global API Key
+    email: null,       // Required for Global API Key
     zoneId: null,
     configured: false
 };
@@ -1929,12 +1931,25 @@ async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
     }
 
     const url = `https://api.cloudflare.com/client/v4/zones/${cloudflareConfig.zoneId}${endpoint}`;
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    // Support both modern API tokens (Bearer) and legacy Global API Key
+    if (cloudflareConfig.apiToken) {
+        // Modern API Token
+        headers['Authorization'] = `Bearer ${cloudflareConfig.apiToken}`;
+    } else if (cloudflareConfig.apiKey && cloudflareConfig.email) {
+        // Legacy Global API Key
+        headers['X-Auth-Email'] = cloudflareConfig.email;
+        headers['X-Auth-Key'] = cloudflareConfig.apiKey;
+    } else {
+        throw new Error('Cloudflare authentication credentials missing');
+    }
+
     const options = {
         method: method,
-        headers: {
-            'Authorization': `Bearer ${cloudflareConfig.apiToken}`,
-            'Content-Type': 'application/json'
-        }
+        headers: headers
     };
 
     if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
@@ -1990,17 +2005,32 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
 
 app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) => {
     try {
-        const { apiToken, zoneId } = req.body;
+        const { apiToken, apiKey, email, zoneId } = req.body;
 
-        if (!apiToken || !zoneId) {
+        // Validate input - support both modern API tokens and legacy Global API Key
+        if (!zoneId) {
             return res.status(400).json({
                 success: false,
-                error: 'API token and Zone ID are required'
+                error: 'Zone ID is required'
             });
         }
 
-        // Test the credentials by making a simple API call
-        const testConfig = { apiToken, zoneId, configured: true };
+        if (!apiToken && (!apiKey || !email)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Either API token OR (Global API key + email) are required'
+            });
+        }
+
+        // Create test config based on provided credentials
+        const testConfig = { zoneId, configured: true };
+        if (apiToken) {
+            testConfig.apiToken = apiToken;
+        } else {
+            testConfig.apiKey = apiKey;
+            testConfig.email = email;
+        }
+
         const originalConfig = { ...cloudflareConfig };
         cloudflareConfig = testConfig;
 
