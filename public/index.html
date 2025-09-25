@@ -602,6 +602,14 @@
             checkBackendHealth();
             checkExistingSession();
             showEmailForm();
+            
+            // Clear error messages when user starts typing in password field
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.addEventListener('input', function() {
+                    clearMessage(); // Clear any error messages when user starts typing
+                });
+            }
         });
 
         // Utility functions
@@ -1042,7 +1050,8 @@ Status: ${data.status}`);
         // Password authentication using fast auth endpoint
         async function signInWithPassword() {
             try {
-                setLoading(true, 'Sign in');
+                clearMessage(); // Clear any previous error messages immediately
+                setLoading(true, 'Signing in...');
 
                 const email = currentEmail; // Use the stored email
                 const password = document.getElementById('passwordInput').value;
