@@ -4,11 +4,7 @@
 echo "🚀 Outlook Automation Installation Script"
 echo "=========================================="
 
-# Check if running as root
-if [ "$EUID" -eq 0 ]; then
-    echo "⚠️  Please don't run this script as root"
-    exit 1
-fi
+# Running as root - VPS installation
 
 # Function to prompt for input with validation
 prompt_input() {
