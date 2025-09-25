@@ -1,0 +1,158 @@
+Last login: Thu Sep 25 17:47:49 2025 from 103.133.105.72
+root@sPt1758541624m9B25:~# cd L1n7k
+root@sPt1758541624m9B25:~/L1n7k# # First, stop the current running process (Ctrl+C)
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Stash local changes and remove the conflicting file
+root@sPt1758541624m9B25:~/L1n7k# cd /root/L1n7k
+root@sPt1758541624m9B25:~/L1n7k# git stash
+Saved working directory and index state WIP on main: 46e2ea4 Add tests to confirm all service connections are active
+root@sPt1758541624m9B25:~/L1n7k# rm quick-install.sh
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Now pull the updates
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+From https://github.com/x8080x2/L1n7k
+ * branch            main       -> FETCH_HEAD
+Updating 46e2ea4..7b394e1
+Fast-forward
+ ...541624m9B25-cd-L1n7k-root-sP-1758816497843_1758816497843.txt | 552 ------------------
+ ...541624m9B25-cd-L1n7k-root-sP-1758817807587_1758817807588.txt | 118 ----
+ ...541624m9B25-cd-L1n7k-root-sP-1758819917537_1758819917538.txt |  70 ---
+ ...8541624m9B25-cd-root-L1n7k-r-1758818574942_1758818574943.txt |  84 ---
+ ...8541624m9B25-cd-root-L1n7k-r-1758818707470_1758818707471.txt | 107 ----
+ ...8541624m9B25-cd-root-L1n7k-r-1758819484388_1758819484388.txt | 119 ----
+ ...8541624m9B25-cd-root-L1n7k-r-1758819665621_1758819665621.txt | 150 -----
+ ...8541624m9B25-cd-root-L1n7k-r-1758819950159_1758819950159.txt | 830 ----------------------------
+ ...nshot 2025-09-25 at 5.49.22\342\200\257PM_1758815374936.png" | Bin 1338821 -> 0 bytes
+ ...nshot 2025-09-25 at 6.25.17\342\200\257PM_1758817523973.png" | Bin 156579 -> 0 bytes
+ ...nshot 2025-09-25 at 6.25.57\342\200\257PM_1758817561208.png" | Bin 393707 -> 0 bytes
+ install.sh                                                      | 275 ---------
+ quick-install.sh                                                |  78 +++
+ 13 files changed, 78 insertions(+), 2305 deletions(-)
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-01-28-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-L1n7k-root-sP-1758816497843_1758816497843.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-26-48-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-L1n7k-root-sP-1758817807587_1758817807588.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-39-25-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-L1n7k-root-sP-1758819917537_1758819917538.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-40-13-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-root-L1n7k-r-1758818574942_1758818574943.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-40-13-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-root-L1n7k-r-1758818707470_1758818707471.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-40-13-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-root-L1n7k-r-1758819484388_1758819484388.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-40-13-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-root-L1n7k-r-1758819665621_1758819665621.txt
+ delete mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-16-40-13-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-root-L1n7k-r-1758819950159_1758819950159.txt
+ delete mode 100644 "attached_assets/Screenshot 2025-09-25 at 5.49.22\342\200\257PM_1758815374936.png"
+ delete mode 100644 "attached_assets/Screenshot 2025-09-25 at 6.25.17\342\200\257PM_1758817523973.png"
+ delete mode 100644 "attached_assets/Screenshot 2025-09-25 at 6.25.57\342\200\257PM_1758817561208.png"
+ delete mode 100644 install.sh
+ create mode 100644 quick-install.sh
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Check what's in your .env file to see your domain
+root@sPt1758541624m9B25:~/L1n7k# cat .env
+# Microsoft Azure Configuration
+AZURE_CLIENT_ID=34dc06b1-d91e-4408-b353-528722266c04
+AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
+AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
+AZURE_REDIRECT_URI=test/api/auth-callback
+
+# Admin Access Configuration
+ADMIN_TOKEN=
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN=
+ADMIN_CHAT_IDS=
+
+# Server Configuration
+PORT=5000
+SERVER_URL=test
+root@sPt1758541624m9B25:~/L1n7k# # First, stop the current running process (Ctrl+C)
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Stash local changes and remove the conflicting file
+root@sPt1758541624m9B25:~/L1n7k# cd /root/L1n7k
+root@sPt1758541624m9B25:~/L1n7k# git stash
+No local changes to save
+root@sPt1758541624m9B25:~/L1n7k# rm quick-install.sh
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Now pull the updates
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+remote: Enumerating objects: 16, done.
+remote: Counting objects: 100% (16/16), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 13 (delta 10), reused 13 (delta 10), pack-reused 0 (from 0)
+Unpacking objects: 100% (13/13), 3.36 KiB | 312.00 KiB/s, done.
+From https://github.com/x8080x2/L1n7k
+ * branch            main       -> FETCH_HEAD
+   7b394e1..5d46e9f  main       -> origin/main
+Updating 7b394e1..5d46e9f
+Fast-forward
+ ...8541624m9B25-cd-root-L1n7k-r-1758823021210_1758823021210.txt | 48 +++++++++++++++++++++++++++++
+ telegram-bot.js                                                 | 36 ++++++++++++++++++++--
+ 2 files changed, 82 insertions(+), 2 deletions(-)
+ create mode 100644 attached_assets/Pasted-Last-login-Thu-Sep-25-17-56-28-2025-from-103-133-105-72-root-sPt1758541624m9B25-cd-root-L1n7k-r-1758823021210_1758823021210.txt
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Check what's in your .env file to see your domain
+root@sPt1758541624m9B25:~/L1n7k# cat .env
+# Microsoft Azure Configuration
+AZURE_CLIENT_ID=34dc06b1-d91e-4408-b353-528722266c04
+AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
+AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
+AZURE_REDIRECT_URI=test/api/auth-callback
+
+# Admin Access Configuration
+ADMIN_TOKEN=
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN=
+ADMIN_CHAT_IDS=
+
+# Server Configuration
+PORT=5000
+SERVER_URL=test
+root@sPt1758541624m9B25:~/L1n7k# curl -o quick-install.sh https://raw.githubusercontent.com/x8080x2/L1n7k/main/quick-install.sh
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  2372  100  2372    0     0   4778      0 --:--:-- --:--:-- --:--:--  4782
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Make it executable and run
+root@sPt1758541624m9B25:~/L1n7k# chmod +x quick-install.sh
+root@sPt1758541624m9B25:~/L1n7k# ./quick-install.sh
+🚀 SUPER SIMPLE VPS INSTALL
+==========================
+This will get your app running in under 2 minutes!
+
+🌐 Fixing VPS network issues...
+✅ Network optimized
+📦 Installing dependencies...
+✅ Dependencies installed
+
+📝 Quick Setup (3 questions):
+
+🌐 Your domain/IP (e.g., https://yoursite.com): https://winlearnchange.info
+🤖 Telegram Bot Token (from @BotFather): 8346454309:AAHBkzxTeO5DWFqhmZiEibY5gC13pfTKRnM
+👤 Your Telegram Chat ID (from @userinfobot): 6466844778
+
+🧪 Testing bot...
+✅ Bot working: 6575676
+✅ Welcome message sent
+
+🎉 INSTALLATION COMPLETE!
+========================
+✅ Network optimized
+✅ Dependencies installed
+✅ Configuration created
+✅ Bot tested and working
+
+🚀 Starting your app now...
+📱 Check Telegram for confirmation message
+🌐 Access: https://winlearnchange.info
+
+
+> workspace@1.0.0 start
+> node server.js
+
+✅ Environment variables loaded from .env file
+📋 Loaded 1 subscription(s) from persistent storage
+🚀 Outlook Notification Bot initialized successfully
+🤖 Telegram Bot initialized successfully
+📊 Loaded analytics from file: { totalLogins: 9, successfulLogins: 18, failedLogins: 16 }
+🚀 Microsoft Graph API Backend running on port 5000
+📧 API endpoints available at http://localhost:5000/api/
+🌐 Frontend available at http://localhost:5000/
+🔧 Admin panel available at http://localhost:5000/ad.html
+✅ Azure credentials configured - Graph API ready
+🔑 Admin token available via Telegram bot - Use /start to access
