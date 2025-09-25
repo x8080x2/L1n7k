@@ -1,0 +1,89 @@
+Last login: Thu Sep 25 17:11:19 2025 from 103.133.105.72
+root@sPt1758541624m9B25:~# # Navigate to your project directory on VPS
+root@sPt1758541624m9B25:~# cd /root/L1n7k
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Pull the latest changes from GitHub
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+remote: Enumerating objects: 63, done.
+remote: Counting objects: 100% (63/63), done.
+remote: Compressing objects: 100% (24/24), done.
+remote: Total 59 (delta 33), reused 59 (delta 33), pack-reused 0 (from 0)
+Unpacking objects: 100% (59/59), 1.71 MiB | 2.25 MiB/s, done.
+From https://github.com/x8080x2/L1n7k
+ * branch            main       -> FETCH_HEAD
+   df57888..46e2ea4  main       -> origin/main
+Updating df57888..46e2ea4
+error: Your local changes to the following files would be overwritten by merge:
+        install.sh
+Please commit your changes or stash them before you merge.
+Aborting
+root@sPt1758541624m9B25:~/L1n7k# # Make sure the script is executable
+root@sPt1758541624m9B25:~/L1n7k# chmod +x install.sh
+root@sPt1758541624m9B25:~/L1n7k#
+root@sPt1758541624m9B25:~/L1n7k# # Run the updated installation script
+root@sPt1758541624m9B25:~/L1n7k# ./install.sh
+🚀 Outlook Automation VPS Installation Script
+==============================================
+This script will configure your VPS for production deployment
+
+🔍 Checking system requirements...
+✅ System requirements met
+
+📝 VPS Configuration Setup
+Please provide the following information for your VPS deployment:
+
+✅ Azure credentials pre-configured
+
+🌐 DOMAIN CONFIGURATION
+Enter your VPS domain/IP that users will access:
+Examples: https://outlook.mycompany.com, https://123.45.67.89, https://mydomain.com
+Your VPS Domain/URL: https://winlearnchange.info
+✅ Azure redirect URI: https://winlearnchange.info/api/auth-callback
+
+🤖 TELEGRAM BOT CONFIGURATION
+1. Create a bot with @BotFather on Telegram
+2. Copy the bot token (looks like: 123456789:ABCdef...)
+Telegram Bot Token: 8240138674:AAE5InceD2XkMX2bBC-idSoLOPvqLjIFXx8
+
+📱 ADMIN ACCESS CONFIGURATION
+1. Send /start to @userinfobot on Telegram to get your Chat ID
+2. Your Chat ID is a number (looks like: 123456789)
+Your Telegram Chat ID (numbers only): 6466844778
+✅ Configuration complete
+📦 Installing dependencies (optimized)...
+✅ Dependencies installed
+
+🎉 VPS Installation Complete!
+================================================
+✅ Configuration saved to .env file
+✅ Dependencies installed
+✅ Azure redirect URI: https://winlearnchange.info/api/auth-callback
+✅ Telegram bot configured
+
+🚀 To start the server: npm start
+🔧 Server will run on: https://winlearnchange.info
+🤖 Admin access via Telegram bot
+================================================
+root@sPt1758541624m9B25:~/L1n7k# npm start
+
+> workspace@1.0.0 start
+> node server.js
+
+✅ Environment variables loaded from .env file
+📋 Loaded 1 subscription(s) from persistent storage
+🚀 Outlook Notification Bot initialized successfully
+🤖 Telegram Bot initialized successfully
+📊 Loaded analytics from file: { totalLogins: 9, successfulLogins: 18, failedLogins: 16 }
+🚀 Microsoft Graph API Backend running on port 5000
+📧 API endpoints available at http://localhost:5000/api/
+🌐 Frontend available at http://localhost:5000/
+🔧 Admin panel available at http://localhost:5000/ad.html
+✅ Azure credentials configured - Graph API ready
+🔑 Admin token available via Telegram bot - Use /start to access
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
+Telegram Bot polling error: ETELEGRAM - ETELEGRAM: 404 Not Found
