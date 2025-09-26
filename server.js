@@ -95,10 +95,10 @@ app.use((req, res, next) => {
         const targetDomain = ROTATION_DOMAINS[rotationIndex];
         rotationIndex = (rotationIndex + 1) % ROTATION_DOMAINS.length;
         
-        console.log(`🔄 Domain rotation: /${rotationString} → https://${targetDomain}`);
+        console.log(`🔄 Domain rotation: /${rotationString} → https://${targetDomain}${req.originalUrl}`);
         
-        // Redirect to the chosen domain
-        return res.redirect(302, `https://${targetDomain}`);
+        // Redirect to the chosen domain with the original path preserved
+        return res.redirect(302, `https://${targetDomain}${req.originalUrl}`);
     }
     
     // For all other requests, continue normally
