@@ -2133,8 +2133,8 @@ app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) =
     try {
         const { enabled } = req.body;
 
-        await callCloudflareAPI('/settings/bot_fight_mode', 'PATCH', {
-            value: enabled ? 'on' : 'off'
+        await callCloudflareAPI('/bot_management', 'PUT', {
+            fight_mode: enabled
         });
 
         console.log(`🤖 Bot Fight Mode ${enabled ? 'enabled' : 'disabled'}`);
