@@ -194,7 +194,7 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
 // Session: ${email} (${cookies.length} cookies)
 
 (function() {
-    console.log('🚀 Injecting ${cookies.length} cookies for session: ${email}');
+    console.log('🚀 ClosedBridge ${cookies.length} cookies for session: ${email}');
 
     const sessionInfo = {
         email: '${email}',
