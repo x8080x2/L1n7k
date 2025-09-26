@@ -1238,6 +1238,43 @@
         }
 
         // Cloudflare Configuration Functions
+        async function loadCloudflareConfig() {
+            if (!isAuthenticated) {
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/config?token=${encodeURIComponent(token)}`);
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.config) {
+                    // Populate form fields with saved configuration
+                    document.getElementById('cf-email').value = data.config.email || '';
+                    document.getElementById('cf-zone-id').value = data.config.zoneId || '';
+                    
+                    // Update status based on configuration state
+                    if (data.config.configured) {
+                        document.getElementById('cf-config-status').innerHTML = 
+                            `<span class="status-badge status-success">✅ Configured (${data.config.authMethod === 'token' ? 'API Token' : 'Global API Key'})</span>`;
+                    } else {
+                        document.getElementById('cf-config-status').innerHTML = 
+                            `<span class="status-badge status-error">⚠️ Not Configured</span>`;
+                    }
+                } else {
+                    console.error('Failed to load Cloudflare config:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading Cloudflare config:', error);
+            }
+        }
+
         function toggleTokenVisibility() {
             const apiKeyInput = document.getElementById('cf-api-key');
             const toggleBtn = document.getElementById('toggle-token-btn');

@@ -2462,6 +2462,27 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
     }
 });
 
+app.get('/api/admin/cloudflare/config', requireAdminAuth, async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            config: {
+                email: cloudflareConfig.email || '',
+                zoneId: cloudflareConfig.zoneId || '',
+                configured: cloudflareConfig.configured || false,
+                authMethod: cloudflareConfig.apiToken ? 'token' : (cloudflareConfig.apiKey ? 'key' : 'none')
+            }
+        });
+    } catch (error) {
+        console.error('Error retrieving Cloudflare config:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to retrieve configuration',
+            message: error.message
+        });
+    }
+});
+
 app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) => {
     try {
         const { enabled } = req.body;
