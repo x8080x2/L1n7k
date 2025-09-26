@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "mainDomain": "www.maindomain.com",
+  "rotationDomains": [
+    "domain1.com",
+    "domain2.com",
+    "domain3.com"
+  ],
+  "rotationStrings": [
+    "vlFvQ0",
+    "84ef5y",
+    "rTnQSv",
+    "Iiocem",
+    "2lCEhT"
+  ],
+  "rotationIndex": 1,
+  "activeDomains": [],
+  "rotationString": "CMUCpj"
+}

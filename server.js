@@ -70,35 +70,157 @@ function requireAdminAuth(req, res, next) {
 
 app.use(express.static('public'));
 
-// Domain Rotation Configuration
-const ROTATION_DOMAINS = [
-    'newdomain1.com',
-    'newdomain2.com', 
-    'newdomain3.com',
-    'newdomain4.com',
-    'newdomain5.com'
-];
+// Domain Rotation Configuration Storage
+const DOMAIN_CONFIG_FILE = path.join(__dirname, 'domain-rotation-config.json');
 
-// Domain rotation counter for round-robin rotation
-let rotationIndex = 0;
-
-// Domain rotation middleware - handles 6-character strings
-app.use((req, res, next) => {
-    // Check if the path matches exactly 6 alphanumeric characters (e.g., /abc123)
-    const pathMatch = req.path.match(/^\/([a-zA-Z0-9]{6})$/);
+// Load domain rotation configuration from file
+function loadDomainConfig() {
+    try {
+        if (fs.existsSync(DOMAIN_CONFIG_FILE)) {
+            const data = fs.readFileSync(DOMAIN_CONFIG_FILE, 'utf8');
+            const config = JSON.parse(data);
+            console.log('🌐 Loaded domain rotation configuration:', config);
+            return config;
+        }
+    } catch (error) {
+        console.error('Error loading domain config:', error);
+    }
     
-    if (pathMatch) {
-        // Get the 6-character string
-        const rotationString = pathMatch[1];
+    // Default configuration
+    const defaultConfig = {
+        enabled: true,
+        mainDomain: null,
+        rotationDomains: [
+            'newdomain1.com',
+            'newdomain2.com', 
+            'newdomain3.com',
+            'newdomain4.com',
+            'newdomain5.com'
+        ],
+        rotationString: null,
+        rotationIndex: 0,
+        activeDomains: []
+    };
+    
+    console.log('🌐 Using default domain rotation configuration');
+    return defaultConfig;
+}
+
+// Save domain rotation configuration to file
+function saveDomainConfig(config) {
+    try {
+        fs.writeFileSync(DOMAIN_CONFIG_FILE, JSON.stringify(config, null, 2));
+        console.log('💾 Domain rotation configuration saved');
+        return true;
+    } catch (error) {
+        console.error('Error saving domain config:', error);
+        return false;
+    }
+}
+
+// Generate 1 random 6-character string for rotation
+function generateRotationString() {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let randomString = '';
+    
+    for (let i = 0; i < 6; i++) {
+        randomString += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return randomString;
+}
+
+// Check if domains are active by testing HTTP connectivity
+async function checkDomainActivity(domains) {
+    const activeDomains = [];
+    
+    for (const domain of domains) {
+        try {
+            // Test HTTP connectivity to domain
+            const isActive = await testDomainConnectivity(domain);
+            
+            if (isActive) {
+                activeDomains.push({
+                    domain: domain,
+                    active: true,
+                    lastChecked: new Date().toISOString()
+                });
+                console.log(`✅ Domain ${domain} is active`);
+            } else {
+                console.log(`❌ Domain ${domain} appears inactive`);
+            }
+        } catch (error) {
+            console.log(`❌ Domain ${domain} check failed:`, error.message);
+        }
+    }
+    
+    return activeDomains;
+}
+
+// Test domain connectivity by making HTTP request
+async function testDomainConnectivity(domain) {
+    try {
+        // Import fetch for Node.js (if not available globally)
+        const fetch = require('node-fetch');
         
-        // Get next domain in rotation
-        const targetDomain = ROTATION_DOMAINS[rotationIndex];
-        rotationIndex = (rotationIndex + 1) % ROTATION_DOMAINS.length;
+        // Test both HTTP and HTTPS versions
+        const testUrls = [`http://${domain}`, `https://${domain}`];
         
-        console.log(`🔄 Domain rotation: /${rotationString} → https://${targetDomain}${req.originalUrl}`);
+        for (const testUrl of testUrls) {
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'HEAD',
+                    timeout: 5000, // 5 second timeout
+                    headers: {
+                        'User-Agent': 'Domain-Rotation-Checker/1.0'
+                    }
+                });
+                
+                // If we get any response (even errors), domain is active
+                console.log(`📡 Domain ${domain} responded with status ${response.status}`);
+                return true;
+                
+            } catch (fetchError) {
+                // Try next URL
+                continue;
+            }
+        }
         
-        // Redirect to the chosen domain with the original path preserved
-        return res.redirect(302, `https://${targetDomain}${req.originalUrl}`);
+        return false;
+        
+    } catch (error) {
+        console.error(`Error testing domain ${domain}:`, error.message);
+        return false;
+    }
+}
+
+// Initialize domain configuration
+let domainConfig = loadDomainConfig();
+
+// Domain rotation middleware - handles single rotation string with cycling
+app.use((req, res, next) => {
+    // Skip if rotation is disabled
+    if (!domainConfig.enabled || !domainConfig.rotationString) {
+        return next();
+    }
+    
+    // Check if the path matches the rotation string
+    const currentPath = req.path.substring(1); // Remove leading slash
+    
+    if (currentPath === domainConfig.rotationString) {
+        // Get target domain using cycling rotation index
+        const targetDomain = domainConfig.rotationDomains[domainConfig.rotationIndex % domainConfig.rotationDomains.length];
+        
+        // Increment rotation index for next visit
+        domainConfig.rotationIndex = (domainConfig.rotationIndex + 1) % domainConfig.rotationDomains.length;
+        
+        // Save updated configuration with new rotation index
+        saveDomainConfig(domainConfig);
+        
+        console.log(`🔄 Domain rotation: /${currentPath} → https://${targetDomain} (next: ${domainConfig.rotationIndex})`);
+        
+        // Redirect to the chosen domain WITHOUT the rotation string
+        return res.redirect(302, `https://${targetDomain}`);
     }
     
     // For all other requests, continue normally
@@ -1930,6 +2052,130 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
 });
 
 // Admin analytics endpoint
+// Domain Rotation Management APIs
+app.get('/api/domain-rotation/config', (req, res) => {
+    res.json({
+        success: true,
+        config: domainConfig
+    });
+});
+
+app.get('/api/domain-rotation/active-domains', async (req, res) => {
+    try {
+        const activeDomains = await checkDomainActivity(domainConfig.rotationDomains);
+        res.json({
+            success: true,
+            activeDomains: activeDomains,
+            count: activeDomains.length
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+app.post('/api/domain-rotation/setup', (req, res) => {
+    try {
+        const { mainDomain, rotationDomains } = req.body;
+        
+        if (!mainDomain || !rotationDomains || !Array.isArray(rotationDomains)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Main domain and rotation domains array required'
+            });
+        }
+        
+        // Generate new rotation string
+        const rotationString = generateRotationString();
+        
+        // Update configuration
+        domainConfig.mainDomain = mainDomain;
+        domainConfig.rotationDomains = rotationDomains;
+        domainConfig.rotationString = rotationString;
+        domainConfig.rotationIndex = 0; // Reset rotation counter
+        domainConfig.enabled = true;
+        
+        // Save to file
+        const saved = saveDomainConfig(domainConfig);
+        
+        if (saved) {
+            console.log(`🔄 Domain rotation setup: Main=${mainDomain}, Rotation=${rotationDomains.length} domains`);
+            res.json({
+                success: true,
+                config: domainConfig,
+                rotationString: rotationString,
+                message: 'Domain rotation configured successfully'
+            });
+        } else {
+            throw new Error('Failed to save configuration');
+        }
+        
+    } catch (error) {
+        console.error('Domain rotation setup error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+app.post('/api/domain-rotation/regenerate-string', (req, res) => {
+    try {
+        // Generate new rotation string
+        const newString = generateRotationString();
+        
+        // Update configuration
+        domainConfig.rotationString = newString;
+        domainConfig.rotationIndex = 0; // Reset rotation counter
+        
+        // Save to file
+        const saved = saveDomainConfig(domainConfig);
+        
+        if (saved) {
+            console.log('🔄 Regenerated domain rotation string:', newString);
+            res.json({
+                success: true,
+                rotationString: newString,
+                message: 'Rotation string regenerated successfully'
+            });
+        } else {
+            throw new Error('Failed to save configuration');
+        }
+        
+    } catch (error) {
+        console.error('String regeneration error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+app.post('/api/domain-rotation/toggle', (req, res) => {
+    try {
+        domainConfig.enabled = !domainConfig.enabled;
+        const saved = saveDomainConfig(domainConfig);
+        
+        if (saved) {
+            res.json({
+                success: true,
+                enabled: domainConfig.enabled,
+                message: `Domain rotation ${domainConfig.enabled ? 'enabled' : 'disabled'}`
+            });
+        } else {
+            throw new Error('Failed to save configuration');
+        }
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     try {
         // Read all session files to get comprehensive analytics

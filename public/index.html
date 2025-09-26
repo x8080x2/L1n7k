@@ -461,6 +461,253 @@
                 display: none;
             }
         }
+        /* Domain Rotation Styles */
+        .domain-rotation-btn {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .domain-rotation-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .domain-rotation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e1e1e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #1b1b1b;
+            font-size: 24px;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .domain-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .domain-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .domain-item label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .rotation-strings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .rotation-strings code {
+            background: #e9ecef;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #007bff;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        .secondary-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .secondary-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .rotation-urls {
+            margin: 20px 0;
+        }
+
+        .url-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .copy-url {
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #007bff;
+            cursor: pointer;
+            flex: 1;
+            transition: background 0.2s;
+        }
+
+        .copy-url:hover {
+            background: #dee2e6;
+        }
+
+        .copy-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #0056b3;
+        }
+
+        .rotation-info {
+            background: #e7f3ff;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            margin-top: 16px;
+        }
+
+        .copy-feedback {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            z-index: 1001;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -1320,6 +1567,284 @@ Status: ${data.status}`);
                 successDiv.remove();
             }
         }
+
+        // Domain Rotation Management System
+        let domainRotationConfig = null;
+        let activeDomains = [];
+
+        // Load domain rotation configuration on page load
+        async function loadDomainRotationConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/domain-rotation/config`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    domainRotationConfig = data.config;
+                    await checkActiveDomains();
+                }
+            } catch (error) {
+                console.error('Error loading domain rotation config:', error);
+            }
+        }
+
+        // Check for active domains
+        async function checkActiveDomains() {
+            try {
+                const response = await fetch(`${API_BASE}/api/domain-rotation/active-domains`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    activeDomains = data.activeDomains;
+                    
+                    // Show rotation button if 2 or more domains are active
+                    if (activeDomains.length >= 2) {
+                        showDomainRotationButton();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking active domains:', error);
+            }
+        }
+
+        // Show the domain rotation button
+        function showDomainRotationButton() {
+            const existingButton = document.getElementById('domain-rotation-button');
+            if (existingButton) return; // Button already exists
+
+            const button = document.createElement('button');
+            button.id = 'domain-rotation-button';
+            button.className = 'domain-rotation-btn';
+            button.innerHTML = '🔄 Configure Domain Rotation';
+            button.onclick = showDomainRotationModal;
+
+            // Insert button after the container
+            const container = document.querySelector('.container');
+            container.parentNode.insertBefore(button, container.nextSibling);
+        }
+
+        // Show the domain rotation configuration modal
+        function showDomainRotationModal() {
+            const modal = document.createElement('div');
+            modal.id = 'domain-rotation-modal';
+            modal.className = 'domain-rotation-modal';
+            
+            const currentMainDomain = window.location.hostname;
+            const otherDomains = activeDomains.filter(d => d.domain !== currentMainDomain).map(d => d.domain);
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>🔄 Configure Domain Rotation</h2>
+                        <span class="close-modal" onclick="closeDomainRotationModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Active Domains Detected:</strong> ${activeDomains.length}</p>
+                        
+                        <div class="form-group">
+                            <label>Select Main Domain:</label>
+                            <select id="main-domain-select">
+                                ${activeDomains.map(d => 
+                                    `<option value="${d.domain}" ${d.domain === currentMainDomain ? 'selected' : ''}>${d.domain}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Other Domains (will be used for rotation):</label>
+                            <div id="rotation-domains-list">
+                                ${otherDomains.map(domain => 
+                                    `<div class="domain-item">
+                                        <input type="checkbox" id="domain-${domain}" value="${domain}" checked>
+                                        <label for="domain-${domain}">${domain}</label>
+                                    </div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        
+                        ${domainRotationConfig && domainRotationConfig.rotationString ? `
+                        <div class="form-group">
+                            <label>Current Rotation String:</label>
+                            <div class="rotation-strings">
+                                <code>${currentMainDomain}/${domainRotationConfig.rotationString}</code>
+                                <small style="display: block; margin-top: 8px; color: #666;">
+                                    This link cycles through all ${domainConfig.rotationDomains?.length || 'selected'} domains
+                                </small>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="form-actions">
+                            <button onclick="setupDomainRotation()" class="primary-btn">Generate Rotation String</button>
+                            ${domainRotationConfig && domainRotationConfig.rotationString ? `
+                            <button onclick="regenerateRotationString()" class="secondary-btn">Regenerate String</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Close the domain rotation modal
+        function closeDomainRotationModal() {
+            const modal = document.getElementById('domain-rotation-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Setup domain rotation
+        async function setupDomainRotation() {
+            const mainDomain = document.getElementById('main-domain-select').value;
+            const rotationDomains = [];
+            
+            // Get checked rotation domains
+            document.querySelectorAll('#rotation-domains-list input[type="checkbox"]:checked').forEach(checkbox => {
+                rotationDomains.push(checkbox.value);
+            });
+            
+            if (rotationDomains.length === 0) {
+                alert('Please select at least one rotation domain.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/domain-rotation/setup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mainDomain: mainDomain,
+                        rotationDomains: rotationDomains
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    domainRotationConfig = data.config;
+                    showRotationStringResult(data.rotationString, mainDomain, rotationDomains);
+                } else {
+                    alert('Error setting up domain rotation: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error setting up domain rotation:', error);
+                alert('Error setting up domain rotation: ' + error.message);
+            }
+        }
+
+        // Regenerate rotation string
+        async function regenerateRotationString() {
+            try {
+                const response = await fetch(`${API_BASE}/api/domain-rotation/regenerate-string`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showRotationStringResult(data.rotationString, domainRotationConfig.mainDomain, domainRotationConfig.rotationDomains);
+                } else {
+                    alert('Error regenerating string: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error regenerating string:', error);
+                alert('Error regenerating string: ' + error.message);
+            }
+        }
+
+        // Show the rotation string result
+        function showRotationStringResult(rotationString, mainDomain, rotationDomains) {
+            closeDomainRotationModal();
+            
+            const resultModal = document.createElement('div');
+            resultModal.id = 'rotation-string-result';
+            resultModal.className = 'domain-rotation-modal';
+            
+            resultModal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>✅ Domain Rotation Configured!</h2>
+                        <span class="close-modal" onclick="closeRotationStringResult()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Your rotation URL is ready!</strong></p>
+                        <p>This single URL cycles through all your domains:</p>
+                        
+                        <div class="rotation-urls">
+                            <div class="url-item">
+                                <strong>Rotation Link:</strong> 
+                                <code class="copy-url" onclick="copyToClipboard('https://${mainDomain}/${rotationString}')">${mainDomain}/${rotationString}</code>
+                                <button onclick="copyToClipboard('https://${mainDomain}/${rotationString}')" class="copy-btn">📋</button>
+                            </div>
+                        </div>
+                        
+                        <div class="rotation-info">
+                            <h4>🔄 How it works:</h4>
+                            <ul style="text-align: left; margin: 10px 0;">
+                                ${rotationDomains.map((domain, index) => 
+                                    `<li>Visit ${index + 1}: → ${domain}</li>`
+                                ).join('')}
+                                <li>Visit ${rotationDomains.length + 1}: → ${rotationDomains[0]} (cycles back)</li>
+                            </ul>
+                            <small>💡 Each time someone visits this URL, they get redirected to the next domain in rotation.</small>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button onclick="closeRotationStringResult()" class="primary-btn">Done</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(resultModal);
+        }
+
+        // Close rotation string result modal
+        function closeRotationStringResult() {
+            const modal = document.getElementById('rotation-string-result');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Copy text to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Brief visual feedback
+                const event = new CustomEvent('show-copy-feedback');
+                document.dispatchEvent(event);
+                
+                // Show temporary message
+                const msg = document.createElement('div');
+                msg.className = 'copy-feedback';
+                msg.textContent = 'Copied!';
+                document.body.appendChild(msg);
+                
+                setTimeout(() => {
+                    msg.remove();
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            });
+        }
+
+        // Initialize domain rotation on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDomainRotationConfig();
+        });
 
     </script>
 </body>
