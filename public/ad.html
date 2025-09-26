@@ -1466,8 +1466,12 @@
             try {
                 console.log('Loading redirect configuration...');
                 const response = await fetch(`/api/internal/redirect-url`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
-
                 console.log('Redirect config response:', data);
 
                 if (data.success && data.redirectUrl) {
@@ -1498,17 +1502,33 @@
                 console.error('Error loading redirect config:', error);
                 document.getElementById('current-redirect-display').textContent = '❌ Failed to load';
                 document.getElementById('redirect-status').innerHTML = 
-                    `<span style="color: #ff3333; font-weight: bold;">❌ ERROR: ${error.message}</span>`;
+                    `<span style="color: #ff3333; font-weight: bold;">❌ ERROR: ${error.message || 'Network Error'}</span>`;
 
                 // Set default values
                 const select = document.getElementById('redirect-destination');
-                select.value = 'https://office.com';
-                document.getElementById('custom-redirect-url').style.display = 'none';
+                if (select) {
+                    select.value = 'https://office.com';
+                }
+                const customInput = document.getElementById('custom-redirect-url');
+                if (customInput) {
+                    customInput.style.display = 'none';
+                }
             }
         }
 
         async function updateProjectRedirect() {
+            if (!isAuthenticated) {
+                alert('⚠️ AUTHENTICATION REQUIRED TO UPDATE REDIRECT');
+                return;
+            }
+
             const token = getStoredToken();
+            if (!token) {
+                alert('⚠️ AUTHENTICATION TOKEN MISSING');
+                logout();
+                return;
+            }
+
             const select = document.getElementById('redirect-destination');
             const customInput = document.getElementById('custom-redirect-url');
 
@@ -1528,12 +1548,24 @@
                 }
             }
 
+            // Disable button during update
+            const updateBtn = event.target;
+            const originalText = updateBtn.textContent;
+            updateBtn.disabled = true;
+            updateBtn.textContent = 'UPDATING...';
+
             try {
                 const response = await fetch(`/api/admin/project-redirect?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ redirectUrl: targetUrl })
                 });
+
+                if (response.status === 401) {
+                    logout();
+                    alert('SESSION EXPIRED: RE-AUTHENTICATION REQUIRED');
+                    return;
+                }
 
                 const data = await response.json();
 
@@ -1543,15 +1575,18 @@
                         `<span style="color: #00ff88; font-weight: bold;">✅ PROJECT REDIRECT UPDATED: ${targetUrl}</span>`;
                     alert(`✅ Project redirect destination updated to: ${targetUrl}\nThis affects all login redirects in your project.`);
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Update failed'));
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: #ff3333; font-weight: bold;">❌ UPDATE FAILED</span>`;
+                        `<span style="color: #ff3333; font-weight: bold;">❌ UPDATE FAILED: ${data.error || 'Unknown error'}</span>`;
                 }
             } catch (error) {
                 console.error('Error updating redirect config:', error);
-                alert('Network error occurred');
+                alert('Network error occurred: ' + error.message);
                 document.getElementById('redirect-status').innerHTML = 
                     `<span style="color: #ff3333; font-weight: bold;">❌ NETWORK ERROR</span>`;
+            } finally {
+                updateBtn.disabled = false;
+                updateBtn.textContent = originalText;
             }
         }
 
