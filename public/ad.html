@@ -1282,12 +1282,6 @@
                 btn.disabled = false;
                 btn.textContent = 'TOGGLE BOT FIGHT';
             }
-        }ror toggling bot fight:', error);
-                alert('Network error occurred');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'TOGGLE BOT FIGHT';
-            }
         }
 
         async function setSecurityLevel() {
@@ -1324,13 +1318,6 @@
             } catch (error) {
                 console.error('Error setting security level:', error);
                 alert('Network error occurred');
-            }
-        }rror('Security level error:', data.error || 'Unknown error');
-                    alert('Error: ' + (data.error || data.message || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error setting security level:', error.message || error);
-                alert('Network error occurred: ' + (error.message || error));
             }
         }
 
