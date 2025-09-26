@@ -944,6 +944,7 @@
                 setTimeout(() => {
                     loadAnalytics();
                     loadSessions();
+                    loadCloudflareConfig();
                 }, 100);
             } else {
                 updateAuthUI(false);
@@ -999,6 +1000,7 @@
                     updateAuthUI(true);
                     loadSessions();
                     loadAnalytics(); // Ensure analytics load after authentication
+                    loadCloudflareConfig(); // Load saved Cloudflare configuration
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
@@ -1325,13 +1327,14 @@
                     document.getElementById('cf-config-status').innerHTML = 
                         '<span class="status-badge status-success">✅ Cloudflare Configured Successfully</span>';
 
-                    // Clear the input fields for security
-                    document.getElementById('cf-email').value = '';
+                    // Clear only the API key field for security, but keep email and zone ID visible
                     document.getElementById('cf-api-key').value = '';
-                    document.getElementById('cf-zone-id').value = '';
-
-                    // Load Cloudflare status immediately
-                    setTimeout(() => loadCloudflareStatus(), 1000);
+                    
+                    // Reload configuration to show saved details
+                    setTimeout(() => {
+                        loadCloudflareConfig();
+                        loadCloudflareStatus();
+                    }, 1000);
 
                     alert('✅ CLOUDFLARE CONFIGURATION SAVED SUCCESSFULLY!\n\nCredentials have been securely stored and the system is now connected to your Cloudflare account.');
                 } else {
@@ -1984,8 +1987,9 @@
                 loading.style.display = 'block';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
-                // Load Cloudflare status and redirect config
+                // Load Cloudflare configuration and status, and redirect config
                 setTimeout(() => {
+                    loadCloudflareConfig();
                     loadCloudflareStatus().then(() => {
                         // If Cloudflare status loads successfully, update config status
                         const cfStatus = document.getElementById('cf-status').textContent;
