@@ -1397,11 +1397,22 @@
                 } else {
                     document.getElementById('cf-status').textContent = 'ERROR';
                     document.getElementById('cf-status').style.color = '#ff3333';
+                    console.error('Cloudflare status error:', data.error || data.message);
+                    
+                    // Update config status to show the error
+                    if (data.error && data.error.includes('not configured')) {
+                        document.getElementById('cf-config-status').innerHTML = 
+                            '<span class="status-badge status-error">⚠️ Not Configured</span>';
+                    }
                 }
             } catch (error) {
                 console.error('Error loading Cloudflare status:', error);
                 document.getElementById('cf-status').textContent = 'OFFLINE';
                 document.getElementById('cf-status').style.color = '#ff3333';
+                
+                // Show more specific error information
+                document.getElementById('cf-config-status').innerHTML = 
+                    `<span class="status-badge status-error">❌ Connection Error: ${error.message}</span>`;
             }
         }
 
