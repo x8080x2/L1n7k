@@ -240,4 +240,31 @@ Preferred communication style: Simple, everyday language.
    - `TELEGRAM_BOT_TOKEN` (optional) for admin notifications
    - `ADMIN_TOKEN` (optional) or auto-generated
 
+## Domain Rotation System
+
+### Overview
+Added domain rotation functionality directly to the Express server. When users access the main domain with 6-character alphanumeric strings, the system automatically redirects them to rotating external domains.
+
+### How It Works
+- **Normal requests** (e.g., `/`, `/about`, `/api/health`) serve content directly from the main domain
+- **6-character strings** (e.g., `/abc123`, `/xyz999`) trigger domain rotation and redirect to external domains
+- **Invalid strings** (not exactly 6 characters) serve content normally from the main domain
+
+### Implementation
+- **Location**: Express middleware in `server.js` (lines 76-109)
+- **Pattern matching**: Uses regex `/^\/([a-zA-Z0-9]{6})$/` to match exactly 6 alphanumeric characters
+- **Rotation logic**: Round-robin through 5 configured domains (newdomain1.com through newdomain5.com)
+- **Redirect behavior**: 302 redirects to `https://targetdomain.com/original-path` preserving full URL
+- **Logging**: Each rotation is logged for monitoring
+
+### Usage Examples
+```
+www.maindomain.com/abc123 → https://newdomain1.com/abc123
+www.maindomain.com/def456 → https://newdomain2.com/def456  
+www.maindomain.com/ghi789 → https://newdomain3.com/ghi789
+```
+
+### Configuration
+Rotation domains are configured in the `ROTATION_DOMAINS` array in `server.js`. To modify the domains, update this array and restart the server.
+
 This documentation reflects the actual hybrid architecture and security posture of the current system.
