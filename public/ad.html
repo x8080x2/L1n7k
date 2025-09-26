@@ -745,6 +745,58 @@
             </div>
         </div>
 
+        <!-- Country Access Control -->
+        <div id="country-access-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
+            <h2 style="color: #ff9933; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🌍 COUNTRY ACCESS CONTROL</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
+                    <div style="color: #ff9933; font-size: 10px; font-weight: bold;" id="country-rules-count">0</div>
+                    <div style="color: #666; font-size: 8px;">Active Rules</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
+                    <div style="color: #0099ff; font-size: 10px; font-weight: bold;" id="country-access-status">OPEN</div>
+                    <div style="color: #666; font-size: 8px;">Access Mode</div>
+                </div>
+            </div>
+
+            <!-- Country Rule Creation -->
+            <div style="background: rgba(0,0,0,0.2); border: 1px solid #444; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+                <h3 style="color: #ff9933; font-size: 12px; margin: 0 0 10px 0;">Create New Country Rule</h3>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <select id="country-action-select" style="background: rgba(0,0,0,0.5); color: #ff9933; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; min-width: 100px;">
+                        <option value="block">Block Countries</option>
+                        <option value="allow_only">Allow Only</option>
+                    </select>
+                    
+                    <input type="text" id="country-codes-input" placeholder="Country codes (e.g., CN,RU,KP)" 
+                           style="background: rgba(0,0,0,0.5); color: #ff9933; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 200px;">
+                    
+                    <button onclick="createCountryRule()" id="create-country-rule-btn" style="background: #ff6600; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
+                        CREATE RULE
+                    </button>
+                </div>
+                
+                <div style="font-size: 9px; color: #999; margin-bottom: 8px;">
+                    Examples: US,CA,GB (US, Canada, UK) | CN,RU,KP (China, Russia, N.Korea) | DE,FR,ES (Germany, France, Spain)
+                </div>
+                
+                <input type="text" id="country-rule-name" placeholder="Rule description (optional)" 
+                       style="width: 100%; background: rgba(0,0,0,0.5); color: #ff9933; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px;">
+            </div>
+
+            <!-- Active Country Rules -->
+            <div id="country-rules-list" style="background: rgba(0,0,0,0.2); border: 1px solid #444; padding: 12px; border-radius: 5px;">
+                <h3 style="color: #ff9933; font-size: 12px; margin: 0 0 10px 0;">Active Country Rules</h3>
+                <div id="country-rules-container" style="min-height: 40px;">
+                    <div style="color: #666; font-size: 10px; text-align: center; padding: 15px;">
+                        Loading country rules...
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Sessions Database -->
         <div class="sessions-header">
             <h2>ENCRYPTED SESSION DATABASE</h2>
@@ -1201,6 +1253,9 @@
 
                     // Update status displays
                     updateCloudflareStatus(data.settings);
+                    
+                    // Also load country rules when loading status
+                    await loadCountryRules();
                 } else {
                     document.getElementById('cf-status').textContent = 'ERROR';
                     document.getElementById('cf-status').style.color = '#ff3333';
@@ -1353,6 +1408,175 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'TOGGLE BROWSER CHECK';
+            }
+        }
+
+        // Country Access Control Functions
+        async function loadCountryRules() {
+            if (!isAuthenticated) return;
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/country-rules?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayCountryRules(data.rules);
+                    document.getElementById('country-rules-count').textContent = data.count;
+                    
+                    // Update access status based on rules
+                    if (data.count === 0) {
+                        document.getElementById('country-access-status').textContent = 'OPEN';
+                        document.getElementById('country-access-status').style.color = '#0099ff';
+                    } else {
+                        document.getElementById('country-access-status').textContent = 'RESTRICTED';
+                        document.getElementById('country-access-status').style.color = '#ff6666';
+                    }
+                } else {
+                    console.error('Failed to load country rules:', data.error);
+                    document.getElementById('country-rules-container').innerHTML = `
+                        <div style="color: #ff6666; font-size: 10px; text-align: center; padding: 15px;">
+                            Failed to load country rules: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading country rules:', error);
+                document.getElementById('country-rules-container').innerHTML = `
+                    <div style="color: #ff6666; font-size: 10px; text-align: center; padding: 15px;">
+                        Network error loading country rules
+                    </div>
+                `;
+            }
+        }
+
+        function displayCountryRules(rules) {
+            const container = document.getElementById('country-rules-container');
+            
+            if (!rules || rules.length === 0) {
+                container.innerHTML = `
+                    <div style="color: #666; font-size: 10px; text-align: center; padding: 15px;">
+                        No country access rules configured
+                    </div>
+                `;
+                return;
+            }
+
+            const rulesHtml = rules.map(rule => {
+                const isBlockRule = rule.expression.includes(' in ');
+                const actionText = isBlockRule ? 'BLOCK' : 'ALLOW ONLY';
+                const actionColor = isBlockRule ? '#ff6666' : '#00ff66';
+                
+                // Extract countries from expression
+                const matches = rule.expression.match(/\{"([^"]+)"/);
+                const countries = matches ? matches[1].split('" "') : [];
+                
+                return `
+                    <div style="background: rgba(0,0,0,0.3); border: 1px solid #444; padding: 8px; border-radius: 3px; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <div style="color: ${actionColor}; font-size: 10px; font-weight: bold;">${actionText}</div>
+                            <button onclick="deleteCountryRule('${rule.id}')" style="background: #cc3333; color: white; border: none; padding: 2px 6px; font-size: 8px; border-radius: 2px; cursor: pointer;">
+                                DELETE
+                            </button>
+                        </div>
+                        <div style="color: #ff9933; font-size: 9px; margin-bottom: 2px;">
+                            Countries: ${countries.join(', ')}
+                        </div>
+                        <div style="color: #666; font-size: 8px;">
+                            ${rule.description || 'No description'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = rulesHtml;
+        }
+
+        async function createCountryRule() {
+            if (!isAuthenticated) return;
+
+            const action = document.getElementById('country-action-select').value;
+            const countriesInput = document.getElementById('country-codes-input').value.trim();
+            const ruleName = document.getElementById('country-rule-name').value.trim();
+            const btn = document.getElementById('create-country-rule-btn');
+
+            if (!countriesInput) {
+                alert('Please enter country codes (e.g., CN,RU,KP)');
+                return;
+            }
+
+            // Parse and validate country codes
+            const countries = countriesInput.split(',').map(c => c.trim().toUpperCase()).filter(c => c.length === 2);
+            
+            if (countries.length === 0) {
+                alert('Please enter valid 2-letter country codes separated by commas');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'CREATING...';
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/country-rules?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: action,
+                        countries: countries,
+                        ruleName: ruleName || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Clear form
+                    document.getElementById('country-codes-input').value = '';
+                    document.getElementById('country-rule-name').value = '';
+                    
+                    // Reload rules
+                    await loadCountryRules();
+                    
+                    console.log(data.message);
+                    alert(`✅ Country rule created successfully!\n\n${data.message}`);
+                } else {
+                    alert('Error creating country rule: ' + (data.message || data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error creating country rule:', error);
+                alert('Network error occurred while creating rule');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'CREATE RULE';
+            }
+        }
+
+        async function deleteCountryRule(ruleId) {
+            if (!isAuthenticated) return;
+            
+            if (!confirm('Are you sure you want to delete this country access rule?')) {
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/country-rules/${ruleId}?token=${encodeURIComponent(token)}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Reload rules
+                    await loadCountryRules();
+                    console.log(data.message);
+                } else {
+                    alert('Error deleting country rule: ' + (data.message || data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting country rule:', error);
+                alert('Network error occurred while deleting rule');
             }
         }
 

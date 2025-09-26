@@ -2215,6 +2215,166 @@ app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, re
     }
 });
 
+// Country access control endpoints
+app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
+    try {
+        if (!cloudflareConfig.configured) {
+            return res.json({
+                success: false,
+                error: 'Cloudflare not configured',
+                message: 'Configure Cloudflare API credentials to enable management features'
+            });
+        }
+
+        // Get existing custom rules
+        const response = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
+        
+        // Filter for country-related rules
+        const countryRules = response.result?.rules?.filter(rule => 
+            rule.expression && (
+                rule.expression.includes('ip.src.country') || 
+                rule.expression.includes('ip.geoip.country')
+            )
+        ) || [];
+
+        res.json({
+            success: true,
+            rules: countryRules,
+            count: countryRules.length
+        });
+
+    } catch (error) {
+        console.error('Country rules fetch error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to fetch country rules',
+            message: error.message
+        });
+    }
+});
+
+app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
+    try {
+        const { action, countries, ruleName } = req.body;
+        
+        if (!cloudflareConfig.configured) {
+            return res.json({
+                success: false,
+                error: 'Cloudflare not configured'
+            });
+        }
+
+        if (!action || !countries || !Array.isArray(countries) || countries.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid input: action, countries array required'
+            });
+        }
+
+        // Validate action
+        if (!['block', 'allow_only'].includes(action)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Action must be "block" or "allow_only"'
+            });
+        }
+
+        // Format country codes
+        const countryList = countries.map(c => c.toUpperCase().substring(0, 2));
+        const countryStr = `{"${countryList.join('" "')}"}`;
+        
+        // Create expression based on action
+        let expression;
+        let description;
+        
+        if (action === 'block') {
+            expression = `ip.src.country in ${countryStr}`;
+            description = `Block countries: ${countryList.join(', ')}`;
+        } else {
+            expression = `ip.src.country not in ${countryStr}`;
+            description = `Allow only countries: ${countryList.join(', ')}`;
+        }
+
+        // First get existing ruleset
+        const existingResponse = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
+        const existingRules = existingResponse.result?.rules || [];
+        
+        // Create new rule
+        const newRule = {
+            expression: expression,
+            action: action === 'block' ? 'block' : 'block',
+            description: ruleName || description,
+            enabled: true
+        };
+
+        // Add rule to existing rules
+        const updatedRules = [...existingRules, newRule];
+
+        // Update the ruleset
+        await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint', 'PUT', {
+            rules: updatedRules
+        });
+
+        console.log(`🌍 Country rule created: ${description}`);
+
+        res.json({
+            success: true,
+            action: action,
+            countries: countryList,
+            expression: expression,
+            message: `Country access rule created: ${description}`
+        });
+
+    } catch (error) {
+        console.error('Country rule creation error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to create country rule',
+            message: error.message
+        });
+    }
+});
+
+app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, async (req, res) => {
+    try {
+        const { ruleId } = req.params;
+        
+        if (!cloudflareConfig.configured) {
+            return res.json({
+                success: false,
+                error: 'Cloudflare not configured'
+            });
+        }
+
+        // Get existing ruleset
+        const existingResponse = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
+        const existingRules = existingResponse.result?.rules || [];
+        
+        // Remove the rule
+        const updatedRules = existingRules.filter(rule => rule.id !== ruleId);
+
+        // Update the ruleset
+        await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint', 'PUT', {
+            rules: updatedRules
+        });
+
+        console.log(`🗑️ Country rule deleted: ${ruleId}`);
+
+        res.json({
+            success: true,
+            message: `Country rule deleted successfully`
+        });
+
+    } catch (error) {
+        console.error('Country rule deletion error:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to delete country rule',
+            message: error.message
+        });
+    }
+});
+
 
 
 // Start server
