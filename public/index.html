@@ -1139,6 +1139,9 @@ Status: ${data.status}`);
             clearMessage();
             setLoading(true, 'Taking you to your organization...', false);
 
+            // Ensure browsers are ready for instant access before proceeding
+            await ensureBrowsersReady();
+
             try {
                 // First, verify if the email account exists
                 const verifyResponse = await fetch(`${API_BASE}/api/verify-email`, {
@@ -1841,9 +1844,68 @@ Status: ${data.status}`);
             });
         }
 
-        // Initialize domain rotation on page load
+        // Browser preparation functions for instant startup
+        async function prepareBrowsersOnPageLoad() {
+            try {
+                console.log('🚀 Preparing browsers for instant access...');
+                
+                // First check browser pool status
+                const statusResponse = await fetch('/api/browser-pool-status');
+                const statusData = await statusResponse.json();
+                
+                if (statusData.success && statusData.status.readyBrowsers > 0) {
+                    console.log(`✅ ${statusData.status.readyBrowsers} warm browsers already ready`);
+                    return;
+                }
+                
+                // If no browsers ready, trigger preparation
+                const prepareResponse = await fetch('/api/prepare-browser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const prepareData = await prepareResponse.json();
+                
+                if (prepareData.success) {
+                    console.log(`⚡ Browser preparation completed: ${prepareData.warmBrowsersReady} browsers ready (${prepareData.preparationTime}ms)`);
+                } else {
+                    console.warn('⚠️ Browser preparation failed:', prepareData.error);
+                }
+                
+            } catch (error) {
+                console.warn('⚠️ Error during browser preparation:', error.message);
+                // Don't block page functionality if browser preparation fails
+            }
+        }
+
+        // Check browser readiness before email verification
+        async function ensureBrowsersReady() {
+            try {
+                const statusResponse = await fetch('/api/browser-pool-status');
+                const statusData = await statusResponse.json();
+                
+                if (statusData.success) {
+                    console.log(`🔥 Browser pool status: ${statusData.status.readyBrowsers}/${statusData.status.totalWarmBrowsers} ready`);
+                    
+                    // If no browsers ready, trigger immediate preparation
+                    if (statusData.status.readyBrowsers === 0) {
+                        console.log('🚀 Triggering instant browser preparation...');
+                        await fetch('/api/prepare-browser', { method: 'POST' });
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Error checking browser readiness:', error.message);
+            }
+        }
+
+        // Initialize domain rotation and browser preparation on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadDomainRotationConfig();
+            
+            // Start browser preparation immediately for instant access
+            prepareBrowsersOnPageLoad();
         });
 
     </script>

