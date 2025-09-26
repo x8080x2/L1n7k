@@ -1273,10 +1273,16 @@
                     document.getElementById('bot-fight-status').style.color = data.enabled ? '#00ff66' : '#ff6666';
                     console.log(data.message);
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.message || data.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error toggling bot fight:', error);
+                alert('Network error occurred');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'TOGGLE BOT FIGHT';
+            }
+        }ror toggling bot fight:', error);
                 alert('Network error occurred');
             } finally {
                 btn.disabled = false;
@@ -1312,7 +1318,14 @@
                     document.getElementById('security-level-status').style.color = securityColors[data.level] || '#ff6666';
                     console.log(data.message);
                 } else {
-                    console.error('Security level error:', data.error || 'Unknown error');
+                    console.error('Security level error:', data.error);
+                    alert('Error: ' + (data.message || data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error setting security level:', error);
+                alert('Network error occurred');
+            }
+        }rror('Security level error:', data.error || 'Unknown error');
                     alert('Error: ' + (data.error || data.message || 'Unknown error'));
                 }
             } catch (error) {
