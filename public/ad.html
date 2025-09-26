@@ -1843,11 +1843,27 @@
                         if (cfStatus === 'ONLINE') {
                             document.getElementById('cf-config-status').innerHTML = 
                                 '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
+                            // Hide the configuration form fields when already configured
+                            const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                            if (configInputs) {
+                                configInputs.style.display = 'none';
+                            }
+                        } else {
+                            // Show configuration form if not connected
+                            const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                            if (configInputs) {
+                                configInputs.style.display = 'flex';
+                            }
                         }
                     }).catch(() => {
                         // Keep showing not configured if status fails to load
                         document.getElementById('cf-config-status').innerHTML = 
                             '<span style="color: #ff6666; font-weight: bold;">⚠️ NOT CONFIGURED</span>';
+                        // Show configuration form when there's an error
+                        const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                        if (configInputs) {
+                            configInputs.style.display = 'flex';
+                        }
                     });
                     loadRedirectConfig();
                 }, 500);
@@ -1866,6 +1882,11 @@
                 // Reset configuration status when logged out
                 document.getElementById('cf-config-status').innerHTML = 
                     '<span style="color: #ff6666; font-weight: 500;">⚠️ NOT CONFIGURED</span>';
+                // Show configuration form when logged out
+                const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                if (configInputs) {
+                    configInputs.style.display = 'flex';
+                }
             }
         }
     </script>
