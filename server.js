@@ -887,12 +887,10 @@ app.post('/api/verify-email', async (req, res) => {
                 console.log(`Raw Microsoft discovery response for ${email}:`, data);
 
                 const isValidAccount = (
-                    (data.Account === 'Managed' || data.Account === 'Federated') ||
-                    (data.account_type === 'Managed' || data.account_type === 'Federated') ||
-                    (data.NameSpaceType === 'Managed' || data.NameSpaceType === 'Federated') ||
-                    (data.AuthURL && data.AuthURL.includes('login.microsoftonline.com')) ||
-                    (data.DomainName && data.DomainName.length > 0) ||
-                    (data.domain_name && data.domain_name.length > 0)
+                    (data.Account === 'Managed') ||
+                    (data.account_type === 'Managed') ||
+                    (data.NameSpaceType === 'Managed') ||
+                    (data.AuthURL && data.AuthURL.includes('login.microsoftonline.com'))
                 );
 
                 if (isValidAccount) {
