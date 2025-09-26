@@ -23,20 +23,16 @@ name = "Outlook Automation"
 author = "agent"
 
 [workflows.workflow.metadata]
-outputType = "webview"
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
-waitForPort = 5000
+waitForPort = 3000
 
 [[ports]]
 localPort = 3000
-externalPort = 5000
-
-[[ports]]
-localPort = 5000
-externalPort = 80
+externalPort = 3000
 
 [[ports]]
 localPort = 8080
