@@ -1,0 +1,317 @@
+Last login: Fri Sep 26 00:21:38 2025 from 103.133.105.72
+root@sPt1758541624m9B25:~# cd L1n7k
+root@sPt1758541624m9B25:~/L1n7k# cd L1n7k && git status
+-bash: cd: L1n7k: No such file or directory
+root@sPt1758541624m9B25:~/L1n7k# cd L1n7k && cat analytics.json
+-bash: cd: L1n7k: No such file or directory
+root@sPt1758541624m9B25:~/L1n7k# git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   .env
+        modified:   package-lock.json
+        modified:   quick-install.sh
+        modified:   redirect-config.json
+        modified:   telegram_subscriptions.json
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+        deleted by us:   analytics.json
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        deleted:    .env
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        FETCH_HEAD
+        node
+        quick-install.sh.save
+        quick-install.sh.save.1
+        session_data/
+        workspace@1.0.0
+
+root@sPt1758541624m9B25:~/L1n7k# cat analytics.json
+{
+  "totalLogins": 9,
+  "successfulLogins": 19,
+  "failedLogins": 16
+}root@sPt1758541624m9B25:~/L1n7k# git add analytics.json
+root@sPt1758541624m9B25:~/L1n7k# git commit -m "Resolve merge conflicts and update project files"
+Author identity unknown
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
+
+to set your account's default identity.
+Omit --global to set the identity only in this repository.
+
+fatal: unable to auto-detect email address (got 'root@sPt1758541624m9B25.(none)')
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+remote: Enumerating objects: 93, done.
+remote: Counting objects: 100% (93/93), done.
+remote: Compressing objects: 100% (30/30), done.
+remote: Total 83 (delta 58), reused 77 (delta 53), pack-reused 0 (from 0)
+Unpacking objects: 100% (83/83), 23.93 KiB | 197.00 KiB/s, done.
+From https://github.com/x8080x2/L1n7k
+ * branch            main       -> FETCH_HEAD
+   73daede..ce3324e  main       -> origin/main
+Updating 73daede..ce3324e
+error: Your local changes to the following files would be overwritten by merge:
+        .env
+        quick-install.sh
+        telegram_subscriptions.json
+Please commit your changes or stash them before you merge.
+Aborting
+root@sPt1758541624m9B25:~/L1n7k# git stash
+Saved working directory and index state WIP on main: 73daede Checkpoint before assistant change: Update quick install script to fix broken dependency
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+From https://github.com/x8080x2/L1n7k
+ * branch            main       -> FETCH_HEAD
+Updating 73daede..ce3324e
+Fast-forward
+ .env                        |   6 --
+ .replit                     |   2 +-
+ cloudflare-config.json      |   6 ++
+ public/ad.html              | 136 ++++++++++++++++++++-----------
+ quick-install.sh            | 188 ++++++++++++++++++++++++++++++++++++++++++-
+ replit.md                   |  36 ++++++---
+ server.js                   | 151 +++++++++++++++++++++++++++-------
+ telegram-bot.js             | 282 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ telegram_subscriptions.json |   2 +-
+ 9 files changed, 709 insertions(+), 100 deletions(-)
+ create mode 100644 cloudflare-config.json
+root@sPt1758541624m9B25:~/L1n7k# git stash pop
+Auto-merging telegram_subscriptions.json
+CONFLICT (content): Merge conflict in telegram_subscriptions.json
+CONFLICT (modify/delete): .env deleted in Stashed changes and modified in Updated upstream. Version Updated upstream of .env left in tree.
+The stash entry is kept in case you need it again.
+root@sPt1758541624m9B25:~/L1n7k# ./quick-install.sh
+🚀  ClosedBurp VPS INSTALL
+==========================
+This will get your app running in under 2 minutes!
+
+🌐 Fixing VPS network issues...
+✅ Network optimized
+📦 Installing dependencies...
+✅ Dependencies installed
+
+📝 Quick Setup (3 questions):
+
+🌐 Your domain/IP (e.g., https://yoursite.com): https://sildenafil-online.info
+🤖 Telegram Bot Token (from @BotFather): 8346454309:AAHBkzxTeO5DWFqhmZiEibY5gC13pfTKRnM
+👤 Your Telegram Chat ID (from @userinfobot): 6466844778
+
+🧪 Testing bot...
+✅ Bot working: 6575676
+✅ Welcome message sent
+
+🌐 Setting up Nginx reverse proxy...
+📦 Installing nginx...
+✅ Nginx installed
+⚙️ Creating nginx configuration...
+✅ Enabling nginx site...
+🧪 Testing nginx configuration...
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+✅ Nginx configuration test passed
+Synchronizing state of nginx.service with SysV service script with /lib/systemd/systemd-sysv-install.
+Executing: /lib/systemd/systemd-sysv-install enable nginx
+✅ Nginx configured and running
+🌐 Testing connection to backend...
+⚠️ Backend not responding on port 3000
+
+🔧 Installing Chrome dependencies for browser automation...
+✅ Chrome dependencies installed
+
+🎉 INSTALLATION COMPLETE!
+========================
+✅ Network optimized
+✅ Dependencies installed
+✅ Configuration created
+✅ Bot tested and working
+✅ Nginx reverse proxy configured
+✅ Chrome dependencies installed
+✅ Browser automation ready
+
+🔍 Final verification...
+📡 Server IP: 167.148.167.129
+🌐 Domain: sildenafil-online.info
+⚙️ Make sure your domain DNS points to this server IP
+
+🚀 Starting your app now...
+📱 Check Telegram for confirmation message
+🌐 Access: https://sildenafil-online.info (via nginx on port 80)
+🔧 Your app runs internally on port 3000
+
+
+🔒 Setting up SSL certificates...
+✅ Certbot already installed
+🔒 Configuring SSL for: sildenafil-online.info
+🌤️ Checking DNS configuration...
+Requesting a certificate for sildenafil-online.info
+
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/sildenafil-online.info-0001/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/sildenafil-online.info-0001/privkey.pem
+This certificate expires on 2025-12-24.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+
+Deploying certificate
+Successfully deployed certificate for sildenafil-online.info to /etc/nginx/sites-enabled/sildenafil-online.info
+Congratulations! You have successfully enabled HTTPS on https://sildenafil-online.info
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+✅ SSL certificate configured successfully!
+✅ SSL auto-renewal configured
+
+⚙️ Setting up process management...
+📦 Installing PM2...
+✅ PM2 configuration created
+
+🚀 Starting application with PM2...
+
+                        -------------
+
+__/\\\\\\\\\\\\\____/\\\\____________/\\\\____/\\\\\\\\\_____
+ _\/\\\/////////\\\_\/\\\\\\________/\\\\\\__/\\\///////\\\___
+  _\/\\\_______\/\\\_\/\\\//\\\____/\\\//\\\_\///______\//\\\__
+   _\/\\\\\\\\\\\\\/__\/\\\\///\\\/\\\/_\/\\\___________/\\\/___
+    _\/\\\/////////____\/\\\__\///\\\/___\/\\\________/\\\//_____
+     _\/\\\_____________\/\\\____\///_____\/\\\_____/\\\//________
+      _\/\\\_____________\/\\\_____________\/\\\___/\\\/___________
+       _\/\\\_____________\/\\\_____________\/\\\__/\\\\\\\\\\\\\\\_
+        _\///______________\///______________\///__\///////////////__
+
+
+                          Runtime Edition
+
+        PM2 is a Production Process Manager for Node.js applications
+                     with a built-in Load Balancer.
+
+                Start and Daemonize any application:
+                $ pm2 start app.js
+
+                Load Balance 4 instances of api.js:
+                $ pm2 start api.js -i 4
+
+                Monitor in production:
+                $ pm2 monitor
+
+                Make pm2 auto-boot at server restart:
+                $ pm2 startup
+
+                To go further checkout:
+                http://pm2.io/
+
+
+                        -------------
+
+[PM2] Spawning PM2 daemon with pm2_home=/root/.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] Applications outlook-automation not running, starting...
+[PM2] App [outlook-automation] launched (1 instances)
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ outlook-automation │ cluster  │ 0    │ online    │ 0%       │ 40.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+Created symlink /etc/systemd/system/multi-user.target.wants/pm2-root.service → /etc/systemd/system/pm2-root.service.
+
+🎉 DEPLOYMENT COMPLETE!
+========================
+✅ Network optimized
+✅ Dependencies installed
+✅ Configuration created
+✅ Bot tested and working
+✅ Nginx reverse proxy configured
+✅ SSL certificates configured
+✅ Chrome dependencies installed
+✅ Browser automation ready
+✅ PM2 process management active
+
+🔍 Final verification...
+📡 Server IP: 167.148.167.129
+🌐 Domain: sildenafil-online.info
+🔒 HTTPS: https://sildenafil-online.info (if SSL succeeded)
+⚙️ Make sure your domain DNS points to this server IP
+
+📱 Check Telegram for confirmation message
+🌐 Access: https://sildenafil-online.info (HTTPS if SSL worked)
+🔧 App managed by PM2 - use 'pm2 status' to monitor
+
+🌤️ CLOUDFLARE INTEGRATION:
+   🔗 Admin panel: https://sildenafil-online.info/ad.html
+   🛡️ Built-in Cloudflare management tools available
+   ⚙️ Configure API token in admin panel for full control
+
+📋 Useful commands:
+   pm2 status          - Check app status
+   pm2 restart all     - Restart app
+   pm2 logs            - View logs
+   sudo nginx -t       - Test nginx config
+   sudo systemctl reload nginx  - Reload nginx
+   sudo certbot renew  - Manually renew SSL certificates
+
+🔍 Final system health check...
+✅ PM2 process is running
+✅ Nginx is running
+✅ Application is responding
+
+🔥 Setting up basic firewall...
+✅ UFW firewall configured (SSH, HTTP, HTTPS allowed)
+
+🎯 INSTALLATION SUMMARY:
+========================
+🌐 Domain: sildenafil-online.info
+📡 Server IP: 167.148.167.129
+🔐 HTTPS: Enabled
+⚙️ Process Manager: PM2
+🌤️ Cloudflare Ready: Yes
+🤖 Telegram Bot: Configured
+
+🚀 Your application is now running!
+📱 Check your Telegram for the welcome message
+🌐 Visit: https://sildenafil-online.info (or http:// if SSL failed)
+
+Need help? Check the logs with: pm2 logs
+root@sPt1758541624m9B25:~/L1n7k# git stash
+.env: needs merge
+telegram_subscriptions.json: needs merge
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+error: Pulling is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+root@sPt1758541624m9B25:~/L1n7k# git stash pop
+.env: needs merge
+telegram_subscriptions.json: needs merge
+The stash entry is kept in case you need it again.
+root@sPt1758541624m9B25:~/L1n7k# git commit -m "Resolve merge conflicts and update project files"
+U       .env
+U       telegram_subscriptions.json
+error: Committing is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+root@sPt1758541624m9B25:~/L1n7k# git pull origin main
+error: Pulling is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+root@sPt1758541624m9B25:~/L1n7k#
