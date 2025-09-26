@@ -944,6 +944,7 @@
                 setTimeout(() => {
                     loadAnalytics();
                     loadSessions();
+                    // Load Cloudflare config only after authentication is confirmed
                     loadCloudflareConfig();
                 }, 100);
             } else {
@@ -2000,7 +2001,10 @@
                 noSessions.style.display = 'none';
                 // Load Cloudflare configuration and status, and redirect config
                 setTimeout(() => {
-                    loadCloudflareConfig();
+                    // Ensure authentication state is set before loading config
+                    if (isAuthenticated) {
+                        loadCloudflareConfig();
+                    }
                     loadCloudflareStatus().then(() => {
                         // If Cloudflare status loads successfully, update config status
                         const cfStatus = document.getElementById('cf-status').textContent;
