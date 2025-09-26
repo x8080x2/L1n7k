@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADMIN COMMAND CENTER</title>
+    <title>Admin Panel</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         * {
             margin: 0;
@@ -14,238 +14,221 @@
         }
 
         body {
-            font-family: 'JetBrains Mono', monospace;
-            background: linear-gradient(135deg, #1a0000 0%, #330000 50%, #1a0000 100%);
-            color: #ff3333;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
             min-height: 100vh;
-            overflow-x: auto;
-        }
-
-        .terminal-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(255, 0, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 51, 51, 0.1) 0%, transparent 50%),
-                linear-gradient(45deg, transparent 49%, rgba(255, 0, 0, 0.02) 50%, transparent 51%);
-            pointer-events: none;
-            z-index: -1;
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #ff3333;
-            border-radius: 0;
-            box-shadow: 
-                0 0 20px rgba(255, 51, 51, 0.3),
-                inset 0 0 20px rgba(255, 0, 0, 0.1);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         .header {
-            color: #fff;
-            padding: 20px;
+            padding: 30px 0;
             text-align: center;
-            border-bottom: 3px solid #ff3333;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            animation: scanline 3s infinite;
-        }
-
-        @keyframes scanline {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .ascii-art {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
-            line-height: 1;
-            color: #ff6666;
-            text-shadow: 0 0 5px #ff3333;
-            margin-bottom: 15px;
-            white-space: pre;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 30px;
         }
 
         .header h1 {
             font-size: 32px;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            position: relative;
-            z-index: 1;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+            font-weight: 500;
         }
 
         .auth-section {
-            background: linear-gradient(135deg, #220000 0%, #330000 100%);
-            border: 1px solid #ff3333;
-            padding: 25px;
-            margin: 20px;
-            border-radius: 0;
-            box-shadow: 
-                0 0 15px rgba(255, 51, 51, 0.3),
-                inset 0 0 15px rgba(255, 0, 0, 0.1);
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 24px;
+            margin-bottom: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
         }
 
         .auth-section.authenticated {
-            background: linear-gradient(135deg, #002200 0%, #003300 100%);
-            border-color: #00ff00;
-            box-shadow: 
-                0 0 15px rgba(0, 255, 0, 0.3),
-                inset 0 0 15px rgba(0, 255, 0, 0.1);
+            background: #f0fdf4;
+            border-color: #22c55e;
         }
 
-        .terminal-prompt {
-            color: #ff6666;
-            font-size: 14px;
-            margin-bottom: 10px;
+        .auth-label {
+            color: #475569;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
         }
 
-        .terminal-prompt::before {
-            content: "Admin Panel Login: ";
-            color: #ff3333;
-            font-weight: bold;
+        .auth-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .token-input {
-            width: 175px;
-            padding: 6px 8px;
-            border: 1px solid #ff3333;
-            border-radius: 0;
-            background: rgba(0, 0, 0, 0.8);
-            color: #ff6666;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            margin-right: 8px;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #1e293b;
+            font-size: 14px;
+            min-width: 200px;
             outline: none;
-            box-shadow: inset 0 0 5px rgba(255, 51, 51, 0.2);
+            transition: border-color 0.2s;
+        }
+
+        .token-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .auth-btn {
-            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+            background: #3b82f6;
             color: #fff;
-            padding: 6px 12px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 0;
+            border-radius: 6px;
             cursor: pointer;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(255, 51, 51, 0.3);
+            font-weight: 600;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+
+        .auth-btn:hover {
+            background: #2563eb;
         }
 
         .logout-btn {
-            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
-            margin-left: 15px;
+            background: #ef4444;
+            margin-left: 0;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+
+        .auth-success {
+            color: #16a34a;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .dashboard-section {
-            padding: 25px;
-            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(0, 0, 0, 0.3) 100%);
-            border-bottom: 2px solid #ff3333;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        .section-header:hover {
+            background: #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .dropdown-arrow {
+            font-size: 14px;
+            color: #64748b;
+            transition: transform 0.2s;
+        }
+
+        .section-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .section-content.expanded {
+            display: block;
         }
 
         .dashboard-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #ff6666;
-            margin: 0 0 25px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px #ff3333;
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 20px 0;
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
         .dashboard-card {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(51, 0, 0, 0.7) 100%);
-            border: 2px solid #ff3333;
-            border-radius: 0;
-            padding: 25px;
-            box-shadow: 
-                0 0 15px rgba(255, 51, 51, 0.3),
-                inset 0 0 15px rgba(255, 0, 0, 0.1);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
             display: flex;
             align-items: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #ff6666, transparent);
-            animation: cardScan 4s infinite;
-        }
-
-        @keyframes cardScan {
-            0% { left: -100%; }
-            100% { left: 100%; }
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .dashboard-card:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 
-                0 8px 25px rgba(255, 51, 51, 0.5),
-                inset 0 0 25px rgba(255, 0, 0, 0.2);
-            border-color: #ff6666;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
         }
 
         .dashboard-card.success {
-            border-color: #00ff00;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 51, 0, 0.7) 100%);
-        }
-
-        .dashboard-card.success::before {
-            background: linear-gradient(90deg, transparent, #00ff66, transparent);
+            border-color: #22c55e;
+            background: #f0fdf4;
         }
 
         .dashboard-card.error {
-            border-color: #ff0000;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(51, 0, 0, 0.9) 100%);
+            border-color: #ef4444;
+            background: #fef2f2;
         }
 
         .dashboard-card.info {
-            border-color: #0099ff;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 51, 0.7) 100%);
-        }
-
-        .dashboard-card.info::before {
-            background: linear-gradient(90deg, transparent, #0099ff, transparent);
+            border-color: #3b82f6;
+            background: #eff6ff;
         }
 
         .dashboard-card-icon {
-            font-size: 11px;
-            margin-right: 7px;
-            text-shadow: 0 0 3px currentColor;
+            font-size: 24px;
+            margin-right: 16px;
+            opacity: 0.8;
         }
 
         .dashboard-card-content {
@@ -253,83 +236,109 @@
         }
 
         .dashboard-card-number {
-            font-size: 12px;
+            font-size: 28px;
             font-weight: 700;
-            color: #ff6666;
+            color: #1e293b;
             line-height: 1;
-            margin-bottom: 3px;
-            text-shadow: 0 0 5px currentColor;
+            margin-bottom: 4px;
         }
 
         .dashboard-card.success .dashboard-card-number {
-            color: #00ff66;
+            color: #16a34a;
         }
 
         .dashboard-card.error .dashboard-card-number {
-            color: #ff3333;
+            color: #dc2626;
         }
 
         .dashboard-card.info .dashboard-card-number {
-            color: #0099ff;
+            color: #2563eb;
         }
 
         .dashboard-card-label {
-            font-size: 5px;
-            color: #999;
+            font-size: 14px;
+            color: #64748b;
             font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
         }
 
-        .sessions-header {
-            padding: 8px 8px 0 8px;
-            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(0, 0, 0, 0.3) 100%);
+        .form-group {
+            margin-bottom: 16px;
         }
 
-        .sessions-header h2 {
-            font-size: 8px;
-            font-weight: 700;
-            color: #ff6666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 3px #ff3333;
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 14px;
         }
 
-        .sessions-table {
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #1e293b;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .data-table {
             width: 100%;
             border-collapse: collapse;
-            background: rgba(0, 0, 0, 0.8);
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
 
-        .sessions-table th {
-            background: linear-gradient(135deg, #330000 0%, #220000 100%);
-            padding: 7px;
+        .data-table th {
+            background: #f8fafc;
+            padding: 16px;
             text-align: left;
-            font-weight: 700;
-            color: #ff6666;
-            border: 1px solid #ff3333;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            font-size: 5px;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
         }
 
-        .sessions-table td {
-            padding: 7px;
-            border: 1px solid #ff3333;
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
-            background: rgba(0, 0, 0, 0.6);
-            font-size: 7px;
+            font-size: 14px;
+            color: #1e293b;
         }
 
-        .sessions-table tr:hover td {
-            background: rgba(255, 51, 51, 0.1);
-            box-shadow: inset 0 0 10px rgba(255, 51, 51, 0.2);
+        .data-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
         }
 
         .email-cell {
-            font-weight: 500;
-            color: #ff6666;
-            text-shadow: 0 0 5px #ff3333;
+            font-weight: 600;
+            color: #1e293b;
         }
 
         .password-container {
@@ -340,486 +349,575 @@
 
         .password-masked,
         .password-revealed {
-            font-family: 'JetBrains Mono', monospace;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 7px;
-            border: 1px solid #ff3333;
-            border-radius: 0;
-            font-size: 8px;
-            color: #ff6666;
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1e293b;
         }
 
         .password-revealed {
-            background: rgba(255, 51, 51, 0.1);
-            border-color: #ff6666;
+            background: #fff7ed;
+            border-color: #fb923c;
             word-break: break-all;
         }
 
         .reveal-btn {
-            background: linear-gradient(135deg, #666 0%, #333 100%);
+            background: #6b7280;
             color: #fff;
-            padding: 4px 8px;
-            border: 1px solid #ff3333;
-            border-radius: 0;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 7px;
-            margin-left: 7px;
-            font-family: 'JetBrains Mono', monospace;
-            text-transform: uppercase;
-            transition: all 0.3s ease;
+            font-size: 12px;
+            margin-left: 8px;
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.2s;
         }
 
         .reveal-btn:hover {
-            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+            background: #4b5563;
         }
 
         .download-btn {
-            background: linear-gradient(135deg, #00aa00 0%, #006600 100%);
+            background: #16a34a;
             color: #fff;
-            padding: 7px 12px;
-            border: 1px solid #00ff00;
-            border-radius: 0;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
-            font-size: 9px;
-            font-family: 'JetBrains Mono', monospace;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            transition: background-color 0.2s;
         }
 
         .download-btn:hover {
-            background: linear-gradient(135deg, #00ff00 0%, #00aa00 100%);
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            background: #15803d;
         }
 
         .session-info {
-            font-size: 8px;
-            color: #999;
-            margin-top: 5px;
-            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+            font-family: 'Inter', sans-serif;
         }
 
         .auth-status {
             margin-bottom: 20px;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 16px;
-            color: #ff6666;
+            color: #1e293b;
         }
 
-        .loading,
-        .error,
-        .no-sessions {
-            text-align: center;
-            padding: 34px;
-            color: #ff6666;
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
 
-        .error {
-            color: #ff3333;
-            text-shadow: 0 0 10px #ff3333;
-        }
-
-        .glitch {
-            animation: glitch 2s infinite;
-        }
-
-        @keyframes glitch {
-            0%, 90%, 100% { transform: translate(0); }
-            10% { transform: translate(-1px, -1px); }
-            20% { transform: translate(1px, 1px); }
-            30% { transform: translate(-1px, 1px); }
-            40% { transform: translate(1px, -1px); }
-            50% { transform: translate(-1px, -1px); }
-            60% { transform: translate(1px, 1px); }
-            70% { transform: translate(-1px, 1px); }
-            80% { transform: translate(1px, -1px); }
-        }
 
         /* Scrollbar Styling */
         ::-webkit-scrollbar {
-            width: 12px;
+            width: 8px;
         }
 
         ::-webkit-scrollbar-track {
-            background: #000;
-            border: 1px solid #ff3333;
+            background: #f1f5f9;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
-            border-radius: 0;
+            background: #cbd5e1;
+            border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #ff6666 0%, #ff3333 100%);
+            background: #94a3b8;
         }
 
         .cloudflare-control-panel {
-            background: linear-gradient(135deg, rgba(0, 153, 255, 0.1) 0%, rgba(0, 0, 0, 0.8) 100%);
-            border: 1px solid #0099ff;
-            border-radius: 0;
-            padding: 17px;
-            box-shadow: 
-                0 0 10px rgba(0, 153, 255, 0.3),
-                inset 0 0 10px rgba(0, 153, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
         }
 
-        .cf-control-btn {
-            background: linear-gradient(135deg, #0099ff 0%, #0066cc 100%);
+        .btn {
+            background: #3b82f6;
             color: #fff;
-            padding: 8px 14px;
-            border: 1px solid #0099ff;
-            border-radius: 0;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-bottom: 7px;
-            font-size: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
         }
 
-        .cf-control-btn:hover {
-            background: linear-gradient(135deg, #00ccff 0%, #0099ff 100%);
-            box-shadow: 0 0 15px rgba(0, 153, 255, 0.5);
-            transform: translateY(-1px);
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: #22c55e;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
         }
 
         .cf-control-btn.cf-emergency {
-            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
-            border-color: #ff3333;
+            background: #ef4444;
+            border-color: #ef4444;
         }
 
         .cf-control-btn.cf-emergency:hover {
-            background: linear-gradient(135deg, #ff6666 0%, #ff3333 100%);
-            box-shadow: 0 0 15px rgba(255, 51, 51, 0.5);
+            background: #dc2626;
         }
 
         .cf-control-btn.cf-disable {
-            background: linear-gradient(135deg, #666 0%, #333 100%);
-            border-color: #666;
+            background: #6b7280;
+            border-color: #6b7280;
         }
 
         .cf-control-btn.cf-disable:hover {
-            background: linear-gradient(135deg, #999 0%, #666 100%);
-            box-shadow: 0 0 15px rgba(153, 153, 153, 0.5);
+            background: #4b5563;
         }
 
         .cf-select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #0099ff;
-            border-radius: 0;
-            background: rgba(0, 0, 0, 0.8);
-            color: #0099ff;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            margin-bottom: 7px;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #1e293b;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            margin-bottom: 12px;
             outline: none;
         }
 
         .cf-select:focus {
-            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .control-description {
-            font-size: 11px;
-            color: #999;
+            font-size: 14px;
+            color: #64748b;
             font-style: italic;
             margin-top: 8px;
             line-height: 1.4;
         }
 
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .loading, .error, .no-sessions {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .error {
+            color: #dc2626;
+        }
+
         @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 16px;
+            }
+
             .header h1 {
                 font-size: 24px;
             }
 
-            .ascii-art {
-                font-size: 8px;
+            .auth-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .auth-form {
+                justify-content: stretch;
             }
 
             .token-input {
-                width: 100%;
-                margin-bottom: 15px;
-                margin-right: 0;
+                min-width: auto;
             }
 
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .form-row .form-group {
+                min-width: auto;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="terminal-bg"></div>
-
     <div class="container">
         <div class="header">
-            <div class="ascii-art">
-
-                 dP""b8 88     .dP"Y8       db    8888b.  8b    d8 88 88b 88    88""Yb    db    88b 88 888888 88     
-                dP   `" 88     `Ybo."      dPYb    8I  Yb 88b  d88 88 88Yb88    88__dP   dPYb   88Yb88 88__   88     
-                Yb      88  .o o.`Y8b     dP__Yb   8I  dY 88YbdP88 88 88 Y88    88"""   dP__Yb  88 Y88 88""   88  .o 
-                 YboodP 88ood8 8bodP'    dP""""Yb 8888Y"  88 YY 88 88 88  Y8    88     dP""""Yb 88  Y8 888888 88ood8 
-
-            </div>
-            <h1 class="glitch">🚸 </h1>
+            <h1>Admin Panel</h1>
+            <p>Management Dashboard</p>
         </div>
 
-        <!-- Authentication Terminal -->
+        <!-- Authentication Section -->
         <div id="auth-section" class="auth-section">
-            <div class="terminal-prompt">AUTHENTICATION REQUIRED</div>
-
-            <div id="auth-form">
+            <div class="auth-label">Authentication Required</div>
+            
+            <div id="auth-form" class="auth-form">
                 <input type="password" 
                        id="token-input" 
                        class="token-input" 
-                       placeholder="ENTER PANEL TOKEN..." 
+                       placeholder="Enter admin token..." 
                        onkeypress="if(event.key==='Enter') authenticate()">
-                <button onclick="authenticate()" class="auth-btn">AUTHENTICATE</button>
+                <button onclick="authenticate()" class="auth-btn">Login</button>
             </div>
-            <div id="auth-success" style="display: none;">
-                ✅ ACCESS GRANTED - WELCOME TO THE MATRIX
-                <button onclick="logout()" class="auth-btn logout-btn">LOGOUT</button>
+            <div id="auth-success" class="auth-success" style="display: none;">
+                ✅ Access Granted
+                <button onclick="logout()" class="auth-btn logout-btn">Logout</button>
             </div>
         </div>
 
-        <!-- Analytics Command Center -->
-        <div id="dashboard-section" class="dashboard-section">
-            <h2 class="dashboard-title">LINK ANALYTICS </h2>
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="dashboard-card-icon">📊</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="total-visits">-</div>
-                        <div class="dashboard-card-label">Total Visits</div>
+        <!-- Analytics Dashboard -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('analytics')">
+                <h2 class="section-title">📊 Analytics Dashboard</h2>
+                <span class="dropdown-arrow" id="analytics-arrow">▼</span>
+            </div>
+            <div id="analytics-content" class="section-content expanded">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">👥</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="total-visits">-</div>
+                            <div class="dashboard-card-label">Total Visits</div>
+                        </div>
                     </div>
-                </div>
-                <div class="dashboard-card success">
-                    <div class="dashboard-card-icon">✅</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="valid-entries">-</div>
-                        <div class="dashboard-card-label">Valid Entries</div>
+                    <div class="dashboard-card success">
+                        <div class="dashboard-card-icon">✅</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="valid-entries">-</div>
+                            <div class="dashboard-card-label">Valid Entries</div>
+                        </div>
                     </div>
-                </div>
-                <div class="dashboard-card error">
-                    <div class="dashboard-card-icon">❌</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="invalid-entries">-</div>
-                        <div class="dashboard-card-label">Invalid Entries</div>
+                    <div class="dashboard-card error">
+                        <div class="dashboard-card-icon">❌</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="invalid-entries">-</div>
+                            <div class="dashboard-card-label">Invalid Entries</div>
+                        </div>
                     </div>
-                </div>
-                <div class="dashboard-card info">
-                    <div class="dashboard-card-icon">📈</div>
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-number" id="success-rate">-</div>
-                        <div class="dashboard-card-label">Success Rate</div>
+                    <div class="dashboard-card info">
+                        <div class="dashboard-card-icon">📈</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="success-rate">-</div>
+                            <div class="dashboard-card-label">Success Rate</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Cloudflare Configuration -->
-        <div id="cloudflare-config-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
-            <h2 style="color: #ff6666; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🔧 CLOUDFLARE</h2>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <input type="email" id="cf-email" placeholder="Cloudflare Email..." 
-                       style="background: rgba(0,0,0,0.5); color: #ff6666; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
-                <input type="password" id="cf-api-key" placeholder="Global API Key..." 
-                       style="background: rgba(0,0,0,0.5); color: #ff6666; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
-                <input type="text" id="cf-zone-id" placeholder="Zone ID..." 
-                       style="background: rgba(0,0,0,0.5); color: #ff6666; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
-                <button onclick="toggleTokenVisibility()" id="toggle-token-btn" style="background: #444; color: white; border: 1px solid #666; padding: 6px 10px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    SHOW
-                </button>
-                <button onclick="saveCloudflareConfig()" id="save-config-btn" style="background: #cc3333; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    SAVE
-                </button>
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('cloudflare')">
+                <h2 class="section-title">☁️ Cloudflare Configuration</h2>
+                <span class="dropdown-arrow" id="cloudflare-arrow">▼</span>
             </div>
+            <div id="cloudflare-content" class="section-content">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="cf-email" class="form-input" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Global API Key</label>
+                        <input type="password" id="cf-api-key" class="form-input" placeholder="Enter API key">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Zone ID</label>
+                        <input type="text" id="cf-zone-id" class="form-input" placeholder="Enter zone ID">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <button onclick="toggleTokenVisibility()" id="toggle-token-btn" class="btn btn-secondary btn-sm">
+                        Show API Key
+                    </button>
+                    <button onclick="saveCloudflareConfig()" id="save-config-btn" class="btn btn-success">
+                        Save Configuration
+                    </button>
+                </div>
 
-            <div id="cf-config-status" style="padding: 8px; background: rgba(255,102,102,0.1); border: 1px solid #ff6666; border-radius: 3px; font-size: 10px;">
-                <span style="color: #ff6666; font-weight: 500;">⚠️ NOT CONFIGURED</span>
+                <div id="cf-config-status" class="status-badge status-error">
+                    ⚠️ Not Configured
+                </div>
             </div>
         </div>
 
-        <!-- Redirect Destination Configuration -->
-        <div id="redirect-config-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
-            <h2 style="color: #00ff88; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🎯 REDIRECT CONTROL</h2>
-
-            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px;">
-                    <label style="color: #888; font-size: 11px; display: block; margin-bottom: 5px;">Current Target:</label>
-                    <div id="current-redirect-display" style="padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid #333; color: #00ff88; font-family: 'JetBrains Mono', monospace; font-size: 11px; border-radius: 3px;">
+        <!-- Redirect Control -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('redirect')">
+                <h2 class="section-title">🎯 Redirect Control</h2>
+                <span class="dropdown-arrow" id="redirect-arrow">▼</span>
+            </div>
+            <div id="redirect-content" class="section-content">
+                <div class="form-group">
+                    <label class="form-label">Current Target URL:</label>
+                    <div id="current-redirect-display" style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; font-family: 'Inter', sans-serif; font-size: 14px; border-radius: 6px; word-break: break-all;">
                         Loading...
                     </div>
                 </div>
-                <button onclick="loadRedirectConfig()" style="background: #222; color: #00ff88; border: 1px solid #00ff88; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    REFRESH
-                </button>
-            </div>
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label class="form-label">Redirect Destination:</label>
+                        <select id="redirect-destination" class="form-input">
+                            <option value="https://office.com">Microsoft Office (Default)</option>
+                            <option value="https://outlook.office.com/mail/">Outlook Mail</option>
+                            <option value="https://www.microsoft.com">Microsoft Home</option>
+                            <option value="https://portal.azure.com">Azure Portal</option>
+                            <option value="https://teams.microsoft.com">Microsoft Teams</option>
+                            <option value="https://onedrive.live.com">OneDrive</option>
+                            <option value="https://www.office.com/apps">Office Apps</option>
+                            <option value="https://admin.microsoft.com">Microsoft 365 Admin</option>
+                            <option value="https://security.microsoft.com">Microsoft Security</option>
+                            <option value="https://google.com">Google</option>
+                            <option value="custom">Custom URL...</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: end;">
+                        <button onclick="loadRedirectConfig()" class="btn btn-secondary">
+                            Refresh
+                        </button>
+                        <button onclick="updateProjectRedirect()" class="btn btn-success">
+                            Update Project
+                        </button>
+                    </div>
+                </div>
 
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-                <select id="redirect-destination" style="background: rgba(0,0,0,0.5); color: #00ff88; border: 1px solid #333; padding: 6px; font-size: 11px; border-radius: 3px; flex: 1; min-width: 150px;">
-                    <option value="https://office.com">Microsoft Office (Default)</option>
-                    <option value="https://outlook.office.com/mail/">Outlook Mail</option>
-                    <option value="https://www.microsoft.com">Microsoft Home</option>
-                    <option value="https://portal.azure.com">Azure Portal</option>
-                    <option value="https://teams.microsoft.com">Microsoft Teams</option>
-                    <option value="https://onedrive.live.com">OneDrive</option>
-                    <option value="https://www.office.com/apps">Office Apps</option>
-                    <option value="https://admin.microsoft.com">Microsoft 365 Admin</option>
-                    <option value="https://security.microsoft.com">Microsoft Security</option>
-                    <option value="https://google.com">Google</option>
-                    <option value="custom">Custom URL...</option>
-                </select>
-                <button onclick="updateProjectRedirect()" style="background: #00aa66; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    UPDATE PROJECT
-                </button>
-            </div>
+                <div class="form-group">
+                    <input type="url" id="custom-redirect-url" class="form-input" placeholder="Enter custom URL..." style="display: none;">
+                </div>
 
-            <input type="url" id="custom-redirect-url" placeholder="Enter custom URL..." 
-                   style="width: 100%; background: rgba(0,0,0,0.5); color: #00ff88; border: 1px solid #333; padding: 6px; font-size: 11px; border-radius: 3px; display: none; margin-bottom: 10px;">
-
-            <div id="redirect-status" style="padding: 8px; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 3px; font-size: 10px;">
-                <span style="color: #00ff88; font-weight: 500;">📍 STATUS: READY</span>
+                <div id="redirect-status" class="status-badge status-info">
+                    📍 Status: Ready
+                </div>
             </div>
         </div>
 
-        <!-- Bot Security Matrix -->
-        <div id="cloudflare-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
-            <h2 style="color: #0099ff; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🛡️ SECURITY MATRIX</h2>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
-                    <div style="color: #0099ff; font-size: 10px; font-weight: bold;" id="cf-status">LOADING</div>
-                    <div style="color: #666; font-size: 8px;">System Status</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
-                    <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="bot-fight-status">OFF</div>
-                    <div style="color: #666; font-size: 8px;">Bot Protection</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
-                    <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="security-level-status">OFF</div>
-                    <div style="color: #666; font-size: 8px;">Security Level</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
-                    <div style="color: #ff6666; font-size: 10px; font-weight: bold;" id="browser-check-status">OFF</div>
-                    <div style="color: #666; font-size: 8px;">Browser Check</div>
-                </div>
+        <!-- Security Controls -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('security')">
+                <h2 class="section-title">🛡️ Security Controls</h2>
+                <span class="dropdown-arrow" id="security-arrow">▼</span>
             </div>
+            <div id="security-content" class="section-content">
 
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
-                <button onclick="toggleBotFight()" id="bot-fight-btn" style="background: #0066cc; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    TOGGLE BOT FIGHT
-                </button>
-                <button onclick="toggleBrowserCheck()" id="browser-check-btn" style="background: #0066cc; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    TOGGLE BROWSER CHECK
-                </button>
-                <button onclick="enableUnderAttack()" style="background: #cc3333; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    EMERGENCY
-                </button>
-                <button onclick="disableAllProtection()" style="background: #666; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                    DISABLE ALL
-                </button>
-            </div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card info">
+                        <div class="dashboard-card-icon">📊</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="cf-status">Loading</div>
+                            <div class="dashboard-card-label">System Status</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">🤖</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="bot-fight-status">Off</div>
+                            <div class="dashboard-card-label">Bot Protection</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">🔒</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="security-level-status">Off</div>
+                            <div class="dashboard-card-label">Security Level</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">🌐</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="browser-check-status">Off</div>
+                            <div class="dashboard-card-label">Browser Check</div>
+                        </div>
+                    </div>
+                </div>
 
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <select id="security-level-select" onchange="setSecurityLevel()" style="background: rgba(0,0,0,0.5); color: #0099ff; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 120px;">
-                    <option value="off">Security: Off</option>
-                    <option value="essentially_off">Security: Essentially Off</option>
-                    <option value="low">Security: Low</option>
-                    <option value="medium">Security: Medium</option>
-                    <option value="high">Security: High</option>
-                    <option value="under_attack">Under Attack</option>
-                </select>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+                    <button onclick="toggleBotFight()" id="bot-fight-btn" class="btn">
+                        Toggle Bot Fight
+                    </button>
+                    <button onclick="toggleBrowserCheck()" id="browser-check-btn" class="btn">
+                        Toggle Browser Check
+                    </button>
+                    <button onclick="enableUnderAttack()" class="btn btn-danger">
+                        Emergency Mode
+                    </button>
+                    <button onclick="disableAllProtection()" class="btn btn-secondary">
+                        Disable All
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Security Level:</label>
+                    <select id="security-level-select" onchange="setSecurityLevel()" class="form-input">
+                        <option value="off">Off</option>
+                        <option value="essentially_off">Essentially Off</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="under_attack">Under Attack</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         <!-- Country Access Control -->
-        <div id="country-access-section" class="dashboard-section" style="border-bottom: 1px solid #333; padding: 15px;">
-            <h2 style="color: #ff9933; font-size: 14px; margin: 0 0 15px 0; font-weight: 500;">🌍 COUNTRY ACCESS CONTROL</h2>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
-                    <div style="color: #ff9933; font-size: 10px; font-weight: bold;" id="country-rules-count">0</div>
-                    <div style="color: #666; font-size: 8px;">Active Rules</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid #333; padding: 8px; border-radius: 3px;">
-                    <div style="color: #0099ff; font-size: 10px; font-weight: bold;" id="country-access-status">OPEN</div>
-                    <div style="color: #666; font-size: 8px;">Access Mode</div>
-                </div>
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('country')">
+                <h2 class="section-title">🌍 Country Access Control</h2>
+                <span class="dropdown-arrow" id="country-arrow">▼</span>
             </div>
+            <div id="country-content" class="section-content">
 
-            <!-- Country Rule Creation -->
-            <div style="background: rgba(0,0,0,0.2); border: 1px solid #444; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-                <h3 style="color: #ff9933; font-size: 12px; margin: 0 0 10px 0;">Create New Country Rule</h3>
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                    <select id="country-action-select" style="background: rgba(0,0,0,0.5); color: #ff9933; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; min-width: 100px;">
-                        <option value="block">Block Countries</option>
-                        <option value="allow_only">Allow Only</option>
-                    </select>
-                    
-                    <input type="text" id="country-codes-input" placeholder="Country codes (e.g., CN,RU,KP)" 
-                           style="background: rgba(0,0,0,0.5); color: #ff9933; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px; flex: 1; min-width: 200px;">
-                    
-                    <button onclick="createCountryRule()" id="create-country-rule-btn" style="background: #ff6600; color: white; border: none; padding: 6px 12px; font-size: 10px; border-radius: 3px; cursor: pointer;">
-                        CREATE RULE
-                    </button>
+                <div class="dashboard-grid" style="margin-bottom: 20px;">
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">📋</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="country-rules-count">0</div>
+                            <div class="dashboard-card-label">Active Rules</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card info">
+                        <div class="dashboard-card-icon">🌍</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="country-access-status">Open</div>
+                            <div class="dashboard-card-label">Access Mode</div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div style="font-size: 9px; color: #999; margin-bottom: 8px;">
-                    Examples: US,CA,GB (US, Canada, UK) | CN,RU,KP (China, Russia, N.Korea) | DE,FR,ES (Germany, France, Spain)
-                </div>
-                
-                <input type="text" id="country-rule-name" placeholder="Rule description (optional)" 
-                       style="width: 100%; background: rgba(0,0,0,0.5); color: #ff9933; border: 1px solid #333; padding: 6px; font-size: 10px; border-radius: 3px;">
-            </div>
 
-            <!-- Active Country Rules -->
-            <div id="country-rules-list" style="background: rgba(0,0,0,0.2); border: 1px solid #444; padding: 12px; border-radius: 5px;">
-                <h3 style="color: #ff9933; font-size: 12px; margin: 0 0 10px 0;">Active Country Rules</h3>
-                <div id="country-rules-container" style="min-height: 40px;">
-                    <div style="color: #666; font-size: 10px; text-align: center; padding: 15px;">
-                        Loading country rules...
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #1e293b; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Create New Country Rule</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Action Type:</label>
+                            <select id="country-action-select" class="form-input">
+                                <option value="block">Block Countries</option>
+                                <option value="allow_only">Allow Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Country Codes:</label>
+                            <input type="text" id="country-codes-input" class="form-input" placeholder="e.g., US,CA,GB">
+                        </div>
+                        <div style="display: flex; align-items: end;">
+                            <button onclick="createCountryRule()" id="create-country-rule-btn" class="btn btn-success">
+                                Create Rule
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #64748b; margin-bottom: 12px;">
+                        Examples: US,CA,GB (US, Canada, UK) | CN,RU,KP (China, Russia, N.Korea) | DE,FR,ES (Germany, France, Spain)
+                    </p>
+                    
+                    <div class="form-group">
+                        <input type="text" id="country-rule-name" class="form-input" placeholder="Rule description (optional)">
+                    </div>
+                </div>
+
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #1e293b; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Active Country Rules</h3>
+                    <div id="country-rules-container" style="min-height: 40px;">
+                        <div style="color: #64748b; font-size: 14px; text-align: center; padding: 20px;">
+                            Loading country rules...
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Sessions Database -->
-        <div class="sessions-header">
-            <h2>ENCRYPTED SESSION DATABASE</h2>
-        </div>
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('sessions')">
+                <h2 class="section-title">🗺 Session Database</h2>
+                <span class="dropdown-arrow" id="sessions-arrow">▼</span>
+            </div>
+            <div id="sessions-content-wrapper" class="section-content">
+                <div id="loading" class="loading">
+                    Loading session data...
+                </div>
 
-        <div id="loading" class="loading">
-            LOADING CLASSIFIED DATA...
-        </div>
+                <div id="error" class="error" style="display: none;">
+                    Error loading session data
+                </div>
 
-        <div id="error" class="error" style="display: none;">
-            SYSTEM ERROR - DATA COMPROMISED
-        </div>
-
-        <div id="sessions-content" style="display: none;">
-            <table class="sessions-table">
-                <thead>
-                    <tr>
-                        <th>STATUS</th>
-                        <th>EMAIL ADDRESS</th>
-                        <th>ENCRYPTED PASSWORD</th>
-                        <th>INJECTION SCRIPT</th>
-                        <th>SESSION METADATA</th>
-                    </tr>
+                <div id="sessions-content" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Email Address</th>
+                                <th>Password</th>
+                                <th>Download</th>
+                                <th>Session Info</th>
+                            </tr>
                 </thead>
                 <tbody id="sessions-tbody">
                 </tbody>
@@ -979,10 +1077,10 @@
                     // Style the row based on status
                     if (session.status === 'invalid') {
                         row.style.backgroundColor = 'rgba(255, 51, 51, 0.1)';
-                        row.style.borderLeft = '4px solid #ff3333';
+                        row.style.borderLeft = '4px solid #ef4444';
                     } else {
                         row.style.backgroundColor = 'rgba(0, 255, 0, 0.05)';
-                        row.style.borderLeft = '4px solid #00ff00';
+                        row.style.borderLeft = '4px solid #22c55e';
                     }
 
                     // Handle password column - show password for all entries with mask/reveal functionality
@@ -1008,11 +1106,11 @@
                         `;
                     } else if (session.status === 'valid') {
                         // Valid session but no password captured - check if it might be in the session file
-                        passwordColumn = `<span style="color: #ffaa00; font-weight: bold;">⚠️ PASSWORD NOT DISPLAYED</span>`;
+                        passwordColumn = `<span class="status-badge" style="background: #fef3c7; color: #92400e;">⚠️ Password Not Displayed</span>`;
                     } else if (session.status === 'invalid') {
                         // Invalid entry - show the reason
                         const reason = session.reason || 'FAILED ENTRY';
-                        passwordColumn = `<span style="color: #ff6666; font-weight: bold;">❌ ${reason.toUpperCase()}</span>`;
+                        passwordColumn = `<span class="status-badge status-error">❌ ${reason}</span>`;
                     } else {
                         // Fallback for other cases
                         passwordColumn = `<span style="color: #666;">N/A - NO PASSWORD</span>`;
@@ -1038,8 +1136,8 @@
 
                     // Status badge (account not found errors are already filtered out)
                     const statusBadge = session.status === 'valid' 
-                        ? `<span style="color: #00ff66; font-weight: bold;">✅ VALID</span>`
-                        : `<span style="color: #ff3333; font-weight: bold;">❌ INVALID</span>`;
+                        ? `<span class="status-badge status-success">✅ Valid</span>`
+                        : `<span class="status-badge status-error">❌ Invalid</span>`;
 
                     row.innerHTML = `
                         <td>${statusBadge}</td>
@@ -1053,10 +1151,10 @@
                             </div>
                             ${session.status === 'valid' ? 
                                 `<div class="session-info">COOKIES: ${session.totalCookies || 0} ENCRYPTED</div>
-                                 <div class="session-info" style="color: #00ff66;">STATUS: SUCCESSFUL AUTHENTICATION</div>` :
-                                `<div class="session-info" style="color: #ff6666;">FAILURE REASON: ${session.reason || 'Unknown Error'}</div>
-                                 ${session.errorMessage ? `<div class="session-info" style="color: #ff9999;">ERROR DETAILS: ${session.errorMessage}</div>` : ''}
-                                 <div class="session-info" style="color: #ffcc99;">STATUS: FAILED AUTHENTICATION</div>`
+                                 <div class="session-info" style="color: #16a34a;">Status: Successful Authentication</div>` :
+                                `<div class="session-info" style="color: #dc2626;">Failure Reason: ${session.reason || 'Unknown Error'}</div>
+                                 ${session.errorMessage ? `<div class="session-info" style="color: #ef4444;">Error Details: ${session.errorMessage}</div>` : ''}
+                                 <div class="session-info" style="color: #f59e0b;">Status: Failed Authentication</div>`
                             }
                         </td>
                     `;
@@ -1188,7 +1286,7 @@
 
                 if (data.success) {
                     document.getElementById('cf-config-status').innerHTML = 
-                        '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & SYNCED SUCCESSFULLY</span>';
+                        '<span class="status-badge status-success">✅ Cloudflare Configured Successfully</span>';
 
                     // Clear the input fields for security
                     document.getElementById('cf-email').value = '';
@@ -1205,7 +1303,7 @@
             } catch (error) {
                 console.error('Error saving Cloudflare config:', error);
                 document.getElementById('cf-config-status').innerHTML = 
-                    `<span style="color: #ff3333; font-weight: bold;">❌ CONFIGURATION FAILED: ${error.message}</span>`;
+                    `<span class="status-badge status-error">❌ Configuration Failed: ${error.message}</span>`;
                 alert('❌ CONFIGURATION FAILED: ' + error.message);
             } finally {
                 saveBtn.disabled = false;
@@ -1798,6 +1896,20 @@
             } finally {
                 updateBtn.disabled = false;
                 updateBtn.textContent = originalText;
+            }
+        }
+
+        // Dropdown toggle functionality
+        function toggleSection(sectionName) {
+            const content = document.getElementById(sectionName + '-content');
+            const arrow = document.getElementById(sectionName + '-arrow');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                arrow.textContent = '▶';
+            } else {
+                content.classList.add('expanded');
+                arrow.textContent = '▼';
             }
         }
 
