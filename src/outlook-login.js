@@ -564,31 +564,8 @@ class OutlookLoginAutomation {
         try {
             console.log('🔍 Validating session and saving cookies...');
 
-            // Wait for Outlook mail interface with extended timeout and multiple selectors
-            console.log('⏳ Waiting for Outlook interface to load (up to 30 seconds)...');
-            try {
-                await this.page.waitForSelector('[role="listbox"], .ms-MessageBar, [data-testid="message-list"], .ms-FocusZone[role="main"], #MailList', { timeout: 30000 });
-                console.log('✅ Outlook interface elements detected successfully');
-            } catch (timeoutError) {
-                console.error('⚠️ Timeout waiting for Outlook interface elements');
-                console.error('Current URL:', this.page.url());
-                console.error('Page title:', await this.page.title().catch(() => 'Unable to get title'));
-                
-                // Take screenshot for debugging if enabled
-                if (this.enableScreenshots) {
-                    await this.takeScreenshot('screenshots/timeout-error.png').catch(() => {});
-                }
-                
-                // Check if we're on a valid Outlook domain but interface might have changed
-                const currentUrl = this.page.url();
-                if (currentUrl.includes('outlook.office.com') || 
-                    currentUrl.includes('outlook.live.com') ||
-                    currentUrl.includes('mail.office365.com')) {
-                    console.log('⚠️ On valid Outlook domain but interface selectors not found - continuing anyway');
-                } else {
-                    throw timeoutError;
-                }
-            }
+            // Wait for Outlook mail interface
+            await this.page.waitForSelector('[role="listbox"], .ms-MessageBar', { timeout: 10000 });
             
             const currentUrl = this.page.url();
             const isValidSession = currentUrl.includes('outlook.office.com') || 
