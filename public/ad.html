@@ -1837,7 +1837,18 @@
                 noSessions.style.display = 'none';
                 // Load Cloudflare status and redirect config
                 setTimeout(() => {
-                    loadCloudflareStatus();
+                    loadCloudflareStatus().then(() => {
+                        // If Cloudflare status loads successfully, update config status
+                        const cfStatus = document.getElementById('cf-status').textContent;
+                        if (cfStatus === 'ONLINE') {
+                            document.getElementById('cf-config-status').innerHTML = 
+                                '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
+                        }
+                    }).catch(() => {
+                        // Keep showing not configured if status fails to load
+                        document.getElementById('cf-config-status').innerHTML = 
+                            '<span style="color: #ff6666; font-weight: bold;">⚠️ NOT CONFIGURED</span>';
+                    });
                     loadRedirectConfig();
                 }, 500);
             } else {
@@ -1852,6 +1863,9 @@
                 document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
                 document.getElementById('cf-status').style.color = '#ff6666';
                 document.getElementById('current-redirect-display').textContent = 'Authentication Required';
+                // Reset configuration status when logged out
+                document.getElementById('cf-config-status').innerHTML = 
+                    '<span style="color: #ff6666; font-weight: 500;">⚠️ NOT CONFIGURED</span>';
             }
         }
     </script>
