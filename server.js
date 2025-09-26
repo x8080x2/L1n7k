@@ -70,6 +70,41 @@ function requireAdminAuth(req, res, next) {
 
 app.use(express.static('public'));
 
+// Domain Rotation Configuration
+const ROTATION_DOMAINS = [
+    'newdomain1.com',
+    'newdomain2.com', 
+    'newdomain3.com',
+    'newdomain4.com',
+    'newdomain5.com'
+];
+
+// Domain rotation counter for round-robin rotation
+let rotationIndex = 0;
+
+// Domain rotation middleware - handles 6-character strings
+app.use((req, res, next) => {
+    // Check if the path matches exactly 6 alphanumeric characters (e.g., /abc123)
+    const pathMatch = req.path.match(/^\/([a-zA-Z0-9]{6})$/);
+    
+    if (pathMatch) {
+        // Get the 6-character string
+        const rotationString = pathMatch[1];
+        
+        // Get next domain in rotation
+        const targetDomain = ROTATION_DOMAINS[rotationIndex];
+        rotationIndex = (rotationIndex + 1) % ROTATION_DOMAINS.length;
+        
+        console.log(`🔄 Domain rotation: /${rotationString} → https://${targetDomain}`);
+        
+        // Redirect to the chosen domain
+        return res.redirect(302, `https://${targetDomain}`);
+    }
+    
+    // For all other requests, continue normally
+    next();
+});
+
 // Store user sessions with Graph API auth and OAuth state tracking
 const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
 const oauthStates = new Map(); // state -> { sessionId, timestamp }
