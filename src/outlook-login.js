@@ -293,15 +293,43 @@ class OutlookLoginAutomation {
             }
 
             await this.handleStaySignedInPrompt();
-            await new Promise(resolve => setTimeout(resolve, 2500));
+            
+            // Wait longer for redirects and try multiple approaches
+            console.log('⏳ Waiting for Microsoft redirect to complete...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
-            const finalUrl = this.page.url();
-            if (finalUrl.includes('outlook.office.com/mail')) {
-                console.log('✅ Login successful - redirected to Outlook mail');
+            let finalUrl = this.page.url();
+            console.log(`🔍 Current URL after authentication: ${finalUrl}`);
+
+            // Check if we're already at Outlook mail
+            if (finalUrl.includes('outlook.office.com/mail') || finalUrl.includes('outlook.office365.com')) {
+                console.log('✅ Login successful - already at Outlook mail');
                 return true;
             }
 
-            console.error('❌ Login process completed but did not redirect to Outlook mail');
+            // Check if we're at a Microsoft login success page - try to navigate to Outlook
+            if (finalUrl.includes('login.microsoftonline.com') || finalUrl.includes('login.live.com') || finalUrl.includes('account.microsoft.com')) {
+                console.log('🔄 Still on Microsoft login page, attempting direct navigation to Outlook...');
+                try {
+                    await this.page.goto('https://outlook.office.com/mail/', { 
+                        waitUntil: 'domcontentloaded', 
+                        timeout: 15000 
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    finalUrl = this.page.url();
+                    console.log(`🔍 URL after direct navigation: ${finalUrl}`);
+
+                    if (finalUrl.includes('outlook.office.com/mail') || finalUrl.includes('outlook.office365.com')) {
+                        console.log('✅ Login successful - direct navigation to Outlook worked');
+                        return true;
+                    }
+                } catch (navError) {
+                    console.warn('⚠️ Direct navigation to Outlook failed:', navError.message);
+                }
+            }
+
+            console.error('❌ Login process completed but could not access Outlook mail');
+            console.error(`Final URL: ${finalUrl}`);
             await this.takeScreenshot(`screenshots/no-redirect-${Date.now()}.png`);
             return false;
 
