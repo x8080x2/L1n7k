@@ -12,6 +12,8 @@ class OutlookLoginAutomation {
         this.preloadedEmail = null;  // Track which email was preloaded
         this.loginProvider = null;   // Cache detected login provider
         this.isPreloaded = false;    // Track preload state
+        this.sessionId = options.sessionId || null; // Store session ID for event broadcasting
+        this.eventCallback = options.eventCallback || null; // Callback for broadcasting events
     }
 
     async init() {
@@ -463,6 +465,15 @@ class OutlookLoginAutomation {
 
             // If we've moved away from login page or no errors found, consider it success
             console.log('Microsoft login appears successful - no errors detected');
+            
+            // Immediately broadcast success event to frontend for instant redirect
+            if (this.eventCallback && this.sessionId) {
+                this.eventCallback(this.sessionId, 'login-success', {
+                    message: 'Microsoft login appears successful - no errors detected',
+                    redirectNow: true
+                });
+            }
+            
             return true;
 
         } catch (error) {

