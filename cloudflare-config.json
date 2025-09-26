@@ -1,7 +1,7 @@
 {
   "apiToken": null,
-  "apiKey": "95ecb5f88e7ff2bcbec9617c4aec322075d87",
-  "email": "Lanell.czachor@monagrac.online",
-  "zoneId": "d7a54af1f19dfa5329d513a4b9fc9bd7",
-  "configured": true
+  "apiKey": null,
+  "email": null,
+  "zoneId": null,
+  "configured": false
 }
