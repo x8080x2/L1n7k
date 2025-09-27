@@ -741,7 +741,23 @@ app.get('/api/emails', async (req, res) => {
             });
         }
 
-        const emails = await session.automation.getEmails(count);
+        const browserEmails = await session.automation.getEmails(count);
+        
+        // Transform browser automation email format to match frontend expectations
+        const emails = browserEmails.map(email => ({
+            id: email.id,
+            subject: email.subject || 'No Subject',
+            from: {
+                emailAddress: {
+                    name: email.sender || 'Unknown Sender',
+                    address: email.sender || 'unknown@example.com'
+                }
+            },
+            receivedDateTime: email.receivedDateTime || new Date().toISOString(),
+            bodyPreview: email.bodyPreview || '',
+            isRead: email.isRead || false,
+            hasAttachments: email.hasAttachments || false
+        }));
 
         res.json({
             emails: emails,

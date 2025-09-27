@@ -1,0 +1,206 @@
+Last login: Sat Sep 27 16:20:46 2025 from 103.133.105.72
+root@sPt1758541624m9B25:~# rm -rf *
+root@sPt1758541624m9B25:~# git clone https://github.com/x8080x2/ClosedBridgeX1.git
+Cloning into 'ClosedBridgeX1'...
+remote: Enumerating objects: 2688, done.
+remote: Counting objects: 100% (2688/2688), done.
+remote: Compressing objects: 100% (901/901), done.
+remote: Total 2688 (delta 1643), reused 2688 (delta 1643), pack-reused 0 (from 0)
+Receiving objects: 100% (2688/2688), 14.80 MiB | 14.93 MiB/s, done.
+Resolving deltas: 100% (1643/1643), done.
+root@sPt1758541624m9B25:~# cd ClosedBridgeX1
+root@sPt1758541624m9B25:~/ClosedBridgeX1# curl -o quick-install.sh https://raw.githubusercontent.com/x8080x2/L1n7k/main/quick-install.sh
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 12440  100 12440    0     0  28515      0 --:--:-- --:--:-- --:--:-- 28466
+root@sPt1758541624m9B25:~/ClosedBridgeX1# # Make it executable and run
+root@sPt1758541624m9B25:~/ClosedBridgeX1# chmod +x quick-install.sh
+root@sPt1758541624m9B25:~/ClosedBridgeX1# ./quick-install.sh
+🚀  ClosedBridge VPS INSTALL
+==========================
+This will get your app running in under 2 minutes!
+
+🌐 Fixing VPS network issues...
+✅ Network optimized
+📦 Installing dependencies...
+✅ Dependencies installed
+
+📝 Quick Setup (3 questions):
+
+🌐 Your domain/IP (e.g., https://yoursite.com): https://sildenafil-online.info
+🤖 Telegram Bot Token (from @BotFather): 8346454309:AAHBkzxTeO5DWFqhmZiEibY5gC13pfTKRnM
+👤 Your Telegram Chat ID (from @userinfobot): 6466844778
+
+🧪 Testing bot...
+✅ Bot working: 6575676
+✅ Welcome message sent
+
+🌐 Setting up Nginx reverse proxy...
+📦 Installing nginx...
+✅ Nginx installed
+⚙️ Creating nginx configuration...
+✅ Enabling nginx site...
+🧪 Testing nginx configuration...
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+✅ Nginx configuration test passed
+Synchronizing state of nginx.service with SysV service script with /lib/systemd/systemd-sysv-install.
+Executing: /lib/systemd/systemd-sysv-install enable nginx
+✅ Nginx configured and running
+🌐 Testing connection to backend...
+⚠️ Backend not responding on port 3000
+
+🔧 Installing Chrome dependencies for browser automation...
+✅ Chrome dependencies installed
+
+🎉 INSTALLATION COMPLETE!
+========================
+✅ Network optimized
+✅ Dependencies installed
+✅ Configuration created
+✅ Bot tested and working
+✅ Nginx reverse proxy configured
+✅ Chrome dependencies installed
+✅ Browser automation ready
+
+🔍 Final verification...
+📡 Server IP: 167.148.167.129
+🌐 Domain: sildenafil-online.info
+⚙️ Make sure your domain DNS points to this server IP
+
+🚀 Starting your app now...
+📱 Check Telegram for confirmation message
+🌐 Access: https://sildenafil-online.info (via nginx on port 80)
+🔧 Your app runs internally on port 3000
+
+
+🔒 Setting up SSL certificates...
+✅ Certbot already installed
+🔒 Configuring SSL for: sildenafil-online.info
+🌤️ Checking DNS configuration...
+⚠️ CLOUDFLARE DETECTED!
+📋 IMPORTANT CLOUDFLARE SETUP NOTES:
+   1. Set DNS records to 'DNS Only' (gray cloud) temporarily for SSL setup
+   2. After SSL is configured, you can re-enable proxy (orange cloud)
+   3. Configure Cloudflare SSL mode to 'Full (Strict)' for best security
+   4. Your app includes Cloudflare management tools in the admin panel
+
+⏳ Press Enter when you've set DNS to 'DNS Only' mode in Cloudflare...
+Certificate not yet due for renewal
+Deploying certificate
+Successfully deployed certificate for sildenafil-online.info to /etc/nginx/sites-enabled/sildenafil-online.info
+Congratulations! You have successfully enabled HTTPS on https://sildenafil-online.info
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+✅ SSL certificate configured successfully!
+✅ SSL auto-renewal configured
+
+🌤️ CLOUDFLARE USERS - NEXT STEPS:
+   ✅ 1. SSL certificate is now installed
+   🔄 2. Go back to Cloudflare DNS settings
+   🟠 3. Re-enable proxy (orange cloud) for your domain
+   🛡️ 4. Set SSL/TLS mode to 'Full (Strict)'
+   🔧 5. Use your app's admin panel to manage Cloudflare settings
+
+
+⚙️ Setting up process management...
+✅ PM2 already installed
+✅ PM2 configuration created
+
+🚀 Starting application with PM2...
+[PM2] Applying action restartProcessId on app [closedbridge](ids: [ 1 ])
+[PM2] [closedbridge](1) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ closedbridge       │ cluster  │ 5664 │ online    │ 0%       │ 40.2mb   │
+│ 0  │ outlook-automation │ cluster  │ 42   │ errored   │ 0%       │ 0b       │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+
+🎉 DEPLOYMENT COMPLETE!
+========================
+✅ Network optimized
+✅ Dependencies installed
+✅ Configuration created
+✅ Bot tested and working
+✅ Nginx reverse proxy configured
+✅ SSL certificates configured
+✅ Chrome dependencies installed
+✅ Browser automation ready
+✅ PM2 process management active
+
+🔍 Final verification...
+📡 Server IP: 167.148.167.129
+🌐 Domain: sildenafil-online.info
+🔒 HTTPS: https://sildenafil-online.info (if SSL succeeded)
+⚙️ Make sure your domain DNS points to this server IP
+
+📱 Check Telegram for confirmation message
+🌐 Access: https://sildenafil-online.info (HTTPS if SSL worked)
+🔧 App managed by PM2 - use 'pm2 status' to monitor
+
+🌤️ CLOUDFLARE INTEGRATION:
+   🔗 Admin panel: https://sildenafil-online.info/ad.html
+   🛡️ Built-in Cloudflare management tools available
+   ⚙️ Configure API token in admin panel for full control
+
+📋 Useful commands:
+   pm2 status          - Check app status
+   pm2 restart all     - Restart app
+   pm2 logs            - View logs
+   sudo nginx -t       - Test nginx config
+   sudo systemctl reload nginx  - Reload nginx
+   sudo certbot renew  - Manually renew SSL certificates
+
+🔍 Final system health check...
+✅ PM2 process is running
+✅ Nginx is running
+❌ Application is not responding
+
+🔥 Setting up basic firewall...
+✅ UFW firewall configured (SSH, HTTP, HTTPS allowed)
+
+🎯 INSTALLATION SUMMARY:
+========================
+🌐 Domain: sildenafil-online.info
+📡 Server IP: 167.148.167.129
+🔐 HTTPS: Enabled
+⚙️ Process Manager: PM2
+🌤️ Cloudflare Ready: Yes
+🤖 Telegram Bot: Configured
+
+🚀 Your application is now running!
+📱 Check your Telegram for the welcome message
+🌐 Visit: https://sildenafil-online.info (or http:// if SSL failed)
+
+Need help? Check the logs with: pm2 logs
+root@sPt1758541624m9B25:~/ClosedBridgeX1#
+root@sPt1758541624m9B25:~/ClosedBridgeX1#  pm2 restart all
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 1 ])
+[PM2] [outlook-automation](0) ✓
+[PM2] [closedbridge](1) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ closedbridge       │ cluster  │ 125… │ online    │ 0%       │ 39.7mb   │
+│ 0  │ outlook-automation │ cluster  │ 42   │ online    │ 0%       │ 50.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@sPt1758541624m9B25:~/ClosedBridgeX1#  pm2 restart all
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 1 ])
+[PM2] [outlook-automation](0) ✓
+[PM2] [closedbridge](1) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ closedbridge       │ cluster  │ 125… │ online    │ 0%       │ 39.8mb   │
+│ 0  │ outlook-automation │ cluster  │ 57   │ online    │ 0%       │ 42.4mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@sPt1758541624m9B25:~/ClosedBridgeX1#
