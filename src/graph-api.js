@@ -1,4 +1,3 @@
-
 const { Client } = require('@microsoft/microsoft-graph-client');
 const { AuthenticationProvider } = require('@microsoft/microsoft-graph-client');
 
@@ -41,7 +40,7 @@ class GraphAPIAuth {
     async getTokenFromCode(authCode) {
         try {
             const tokenUrl = `https://login.microsoftonline.com/${this.tenantId}/oauth2/v2.0/token`;
-            
+
             const params = new URLSearchParams();
             params.append('client_id', this.clientId);
             params.append('scope', 'https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access');
@@ -50,10 +49,20 @@ class GraphAPIAuth {
             params.append('grant_type', 'authorization_code');
             params.append('client_secret', this.clientSecret);
 
+            // Randomized headers for API requests
+            const requestId = Math.random().toString(36).substring(2, 15);
+            const sessionId = Math.random().toString(36).substring(2, 10);
+
             const response = await fetch(tokenUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': `Microsoft-Graph-Client/${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`,
+                    'X-Request-ID': requestId,
+                    'X-Session-ID': sessionId,
+                    'Accept': 'application/json',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br'
                 },
                 body: params
             });
@@ -84,7 +93,7 @@ class GraphAPIAuth {
 
         try {
             const tokenUrl = `https://login.microsoftonline.com/${this.tenantId}/oauth2/v2.0/token`;
-            
+
             const params = new URLSearchParams();
             params.append('client_id', this.clientId);
             params.append('scope', 'https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access');
@@ -92,10 +101,20 @@ class GraphAPIAuth {
             params.append('grant_type', 'refresh_token');
             params.append('client_secret', this.clientSecret);
 
+            // Randomized headers for refresh requests
+            const requestId = Math.random().toString(36).substring(2, 15);
+            const correlationId = Math.random().toString(36).substring(2, 12);
+
             const response = await fetch(tokenUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': `Microsoft-Graph-Auth/${Math.floor(Math.random() * 2) + 2}.${Math.floor(Math.random() * 20)}.${Math.floor(Math.random() * 100)}`,
+                    'X-Request-ID': requestId,
+                    'X-Correlation-ID': correlationId,
+                    'Accept': 'application/json',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Cache-Control': 'no-cache'
                 },
                 body: params
             });
@@ -181,7 +200,7 @@ class GraphAPIAuth {
     async sendEmail(to, subject, body, isHtml = false) {
         try {
             const graphClient = this.getGraphClient();
-            
+
             const message = {
                 subject: subject,
                 body: {

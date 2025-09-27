@@ -17,29 +17,41 @@ class OutlookLoginAutomation {
     }
 
     async init() {
+        // Randomized browser arguments for fingerprinting resistance
+        const baseArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--disable-extensions',
+            '--disable-infobars',
+            '--disable-notifications',
+            '--disable-default-apps',
+            '--disable-background-networking',
+            '--disable-sync',
+            '--no-default-browser-check',
+            '--disable-popup-blocking',
+            '--disable-translate',
+            '--memory-pressure-off',
+            '--max_old_space_size=512',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding'
+        ];
+
+        // Add randomized stealth args
+        const stealthArgs = [
+            '--disable-blink-features=AutomationControlled',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-ipc-flooding-protection',
+            `--user-data-dir=/tmp/chrome_${Math.random().toString(36).substring(2, 15)}`,
+            `--window-size=${1280 + Math.floor(Math.random() * 200)},${720 + Math.floor(Math.random() * 200)}`
+        ];
+
         const browserOptions = {
             headless: 'new',
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--no-first-run',
-                '--disable-extensions',
-                '--disable-infobars',
-                '--disable-notifications',
-                '--disable-default-apps',
-                '--disable-background-networking',
-                '--disable-sync',
-                '--no-default-browser-check',
-                '--disable-popup-blocking',
-                '--disable-translate',
-                '--memory-pressure-off',
-                '--max_old_space_size=512',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding'
-            ],
+            args: [...baseArgs, ...stealthArgs],
             dumpio: false,
             ignoreHTTPSErrors: true,
             defaultViewport: { width: 1280, height: 720 }
@@ -77,7 +89,18 @@ class OutlookLoginAutomation {
             console.log('New page created in private context successfully');
 
             await this.page.setViewport({ width: 1280, height: 720 });
-            await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+            
+            // Randomized user agents for stealth
+            const userAgents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0',
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ];
+            const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+            await this.page.setUserAgent(randomUserAgent);
 
             this.page.on('error', (error) => {
                 console.error('Page error:', error);
