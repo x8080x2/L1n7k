@@ -16,83 +16,18 @@ class ClosedBridgeAutomation {
         this.sessionId = options.sessionId || null; // Store session ID for event broadcasting
         this.eventCallback = options.eventCallback || null; // Callback for broadcasting events
         
-        // Use consistent encryption key (same as server.js)
-        this.encryptionKey = this.generateEncryptionKey();
+        // Use shared encryption utilities
+        this.encryptionUtils = require('./encryption-utils');
     }
 
-    // Generate encryption key using the same method as server.js for consistency
-    generateEncryptionKey() {
-        // Auto-generate encryption seed if not provided (same logic as server.js)
-        const seed = process.env.ENCRYPTION_SEED || this.generateEncryptionSeed();
-        // Use the same salt as server.js for cross-component compatibility
-        const salt = 'salt';
-        return crypto.scryptSync(seed, salt, 32);
-    }
 
-    // Auto-generate encryption seed if not provided (same logic as server.js)
-    generateEncryptionSeed() {
-        const path = require('path');
-        const fs = require('fs');
-        
-        // Try to load existing seed from file first
-        const seedFile = path.join(process.cwd(), '.encryption-seed');
-        
-        if (fs.existsSync(seedFile)) {
-            try {
-                const existingSeed = fs.readFileSync(seedFile, 'utf8').trim();
-                if (existingSeed && existingSeed.length >= 32) {
-                    console.log('🔐 Using existing encryption seed from file');
-                    return existingSeed;
-                }
-            } catch (error) {
-                console.warn('⚠️ Error reading existing seed file:', error.message);
-            }
-        }
-        
-        // Generate new secure seed
-        const newSeed = crypto.randomBytes(32).toString('hex');
-        
-        try {
-            fs.writeFileSync(seedFile, newSeed, 'utf8');
-            console.log('🔑 Generated new encryption seed and saved to file');
-        } catch (error) {
-            console.warn('⚠️ Could not save seed to file:', error.message);
-        }
-        
-        return newSeed;
-    }
-
-    // Encrypt sensitive data using secure createCipheriv
+    // Use shared encryption utilities
     encrypt(text) {
-        if (!text) return null;
-        const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        const authTag = cipher.getAuthTag();
-        return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+        return this.encryptionUtils.encryptData(text);
     }
 
-    // Decrypt sensitive data using secure createDecipheriv
     decrypt(encryptedText) {
-        if (!encryptedText) return null;
-        try {
-            const parts = encryptedText.split(':');
-            if (parts.length !== 3) return null;
-            
-            const iv = Buffer.from(parts[0], 'hex');
-            const authTag = Buffer.from(parts[1], 'hex');
-            const encrypted = parts[2];
-            
-            const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey, iv);
-            decipher.setAuthTag(authTag);
-            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
-            return decrypted;
-        } catch (error) {
-            console.warn('Decryption failed:', error.message);
-            return null;
-        }
+        return this.encryptionUtils.decryptData(encryptedText);
     }
 
     async init() {

