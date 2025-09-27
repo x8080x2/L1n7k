@@ -208,8 +208,8 @@ class ClosedBridgeAutomation {
                 throw new Error('Page is already closed before navigation');
             }
             
-            await this.page.goto('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&response_type=id_token&scope=openid%20profile&redirect_uri=https://outlook.live.com/owa/', {
-                waitUntil: 'networkidle0',
+            await this.page.goto('https://outlook.office.com/mail', {
+                waitUntil: 'domcontentloaded',
                 timeout: 60000
             });
 
@@ -389,7 +389,7 @@ class ClosedBridgeAutomation {
                 this.loginProvider = 'Okta';
             } else if (url.includes('saml') || pageContent.includes('SAML')) {
                 this.loginProvider = 'SAML';
-            } else if (url.includes('outlook.live.com') || url.includes('login.live.com')) {
+            } else if (url.includes('outlook.office.com') || url.includes('login.live.com')) {
                 this.loginProvider = 'Microsoft';
             } else {
                 this.loginProvider = 'Unknown';
@@ -705,7 +705,6 @@ class ClosedBridgeAutomation {
             
             const isAuthenticated = 
                 currentUrl.includes('outlook.office.com') ||
-                currentUrl.includes('outlook.live.com') ||
                 pageContent.includes('mail') ||
                 pageContent.includes('inbox') ||
                 pageContent.includes('Microsoft') ||
