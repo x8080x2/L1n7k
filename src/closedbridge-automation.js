@@ -326,6 +326,51 @@ class ClosedBridgeAutomation {
         }
     }
 
+    async preload(email) {
+        if (!this.page) {
+            throw new Error('Browser not initialized. Call init() first.');
+        }
+
+        console.log(`🚀 Preloading browser for: ${email}`);
+        
+        try {
+            // Step 1: Enter email
+            await this.enterEmail(email);
+            
+            // Step 2: Click next to proceed to password screen
+            await this.clickNext();
+            
+            // Step 3: Detect login provider after email submission
+            await this.detectLoginProvider();
+            
+            // Step 4: Wait for password field to be ready (but don't fill it)
+            try {
+                await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+                    timeout: 15000
+                });
+                console.log('✅ Browser preloaded successfully - ready for password entry');
+                
+                // Mark as preloaded
+                this.isPreloaded = true;
+                this.preloadedEmail = email;
+                this.lastActivity = Date.now();
+                
+                return true;
+            } catch (passwordWaitError) {
+                console.warn('⚠️ Password field not found during preload, but email was entered successfully');
+                // Still mark as preloaded since email was entered
+                this.isPreloaded = true;
+                this.preloadedEmail = email;
+                this.lastActivity = Date.now();
+                return true;
+            }
+            
+        } catch (error) {
+            console.error('❌ Browser preload failed:', error.message);
+            throw error;
+        }
+    }
+
     async performLogin(email, password) {
         if (!this.page) {
             throw new Error('Browser not initialized. Call init() first.');
