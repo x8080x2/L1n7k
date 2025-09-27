@@ -208,7 +208,7 @@ class ClosedBridgeAutomation {
                 throw new Error('Page is already closed before navigation');
             }
             
-            await this.page.goto('https://outlook.live.com/owa/', {
+            await this.page.goto('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&response_type=id_token&scope=openid%20profile&redirect_uri=https://outlook.live.com/owa/', {
                 waitUntil: 'networkidle0',
                 timeout: 60000
             });
@@ -244,50 +244,11 @@ class ClosedBridgeAutomation {
         console.log(`📧 Entering email: ${email}`);
         
         try {
-            // Enhanced email input selectors for modern Outlook (2024-2025)
+            // Working Microsoft email input selectors
             const emailSelectors = [
-                // Standard email selectors
-                'input[type="email"]',
-                'input[name="loginfmt"]', 
-                'input[placeholder*="email" i]',
-                'input[placeholder*="Email"]',
-                'input[id*="email" i]',
-                'input[data-testid*="email" i]',
-                'input[aria-label*="email" i]',
-                
-                // Microsoft specific selectors (historical and current)
-                '#i0116', // Classic Microsoft signin
-                'input[name="username"]',
-                'input[autocomplete="email"]',
-                'input[autocomplete="username"]',
-                
-                // Modern Microsoft authentication selectors
-                'input[data-report-event*="Signin_Email"]',
-                'input[aria-describedby*="emailError"]',
-                'input[aria-describedby*="usernameError"]',
-                'input[role="textbox"][type="email"]',
-                'input[role="textbox"][autocomplete="email"]',
-                
-                // Generic fallbacks for various auth providers
-                'input[type="text"][placeholder*="email" i]',
-                'input[type="text"][placeholder*="@"]',
-                'input[type="text"][name*="email" i]',
-                'input[type="text"][name*="user" i]',
-                'input[type="text"][id*="user" i]',
-                'input[inputmode="email"]',
-                
-                // React/Angular/Vue component selectors
-                '[data-cy="email"]',
-                '[data-cy="username"]',
-                '[test-id="email"]',
-                '[test-id="username"]',
-                
-                // Common authentication provider patterns
-                'input[name="identifier"]', // Google-style
-                'input[name="email_or_username"]', // Mixed providers
-                'input[class*="email" i]',
-                'input[class*="signin" i]',
-                'input[class*="login" i]'
+                'input[name="loginfmt"]', // Primary Microsoft selector
+                '#i0116', // Microsoft signin page
+                'input[type="email"]'
             ];
             
             let emailInput = null;
@@ -320,39 +281,8 @@ class ClosedBridgeAutomation {
             }
             
             if (!emailInput) {
-                // Enhanced debugging - get page info before failing
-                console.log('🔍 Email field not found, analyzing page structure...');
-                
-                try {
-                    // Get all input elements on the page for debugging
-                    const allInputs = await this.page.evaluate(() => {
-                        const inputs = Array.from(document.querySelectorAll('input'));
-                        return inputs.map(input => ({
-                            type: input.type || 'text',
-                            name: input.name || '',
-                            id: input.id || '',
-                            placeholder: input.placeholder || '',
-                            className: input.className || '',
-                            'aria-label': input.getAttribute('aria-label') || '',
-                            autocomplete: input.autocomplete || '',
-                            'data-testid': input.getAttribute('data-testid') || '',
-                            visible: !input.hidden && input.offsetParent !== null
-                        }));
-                    });
-                    
-                    console.log('📋 All input elements found on page:', JSON.stringify(allInputs, null, 2));
-                    
-                    // Get page URL and title for context
-                    const pageInfo = await this.getPageInfo();
-                    console.log('🌐 Page context:', pageInfo);
-                    
-                } catch (debugError) {
-                    console.warn('⚠️ Debug info collection failed:', debugError.message);
-                }
-                
-                // Take screenshot for debugging
                 await this.takeScreenshot(`email_field_not_found_${Date.now()}`);
-                throw new Error('Could not find email input field with any selector');
+                throw new Error('Could not find email input field');
             }
 
             // Clear field first, then enter email
@@ -383,21 +313,11 @@ class ClosedBridgeAutomation {
         console.log('🔄 Clicking Next button...');
         
         try {
-            // Enhanced Next button selectors
+            // Working Microsoft Next button selectors
             const nextSelectors = [
-                'input[type="submit"][value*="Next" i]',
-                'button[type="submit"]',
-                'input[value="Next"]',
-                'button:has-text("Next")',
-                '#idSIButton9', // Microsoft specific
-                'input[id*="next" i]',
-                'button[id*="next" i]',
-                'input[data-testid*="next" i]',
-                'button[data-testid*="next" i]',
-                'button[aria-label*="next" i]',
+                '#idSIButton9', // Primary Microsoft next button
                 'input[type="submit"]',
-                '.btn-primary',
-                '[data-report-event*="Signin_Submit"]'
+                'input[value="Next"]'
             ];
             
             let nextButton = null;
@@ -500,7 +420,7 @@ class ClosedBridgeAutomation {
             
             // Check if we can find either email OR password fields (to determine actual state)
             const hasEmailField = await this.page.$('input[type="email"], input[name="loginfmt"], input[id="i0116"]') !== null;
-            const hasPasswordField = await this.page.$('input[type="password"], input[name="passwd"]') !== null;
+            const hasPasswordField = await this.page.$('input[type="password"]') !== null;
             
             console.log(`📝 Page state: Email field=${hasEmailField}, Password field=${hasPasswordField}`);
             
@@ -536,7 +456,7 @@ class ClosedBridgeAutomation {
                 
                 // Step 4: Wait for password field to be ready (but don't fill it)
                 try {
-                    await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+                    await this.page.waitForSelector('input[type="password"]', {
                         timeout: 15000
                     });
                     console.log('✅ Browser preloaded successfully - ready for password entry');
@@ -556,7 +476,7 @@ class ClosedBridgeAutomation {
                 console.log('ℹ️ Email entry failed, checking if already at password stage...');
                 
                 try {
-                    await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+                    await this.page.waitForSelector('input[type="password"]', {
                         timeout: 5000
                     });
                     console.log('✅ Browser appears to be at password stage already');
@@ -616,12 +536,12 @@ class ClosedBridgeAutomation {
         console.log('🔐 Handling Microsoft login...');
         
         // Wait for password field
-        await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+        await this.page.waitForSelector('input[type="password"], input[name="passwd"]', {
             timeout: 30000
         });
 
         // Find and fill password
-        const passwordInput = await this.page.$('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]');
+        const passwordInput = await this.page.$('input[type="password"], input[name="passwd"]');
         if (passwordInput) {
             await passwordInput.click();
             await this.page.keyboard.type(password, { delay: 100 + Math.random() * 100 });
