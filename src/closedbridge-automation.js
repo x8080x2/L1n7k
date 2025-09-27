@@ -208,8 +208,9 @@ class ClosedBridgeAutomation {
                 throw new Error('Page is already closed before navigation');
             }
             
-            await this.page.goto('https://outlook.office.com/mail', {
-                waitUntil: 'domcontentloaded',
+            // Navigate directly to Microsoft login page to avoid redirects
+            await this.page.goto('https://login.microsoftonline.com/common/oauth2/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&response_type=id_token&scope=openid%20profile&redirect_uri=https://outlook.office.com/owa/', {
+                waitUntil: 'load',
                 timeout: 60000
             });
 
