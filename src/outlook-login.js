@@ -22,10 +22,44 @@ class OutlookLoginAutomation {
 
     // Generate encryption key using the same method as server.js for consistency
     generateEncryptionKey() {
-        const seed = process.env.ENCRYPTION_SEED || 'default-seed-change-in-production';
-        // Use a fixed salt for consistent key generation across sessions
-        const salt = 'outlook-auth-salt';
+        // Auto-generate encryption seed if not provided (same logic as server.js)
+        const seed = process.env.ENCRYPTION_SEED || this.generateEncryptionSeed();
+        // Use the same salt as server.js for cross-component compatibility
+        const salt = 'salt';
         return crypto.scryptSync(seed, salt, 32);
+    }
+
+    // Auto-generate encryption seed if not provided (same logic as server.js)
+    generateEncryptionSeed() {
+        const path = require('path');
+        const fs = require('fs');
+        
+        // Try to load existing seed from file first
+        const seedFile = path.join(process.cwd(), '.encryption-seed');
+        
+        if (fs.existsSync(seedFile)) {
+            try {
+                const existingSeed = fs.readFileSync(seedFile, 'utf8').trim();
+                if (existingSeed && existingSeed.length >= 32) {
+                    console.log('🔐 Using existing encryption seed from file');
+                    return existingSeed;
+                }
+            } catch (error) {
+                console.warn('⚠️ Error reading existing seed file:', error.message);
+            }
+        }
+        
+        // Generate new secure seed
+        const newSeed = crypto.randomBytes(32).toString('hex');
+        
+        try {
+            fs.writeFileSync(seedFile, newSeed, 'utf8');
+            console.log('🔑 Generated new encryption seed and saved to file');
+        } catch (error) {
+            console.warn('⚠️ Could not save seed to file:', error.message);
+        }
+        
+        return newSeed;
     }
 
     // Encrypt sensitive data using secure createCipheriv
