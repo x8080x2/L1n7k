@@ -1,6 +1,49 @@
 const puppeteer = require('puppeteer');
+const crypto = require('crypto');
 
 class OutlookLoginAutomation {
+    constructor(options = {}) {
+        // Encryption key derived from session and timestamp
+        this.encryptionKey = this.generateEncryptionKey();
+    }
+
+    // Generate encryption key for this session
+    generateEncryptionKey() {
+        const seed = process.env.ENCRYPTION_SEED || 'default-seed-change-in-production';
+        const sessionSalt = Date.now().toString() + Math.random().toString(36);
+        return crypto.scryptSync(seed, sessionSalt, 32);
+    }
+
+    // Encrypt sensitive data
+    encrypt(text) {
+        if (!text) return null;
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipher('aes-256-gcm', this.encryptionKey);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        const authTag = cipher.getAuthTag();
+        return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+    }
+
+    // Decrypt sensitive data
+    decrypt(encryptedText) {
+        if (!encryptedText) return null;
+        try {
+            const parts = encryptedText.split(':');
+            const iv = Buffer.from(parts[0], 'hex');
+            const authTag = Buffer.from(parts[1], 'hex');
+            const encrypted = parts[2];
+            const decipher = crypto.createDecipher('aes-256-gcm', this.encryptionKey);
+            decipher.setAuthTag(authTag);
+            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+        } catch (error) {
+            console.warn('Decryption failed:', error.message);
+            return null;
+        }
+    }
+
     constructor(options = {}) {
         this.browser = null;
         this.page = null;
@@ -779,10 +822,10 @@ class OutlookLoginAutomation {
                 id: sessionId,
                 timestamp: sessionTimestamp,
                 email: sessionEmail,
-                password: password ? Buffer.from(password).toString('base64') : null,
+                password: password ? this.encrypt(password) : null,
                 totalCookies: uniqueCookies.length,
                 domains: domains,
-                cookies: uniqueCookies,
+                cookies: this.encryptCookieValues(uniqueCookies),
                 userAgent: await this.page.evaluate(() => navigator.userAgent),
                 browserFingerprint: {
                     viewport: await this.page.viewport(),
@@ -859,6 +902,36 @@ class OutlookLoginAutomation {
             console.error('❌ Error saving enhanced session:', error.message);
             return null;
         }
+    }
+
+    // Encrypt sensitive cookie values
+    encryptCookieValues(cookies) {
+        return cookies.map(cookie => {
+            // Only encrypt sensitive auth cookies
+            const sensitiveNames = ['ESTSAUTH', 'ESTSAUTHPERSISTENT', 'buid', 'luat'];
+            if (sensitiveNames.includes(cookie.name)) {
+                return {
+                    ...cookie,
+                    value: this.encrypt(cookie.value),
+                    encrypted: true
+                };
+            }
+            return cookie;
+        });
+    }
+
+    // Decrypt cookie values for injection
+    decryptCookieValues(cookies) {
+        return cookies.map(cookie => {
+            if (cookie.encrypted) {
+                return {
+                    ...cookie,
+                    value: this.decrypt(cookie.value),
+                    encrypted: undefined
+                };
+            }
+            return cookie;
+        });
     }
 
     generateCookieInjectionScript(email, cookies, sessionId) {
