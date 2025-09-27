@@ -329,7 +329,7 @@ echo ""
 echo "🔍 Final system health check..."
 
 # Check if PM2 is running
-if pm2 list | grep -q "outlook-automation"; then
+if pm2 list | grep -q "closedbridge"; then
     echo "✅ PM2 process is running"
 else
     echo "❌ PM2 process not found"

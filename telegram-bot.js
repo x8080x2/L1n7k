@@ -165,7 +165,7 @@ class OutlookNotificationBot {
 • **/menu** - Return to main menu
 
 <b>Need Help?</b>
-This bot provides notifications and admin access for the Outlook automation project.
+This bot provides notifications and admin access for the ClosedBridge project.
         `;
 
         this.bot.sendMessage(chatId, helpMessage, { 

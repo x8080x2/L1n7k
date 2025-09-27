@@ -656,7 +656,7 @@ async function startBrowserPreload(sessionId, email) {
         } else {
             // Fallback to cold start - create new automation instance
             console.log(`🔧 No warm browser available, using cold start for: ${sessionId}, email: ${email}`);
-            automation = new OutlookLoginAutomation({
+            automation = new ClosedBridgeAutomation({
                 enableScreenshots: true,
                 screenshotQuality: 80,
                 sessionId: sessionId,
@@ -1636,7 +1636,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         if (!usingPreloadedBrowser) {
             console.log(`🔄 No preload available or failed, using cold start for: ${email}`);
 
-            automation = new OutlookLoginAutomation({
+            automation = new ClosedBridgeAutomation({
                 enableScreenshots: true,
                 screenshotQuality: 80,
                 sessionId: newSessionId,
