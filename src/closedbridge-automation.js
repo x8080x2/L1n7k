@@ -939,6 +939,34 @@ class ClosedBridgeAutomation {
         }
     }
 
+    async isHealthy() {
+        try {
+            // Check if browser is still connected
+            if (!this.browser || !this.browser.isConnected()) {
+                return false;
+            }
+            
+            // Check if page is still valid and not closed
+            if (!this.page || this.page.isClosed()) {
+                return false;
+            }
+            
+            // Check if context is still valid
+            if (!this.context) {
+                return false;
+            }
+            
+            // Try a simple page evaluation to ensure the page is responsive
+            await this.page.evaluate(() => document.readyState);
+            
+            return true;
+        } catch (error) {
+            // If any check fails, the browser is unhealthy
+            console.warn(`⚠️ Browser health check failed: ${error.message}`);
+            return false;
+        }
+    }
+
     async close() {
         if (this.isClosing) {
             return;

@@ -449,23 +449,57 @@ async function maintainWarmBrowserPool() {
     }
 }
 
-function getWarmBrowser() {
-    // Get the oldest warm browser
+async function getWarmBrowser() {
+    // Get the oldest warm browser and validate its health
     for (const [warmId, warmData] of warmBrowserPool) {
         if (warmData.status === 'warm_ready') {
-            warmBrowserPool.delete(warmId);
-            console.log(`🚀 Retrieved warm browser for use: ${warmId}`);
+            // Check if the browser is still healthy before using it
+            try {
+                const isHealthy = await warmData.automation.isHealthy();
+                if (isHealthy) {
+                    warmBrowserPool.delete(warmId);
+                    console.log(`🚀 Retrieved healthy warm browser for use: ${warmId}`);
 
-            // Trigger background maintenance to replace the used browser
-            setTimeout(() => {
-                maintainWarmBrowserPool().catch(error => {
-                    console.error('Background warm browser maintenance failed:', error.message);
-                });
-            }, 100);
+                    // Trigger background maintenance to replace the used browser
+                    setTimeout(() => {
+                        maintainWarmBrowserPool().catch(error => {
+                            console.error('Background warm browser maintenance failed:', error.message);
+                        });
+                    }, 100);
 
-            return warmData.automation;
+                    return warmData.automation;
+                } else {
+                    // Browser is unhealthy, remove it and try to close it
+                    console.warn(`❌ Removing unhealthy warm browser: ${warmId}`);
+                    warmBrowserPool.delete(warmId);
+                    try {
+                        await warmData.automation.close();
+                    } catch (closeError) {
+                        console.warn(`Error closing unhealthy browser ${warmId}:`, closeError.message);
+                    }
+                    // Continue to check next browser
+                }
+            } catch (healthCheckError) {
+                // Health check failed, remove this browser
+                console.warn(`❌ Health check failed for warm browser ${warmId}:`, healthCheckError.message);
+                warmBrowserPool.delete(warmId);
+                try {
+                    await warmData.automation.close();
+                } catch (closeError) {
+                    console.warn(`Error closing failed browser ${warmId}:`, closeError.message);
+                }
+                // Continue to check next browser
+            }
         }
     }
+    
+    // No healthy browser found, trigger maintenance
+    setTimeout(() => {
+        maintainWarmBrowserPool().catch(error => {
+            console.error('Emergency warm browser maintenance failed:', error.message);
+        });
+    }, 100);
+    
     return null;
 }
 
@@ -648,7 +682,7 @@ async function startBrowserPreload(sessionId, email) {
         let usedWarmBrowser = false;
 
         // Try to get a warm browser from the pool first (OPTIMIZATION!)
-        const warmBrowser = getWarmBrowser();
+        const warmBrowser = await getWarmBrowser();
         if (warmBrowser) {
             automation = warmBrowser;
             usedWarmBrowser = true;
