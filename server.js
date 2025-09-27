@@ -22,7 +22,7 @@ if (fs.existsSync('.env')) {
 }
 
 const { GraphAPIAuth } = require('./src/graph-api');
-const { ClosedBridgeAutomation } = require('./src/outlook-login');
+const { ClosedBridgeAutomation } = require('./src/closedbridge-automation');
 const OutlookNotificationBot = require('./telegram-bot');
 
 const app = express();

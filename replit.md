@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 - **API Operations**: Read emails, send emails, get user profile
 - **Official Microsoft APIs**: Uses recommended authentication patterns
 
-#### Browser Automation System (src/outlook-login.js)
+#### Browser Automation System (src/closedbridge-automation.js)
 - **ClosedBridgeAutomation Class**: Controls Chrome browser
 - **Login Providers**: Supports Microsoft, ADFS, Okta, Azure AD, SAML
 - **Cookie Management**: Captures and stores authentication cookies (PLAIN TEXT)
