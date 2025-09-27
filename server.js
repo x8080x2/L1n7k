@@ -239,6 +239,7 @@ const MIN_WARM_BROWSERS = 1; // Minimum number of warm browsers to maintain
 
 // Store for warm browsers that are pre-initialized and ready for immediate use
 const warmBrowserPool = new Map(); // warmId -> { automation, status, createdAt }
+let warmBrowserPoolLock = false; // Prevent simultaneous warm browser creation
 
 // Store for SSE connections to send immediate authentication status updates
 const sseConnections = new Map(); // sessionId -> response object
@@ -347,6 +348,14 @@ async function createWarmBrowser() {
 }
 
 async function maintainWarmBrowserPool() {
+    // Prevent simultaneous executions
+    if (warmBrowserPoolLock) {
+        console.log('🔒 Warm browser pool already being maintained, skipping...');
+        return;
+    }
+    
+    warmBrowserPoolLock = true;
+    
     try {
         const currentWarmCount = warmBrowserPool.size;
         const neededBrowsers = MIN_WARM_BROWSERS - currentWarmCount;
@@ -368,6 +377,8 @@ async function maintainWarmBrowserPool() {
         }
     } catch (error) {
         console.error('Error maintaining warm browser pool:', error.message);
+    } finally {
+        warmBrowserPoolLock = false;
     }
 }
 
