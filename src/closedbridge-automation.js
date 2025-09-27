@@ -281,7 +281,6 @@ class ClosedBridgeAutomation {
             }
             
             if (!emailInput) {
-                await this.takeScreenshot(`email_field_not_found_${Date.now()}`);
                 throw new Error('Could not find email input field');
             }
 
@@ -299,8 +298,6 @@ class ClosedBridgeAutomation {
             
         } catch (error) {
             console.error('❌ Email entry failed:', error.message);
-            // Take screenshot for debugging
-            await this.takeScreenshot(`email_entry_failed_${Date.now()}`);
             throw error;
         }
     }
@@ -349,8 +346,6 @@ class ClosedBridgeAutomation {
             }
             
             if (!nextButton) {
-                // Take screenshot for debugging
-                await this.takeScreenshot(`next_button_not_found_${Date.now()}`);
                 throw new Error('Could not find Next button with any selector');
             }
 
@@ -364,7 +359,6 @@ class ClosedBridgeAutomation {
             
         } catch (error) {
             console.error('❌ Next button click failed:', error.message);
-            await this.takeScreenshot(`next_click_failed_${Date.now()}`);
             throw error;
         }
     }
