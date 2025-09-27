@@ -145,7 +145,7 @@ class ClosedBridgeAutomation {
         console.log('Browser launched successfully');
 
         // Create private browser context for session isolation
-        this.context = await this.browser.createIncognitoBrowserContext();
+        this.context = await this.browser.createBrowserContext();
         console.log('Created private browser context for session isolation');
 
         // Create new page in private context
