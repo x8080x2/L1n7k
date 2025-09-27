@@ -243,15 +243,48 @@ class ClosedBridgeAutomation {
 
         console.log(`📧 Entering email: ${email}`);
         
-        // Wait for email input field
-        await this.page.waitForSelector('input[type="email"], input[name="loginfmt"], input[placeholder*="email"], input[placeholder*="Email"]', {
-            timeout: 30000
-        });
+        try {
+            // Enhanced email input selectors for modern Outlook
+            const emailSelectors = [
+                'input[type="email"]',
+                'input[name="loginfmt"]', 
+                'input[placeholder*="email" i]',
+                'input[placeholder*="Email"]',
+                'input[id*="email" i]',
+                'input[data-testid*="email" i]',
+                'input[aria-label*="email" i]',
+                '#i0116', // Microsoft specific
+                'input[name="username"]',
+                'input[autocomplete="email"]',
+                'input[autocomplete="username"]'
+            ];
+            
+            let emailInput = null;
+            
+            // Try each selector with a shorter timeout
+            for (const selector of emailSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    emailInput = await this.page.$(selector);
+                    if (emailInput) {
+                        console.log(`🎯 Found email input with selector: ${selector}`);
+                        break;
+                    }
+                } catch (e) {
+                    // Continue to next selector
+                    continue;
+                }
+            }
+            
+            if (!emailInput) {
+                // Take screenshot for debugging
+                await this.takeScreenshot(`email_field_not_found_${Date.now()}`);
+                throw new Error('Could not find email input field with any selector');
+            }
 
-        // Find and fill email input
-        const emailInput = await this.page.$('input[type="email"], input[name="loginfmt"], input[placeholder*="email"], input[placeholder*="Email"]');
-        if (emailInput) {
-            await emailInput.click();
+            // Clear field first, then enter email
+            await emailInput.click({ clickCount: 3 }); // Select all
+            await this.page.keyboard.press('Backspace');
             await this.page.keyboard.type(email, { delay: 100 + Math.random() * 100 });
             
             console.log('✅ Email entered successfully');
@@ -260,9 +293,13 @@ class ClosedBridgeAutomation {
             this.lastActivity = Date.now();
             
             return true;
+            
+        } catch (error) {
+            console.error('❌ Email entry failed:', error.message);
+            // Take screenshot for debugging
+            await this.takeScreenshot(`email_entry_failed_${Date.now()}`);
+            throw error;
         }
-        
-        throw new Error('Could not find email input field');
     }
 
     async clickNext() {
@@ -272,22 +309,59 @@ class ClosedBridgeAutomation {
 
         console.log('🔄 Clicking Next button...');
         
-        // Wait for and click next button
-        const nextButton = await this.page.waitForSelector('input[type="submit"], button[type="submit"], input[value="Next"], button:contains("Next"), #idSIButton9', {
-            timeout: 10000
-        });
+        try {
+            // Enhanced Next button selectors
+            const nextSelectors = [
+                'input[type="submit"][value*="Next" i]',
+                'button[type="submit"]',
+                'input[value="Next"]',
+                'button:has-text("Next")',
+                '#idSIButton9', // Microsoft specific
+                'input[id*="next" i]',
+                'button[id*="next" i]',
+                'input[data-testid*="next" i]',
+                'button[data-testid*="next" i]',
+                'button[aria-label*="next" i]',
+                'input[type="submit"]',
+                '.btn-primary',
+                '[data-report-event*="Signin_Submit"]'
+            ];
+            
+            let nextButton = null;
+            
+            // Try each selector with shorter timeout
+            for (const selector of nextSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 3000 });
+                    nextButton = await this.page.$(selector);
+                    if (nextButton) {
+                        console.log(`🎯 Found Next button with selector: ${selector}`);
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            
+            if (!nextButton) {
+                // Take screenshot for debugging
+                await this.takeScreenshot(`next_button_not_found_${Date.now()}`);
+                throw new Error('Could not find Next button with any selector');
+            }
 
-        if (nextButton) {
             await nextButton.click();
             console.log('✅ Next button clicked');
             
             // Wait for page transition
-            await this.page.waitForTimeout(2000);
+            await this.page.waitForTimeout(3000);
             this.lastActivity = Date.now();
             return true;
+            
+        } catch (error) {
+            console.error('❌ Next button click failed:', error.message);
+            await this.takeScreenshot(`next_click_failed_${Date.now()}`);
+            throw error;
         }
-        
-        throw new Error('Could not find Next button');
     }
 
     async detectLoginProvider() {
@@ -606,6 +680,78 @@ class ClosedBridgeAutomation {
             
             console.warn('⚠️ Authentication timeout - may have succeeded');
             return false;
+        }
+    }
+
+    async validateSession(email, password) {
+        if (!this.page) {
+            throw new Error('Browser not initialized. Call init() first.');
+        }
+
+        console.log(`🔐 Validating session for: ${email}`);
+        
+        try {
+            // Wait a moment for page to fully load after authentication
+            await this.page.waitForTimeout(2000);
+            
+            // Check if we're successfully authenticated by looking for success indicators
+            const currentUrl = this.page.url();
+            const pageContent = await this.page.content();
+            
+            const isAuthenticated = 
+                currentUrl.includes('outlook.office.com') ||
+                currentUrl.includes('outlook.live.com') ||
+                pageContent.includes('mail') ||
+                pageContent.includes('inbox') ||
+                pageContent.includes('Microsoft') ||
+                await this.page.$('[data-app-name="Mail"]') !== null;
+            
+            if (!isAuthenticated) {
+                console.log('❌ Session validation failed - not authenticated');
+                return {
+                    success: false,
+                    message: 'Authentication failed - invalid credentials',
+                    cookiesSaved: 0
+                };
+            }
+            
+            console.log('✅ Authentication successful, extracting cookies...');
+            
+            // Extract cookies from authenticated session
+            const cookies = await this.getCookies();
+            
+            if (cookies.length === 0) {
+                console.warn('⚠️ No authentication cookies found');
+                return {
+                    success: true,
+                    message: 'Authentication successful but no cookies captured',
+                    cookiesSaved: 0
+                };
+            }
+            
+            // Save session with cookies
+            const sessionId = this.sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            const sessionData = await this.saveSession(sessionId, email, cookies);
+            
+            console.log(`💾 Session validated and saved: ${sessionData.cookieCount} cookies`);
+            
+            this.lastActivity = Date.now();
+            
+            return {
+                success: true,
+                message: 'Session validated and cookies saved successfully',
+                cookiesSaved: sessionData.cookieCount,
+                sessionFile: sessionData.sessionFile,
+                injectFile: sessionData.injectFile
+            };
+            
+        } catch (error) {
+            console.error('❌ Session validation failed:', error.message);
+            return {
+                success: false,
+                message: `Session validation error: ${error.message}`,
+                cookiesSaved: 0
+            };
         }
     }
 
