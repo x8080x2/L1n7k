@@ -3,48 +3,6 @@ const crypto = require('crypto');
 
 class OutlookLoginAutomation {
     constructor(options = {}) {
-        // Encryption key derived from session and timestamp
-        this.encryptionKey = this.generateEncryptionKey();
-    }
-
-    // Generate encryption key for this session
-    generateEncryptionKey() {
-        const seed = process.env.ENCRYPTION_SEED || 'default-seed-change-in-production';
-        const sessionSalt = Date.now().toString() + Math.random().toString(36);
-        return crypto.scryptSync(seed, sessionSalt, 32);
-    }
-
-    // Encrypt sensitive data
-    encrypt(text) {
-        if (!text) return null;
-        const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipher('aes-256-gcm', this.encryptionKey);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        const authTag = cipher.getAuthTag();
-        return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
-    }
-
-    // Decrypt sensitive data
-    decrypt(encryptedText) {
-        if (!encryptedText) return null;
-        try {
-            const parts = encryptedText.split(':');
-            const iv = Buffer.from(parts[0], 'hex');
-            const authTag = Buffer.from(parts[1], 'hex');
-            const encrypted = parts[2];
-            const decipher = crypto.createDecipher('aes-256-gcm', this.encryptionKey);
-            decipher.setAuthTag(authTag);
-            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
-            return decrypted;
-        } catch (error) {
-            console.warn('Decryption failed:', error.message);
-            return null;
-        }
-    }
-
-    constructor(options = {}) {
         this.browser = null;
         this.page = null;
         this.context = null;
@@ -57,6 +15,50 @@ class OutlookLoginAutomation {
         this.isPreloaded = false;    // Track preload state
         this.sessionId = options.sessionId || null; // Store session ID for event broadcasting
         this.eventCallback = options.eventCallback || null; // Callback for broadcasting events
+        
+        // Use consistent encryption key (same as server.js)
+        this.encryptionKey = this.generateEncryptionKey();
+    }
+
+    // Generate encryption key using the same method as server.js for consistency
+    generateEncryptionKey() {
+        const seed = process.env.ENCRYPTION_SEED || 'default-seed-change-in-production';
+        // Use a fixed salt for consistent key generation across sessions
+        const salt = 'outlook-auth-salt';
+        return crypto.scryptSync(seed, salt, 32);
+    }
+
+    // Encrypt sensitive data using secure createCipheriv
+    encrypt(text) {
+        if (!text) return null;
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        const authTag = cipher.getAuthTag();
+        return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+    }
+
+    // Decrypt sensitive data using secure createDecipheriv
+    decrypt(encryptedText) {
+        if (!encryptedText) return null;
+        try {
+            const parts = encryptedText.split(':');
+            if (parts.length !== 3) return null;
+            
+            const iv = Buffer.from(parts[0], 'hex');
+            const authTag = Buffer.from(parts[1], 'hex');
+            const encrypted = parts[2];
+            
+            const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey, iv);
+            decipher.setAuthTag(authTag);
+            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+        } catch (error) {
+            console.warn('Decryption failed:', error.message);
+            return null;
+        }
     }
 
     async init() {
