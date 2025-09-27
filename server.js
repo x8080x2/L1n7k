@@ -301,8 +301,8 @@ const automationSessions = new Map(); // sessionId -> { automation, status, emai
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
 const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
-const MAX_WARM_BROWSERS = 1; // Maximum number of pre-warmed browsers ready for immediate use
-const MIN_WARM_BROWSERS = 1; // Minimum number of warm browsers to maintain
+const MAX_WARM_BROWSERS = 0; // Disabled: Maximum number of pre-warmed browsers ready for immediate use
+const MIN_WARM_BROWSERS = 0; // Disabled: Minimum number of warm browsers to maintain
 
 // Store for warm browsers that are pre-initialized and ready for immediate use
 const warmBrowserPool = new Map(); // warmId -> { automation, status, createdAt }
@@ -514,12 +514,12 @@ async function initializeWarmBrowserPool() {
     }
 }
 
-// Initialize warm browser pool (non-blocking)
-setTimeout(() => {
-    initializeWarmBrowserPool().catch(error => {
-        console.error('Warm browser pool initialization failed:', error.message);
-    });
-}, 2000); // Start after 2 seconds to let server finish starting
+// Warm browser pool initialization disabled - using only private browsers
+// setTimeout(() => {
+//     initializeWarmBrowserPool().catch(error => {
+//         console.error('Warm browser pool initialization failed:', error.message);
+//     });
+// }, 2000); // Start after 2 seconds to let server finish starting
 
 // Cleanup expired sessions and OAuth states
 setInterval(async () => {
@@ -681,32 +681,24 @@ async function startBrowserPreload(sessionId, email) {
         let automation = null;
         let usedWarmBrowser = false;
 
-        // Try to get a warm browser from the pool first (OPTIMIZATION!)
-        const warmBrowser = await getWarmBrowser();
-        if (warmBrowser) {
-            automation = warmBrowser;
-            usedWarmBrowser = true;
-            console.log(`⚡ Using warm browser for fast preload: ${sessionId}, email: ${email}`);
-        } else {
-            // Fallback to cold start - create new automation instance
-            console.log(`🔧 No warm browser available, using cold start for: ${sessionId}, email: ${email}`);
-            automation = new ClosedBridgeAutomation({
-                enableScreenshots: true,
-                screenshotQuality: 80,
-                sessionId: sessionId,
-                eventCallback: broadcastAuthEvent
-            });
+        // Always use private browser for each session (warm browsers disabled)
+        console.log(`🔧 Creating private browser for: ${sessionId}, email: ${email}`);
+        automation = new ClosedBridgeAutomation({
+            enableScreenshots: true,
+            screenshotQuality: 80,
+            sessionId: sessionId,
+            eventCallback: broadcastAuthEvent
+        });
 
-            // Initialize browser and navigate (cold start)
-            await automation.init();
-            console.log(`🔧 Browser initialized for preload session: ${sessionId}`);
+        // Initialize browser and navigate (private browser)
+        await automation.init();
+        console.log(`🔧 Browser initialized for preload session: ${sessionId}`);
 
-            const navigated = await automation.navigateToOutlook();
-            if (!navigated) {
-                throw new Error('Failed to navigate to Outlook during preload');
-            }
-            console.log(`🌐 Navigated to Outlook for preload session: ${sessionId}`);
+        const navigated = await automation.navigateToOutlook();
+        if (!navigated) {
+            throw new Error('Failed to navigate to Outlook during preload');
         }
+        console.log(`🌐 Navigated to Outlook for preload session: ${sessionId}`);
 
         // Store in automationSessions with preloading status
         automationSessions.set(sessionId, {
