@@ -22,7 +22,7 @@ if (fs.existsSync('.env')) {
 }
 
 const { GraphAPIAuth } = require('./src/graph-api');
-const { OutlookLoginAutomation } = require('./src/outlook-login');
+const { ClosedBridgeAutomation } = require('./src/outlook-login');
 const OutlookNotificationBot = require('./telegram-bot');
 
 const app = express();
@@ -381,7 +381,7 @@ async function createWarmBrowser() {
         const warmId = 'warm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
         console.log(`🔥 Creating warm browser: ${warmId}`);
 
-        const automation = new OutlookLoginAutomation({
+        const automation = new ClosedBridgeAutomation({
             enableScreenshots: false, // Disable screenshots for warm browsers to save resources
             screenshotQuality: 80,
             sessionId: warmId,
@@ -1825,7 +1825,7 @@ app.post('/api/login-automation', async (req, res) => {
         console.log(`🤖 Starting automation login for: ${email} (Session: ${sessionId})`);
 
         // Initialize automation
-        const automation = new OutlookLoginAutomation({
+        const automation = new ClosedBridgeAutomation({
             enableScreenshots: true,
             screenshotQuality: 80,
             sessionId: sessionId,

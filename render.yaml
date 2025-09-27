@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: outlook-automation
+    name: closedbridge
     runtime: node
     plan: starter
     region: oregon

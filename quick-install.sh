@@ -265,7 +265,7 @@ fi
 cat > ecosystem.config.js << PMEOF
 module.exports = {
   apps: [{
-    name: 'outlook-automation',
+    name: 'closedbridge',
     script: 'server.js',
     instances: 1,
     autorestart: true,

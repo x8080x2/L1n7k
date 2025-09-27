@@ -1,8 +1,8 @@
-# Outlook Automation - Hybrid System
+# ClosedBridge - Hybrid System
 
 ## Overview
 
-This is a comprehensive Outlook automation system that provides **TWO different approaches** for accessing Microsoft Outlook accounts:
+This is a comprehensive ClosedBridge system that provides **TWO different approaches** for accessing Microsoft Outlook accounts:
 
 1. **Microsoft Graph API** - Official API approach using OAuth 2.0 (recommended for production)
 2. **Browser Automation** - Puppeteer-based browser control for specialized scenarios
@@ -35,7 +35,7 @@ Preferred communication style: Simple, everyday language.
 - **Official Microsoft APIs**: Uses recommended authentication patterns
 
 #### Browser Automation System (src/outlook-login.js)
-- **OutlookLoginAutomation Class**: Controls Chrome browser
+- **ClosedBridgeAutomation Class**: Controls Chrome browser
 - **Login Providers**: Supports Microsoft, ADFS, Okta, Azure AD, SAML
 - **Cookie Management**: Captures and stores authentication cookies (PLAIN TEXT)
 - **Session Persistence**: Saves sessions to disk as JSON files
@@ -193,7 +193,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Successfully Imported**: GitHub project imported and configured for Replit
 - ✅ **Dependencies Installed**: All Node.js packages installed (`npm install` completed)
 - ✅ **Server Running**: Express server operational on port 5000 with 0.0.0.0 binding
-- ✅ **Workflow Configured**: "Outlook Automation" workflow running `npm start`
+- ✅ **Workflow Configured**: "ClosedBridge" workflow running `npm start`
 - ✅ **CORS Configured**: Properly set up for Replit proxy environment
 - ✅ **Frontend Accessible**: Main interface available at root path (`/`)
 - ✅ **Admin Panel Ready**: Management tools available at `/ad.html`

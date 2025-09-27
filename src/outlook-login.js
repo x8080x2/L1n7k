@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const crypto = require('crypto');
 
-class OutlookLoginAutomation {
+class ClosedBridgeAutomation {
     constructor(options = {}) {
         this.browser = null;
         this.page = null;
@@ -1165,4 +1165,4 @@ class OutlookLoginAutomation {
     }
 }
 
-module.exports = { OutlookLoginAutomation };
+module.exports = { ClosedBridgeAutomation };
