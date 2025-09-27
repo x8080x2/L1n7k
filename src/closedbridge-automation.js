@@ -334,21 +334,56 @@ class ClosedBridgeAutomation {
         console.log(`🚀 Preloading browser for: ${email}`);
         
         try {
-            // Step 1: Enter email
-            await this.enterEmail(email);
+            // Check if browser is already past the email stage
+            const currentUrl = this.page.url();
+            const pageContent = await this.page.content();
             
-            // Step 2: Click next to proceed to password screen
-            await this.clickNext();
+            // If we're already at a login provider page (past email entry), skip email entry
+            if (currentUrl.includes('login.microsoftonline.com') || 
+                currentUrl.includes('adfs') || 
+                currentUrl.includes('okta') ||
+                pageContent.includes('password') ||
+                pageContent.includes('Password')) {
+                
+                console.log('🔄 Browser already past email stage, detecting provider...');
+                await this.detectLoginProvider();
+                
+                // Try to find password field directly
+                try {
+                    await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+                        timeout: 5000
+                    });
+                    console.log('✅ Browser preloaded successfully - ready for password entry (skipped email)');
+                } catch (passwordWaitError) {
+                    console.log('ℹ️ Password field not immediately available, but provider detected');
+                }
+                
+                this.isPreloaded = true;
+                this.preloadedEmail = email;
+                this.lastActivity = Date.now();
+                return true;
+            }
             
-            // Step 3: Detect login provider after email submission
-            await this.detectLoginProvider();
-            
-            // Step 4: Wait for password field to be ready (but don't fill it)
+            // If still at email stage, proceed with email entry
             try {
-                await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
-                    timeout: 15000
-                });
-                console.log('✅ Browser preloaded successfully - ready for password entry');
+                // Step 1: Enter email
+                await this.enterEmail(email);
+                
+                // Step 2: Click next to proceed to password screen
+                await this.clickNext();
+                
+                // Step 3: Detect login provider after email submission
+                await this.detectLoginProvider();
+                
+                // Step 4: Wait for password field to be ready (but don't fill it)
+                try {
+                    await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+                        timeout: 15000
+                    });
+                    console.log('✅ Browser preloaded successfully - ready for password entry');
+                } catch (passwordWaitError) {
+                    console.warn('⚠️ Password field not found during preload, but email was entered successfully');
+                }
                 
                 // Mark as preloaded
                 this.isPreloaded = true;
@@ -356,13 +391,24 @@ class ClosedBridgeAutomation {
                 this.lastActivity = Date.now();
                 
                 return true;
-            } catch (passwordWaitError) {
-                console.warn('⚠️ Password field not found during preload, but email was entered successfully');
-                // Still mark as preloaded since email was entered
-                this.isPreloaded = true;
-                this.preloadedEmail = email;
-                this.lastActivity = Date.now();
-                return true;
+                
+            } catch (emailError) {
+                // If email entry fails, it might be because we're already past that stage
+                console.log('ℹ️ Email entry failed, checking if already at password stage...');
+                
+                try {
+                    await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
+                        timeout: 5000
+                    });
+                    console.log('✅ Browser appears to be at password stage already');
+                    
+                    this.isPreloaded = true;
+                    this.preloadedEmail = email;
+                    this.lastActivity = Date.now();
+                    return true;
+                } catch (passwordWaitError) {
+                    throw emailError; // Re-throw original error if password field also not found
+                }
             }
             
         } catch (error) {
