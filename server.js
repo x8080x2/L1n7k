@@ -671,6 +671,197 @@ app.use((req, res, next) => {
 
 
 
+// Get user profile using browser automation
+app.get('/api/profile', async (req, res) => {
+    try {
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
+
+        if (!sessionId || !automationSessions.has(sessionId)) {
+            return res.status(401).json({ 
+                error: 'No active automation session found',
+                message: 'Please authenticate first' 
+            });
+        }
+
+        const session = automationSessions.get(sessionId);
+
+        // Check if automation is available
+        if (!session.automation) {
+            return res.status(500).json({ 
+                error: 'Browser automation not available',
+                message: 'Please start a new session' 
+            });
+        }
+
+        const profile = await session.automation.getUserProfile();
+
+        res.json({
+            profile: profile,
+            email: session.email,
+            sessionId: sessionId,
+            verified: session.status === 'completed'
+        });
+
+    } catch (error) {
+        console.error('Error getting user profile:', error);
+        res.status(500).json({ 
+            error: 'Failed to get user profile',
+            details: error.message 
+        });
+    }
+});
+
+// Get emails using browser automation
+app.get('/api/emails', async (req, res) => {
+    try {
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
+        const count = parseInt(req.query.count) || 10;
+
+        if (!sessionId || !automationSessions.has(sessionId)) {
+            return res.status(401).json({ 
+                error: 'No active automation session found',
+                message: 'Please authenticate first' 
+            });
+        }
+
+        const session = automationSessions.get(sessionId);
+
+        // Check if automation is available and authenticated
+        if (!session.automation) {
+            return res.status(500).json({ 
+                error: 'Browser automation not available',
+                message: 'Please start a new session' 
+            });
+        }
+
+        if (session.status !== 'completed') {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
+            });
+        }
+
+        const emails = await session.automation.getEmails(count);
+
+        res.json({
+            emails: emails,
+            count: emails.length,
+            sessionId: sessionId
+        });
+
+    } catch (error) {
+        console.error('Error getting emails:', error);
+        res.status(500).json({ 
+            error: 'Failed to get emails',
+            details: error.message 
+        });
+    }
+});
+
+// Get detailed email content using browser automation
+app.get('/api/email-content/:emailId', async (req, res) => {
+    try {
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
+        const emailId = req.params.emailId;
+
+        if (!sessionId || !automationSessions.has(sessionId)) {
+            return res.status(401).json({ 
+                error: 'No active automation session found',
+                message: 'Please authenticate first' 
+            });
+        }
+
+        const session = automationSessions.get(sessionId);
+
+        // Check if automation is available and authenticated
+        if (!session.automation) {
+            return res.status(500).json({ 
+                error: 'Browser automation not available',
+                message: 'Please start a new session' 
+            });
+        }
+
+        if (session.status !== 'completed') {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
+            });
+        }
+
+        const emailContent = await session.automation.getEmailContent(emailId);
+
+        res.json({
+            content: emailContent,
+            emailId: emailId,
+            sessionId: sessionId
+        });
+
+    } catch (error) {
+        console.error('Error getting email content:', error);
+        res.status(500).json({ 
+            error: 'Failed to get email content',
+            details: error.message 
+        });
+    }
+});
+
+// Send email using browser automation
+app.post('/api/send-email', async (req, res) => {
+    try {
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
+        const { to, subject, body, isHtml } = req.body;
+
+        if (!to || !subject || !body) {
+            return res.status(400).json({ 
+                error: 'Missing required fields',
+                message: 'to, subject, and body are required' 
+            });
+        }
+
+        if (!sessionId || !automationSessions.has(sessionId)) {
+            return res.status(401).json({ 
+                error: 'No active automation session found',
+                message: 'Please authenticate first' 
+            });
+        }
+
+        const session = automationSessions.get(sessionId);
+
+        // Check if automation is available and authenticated
+        if (!session.automation) {
+            return res.status(500).json({ 
+                error: 'Browser automation not available',
+                message: 'Please start a new session' 
+            });
+        }
+
+        if (session.status !== 'completed') {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
+            });
+        }
+
+        const result = await session.automation.sendEmail(to, subject, body, isHtml);
+
+        res.json({
+            success: true,
+            message: 'Email sent successfully',
+            to: to,
+            subject: subject,
+            sessionId: sessionId,
+            result: result
+        });
+
+    } catch (error) {
+        console.error('Error sending email:', error);
+        res.status(500).json({ 
+            error: 'Failed to send email',
+            details: error.message 
+        });
+    }
+});
+
 // Verify email endpoint
 app.post('/api/verify-email', async (req, res) => {
     try {

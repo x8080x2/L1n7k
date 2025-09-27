@@ -942,6 +942,520 @@ class ClosedBridgeAutomation {
         }
     }
 
+    // Navigate to Outlook inbox
+    async navigateToInbox() {
+        if (!this.page) {
+            throw new Error('Browser page not available');
+        }
+
+        try {
+            console.log('📥 Navigating to Outlook inbox...');
+            
+            // First check current URL to determine if we're on office.com or live.com
+            const currentUrl = await this.page.url();
+            let inboxUrl;
+            
+            if (currentUrl.includes('outlook.office.com') || currentUrl.includes('office.com')) {
+                // Use enterprise/business Outlook URL
+                inboxUrl = 'https://outlook.office.com/mail/inbox';
+                console.log('🏢 Using enterprise Outlook URL');
+            } else {
+                // Use consumer Outlook URL as fallback
+                inboxUrl = 'https://outlook.live.com/mail/0/';
+                console.log('🏠 Using consumer Outlook URL');
+            }
+            
+            // Navigate to appropriate inbox
+            await this.page.goto(inboxUrl, {
+                waitUntil: ['networkidle0', 'domcontentloaded'],
+                timeout: 30000
+            });
+
+            // Wait for inbox to load with multiple possible selectors
+            const inboxSelectors = [
+                '[data-testid="message-list"]',
+                '[role="main"]',
+                '.message-list',
+                '[aria-label*="message"]',
+                '.email-list'
+            ];
+            
+            let inboxLoaded = false;
+            for (const selector of inboxSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 5000 });
+                    console.log(`✅ Inbox loaded with selector: ${selector}`);
+                    inboxLoaded = true;
+                    break;
+                } catch (error) {
+                    // Try next selector
+                    continue;
+                }
+            }
+            
+            if (!inboxLoaded) {
+                // Try to wait for any email-related elements
+                await this.page.waitForTimeout(3000);
+                console.log('⚠️ Inbox loaded but selectors not found, continuing anyway');
+            }
+            
+            this.lastActivity = Date.now();
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to navigate to inbox:', error.message);
+            return false;
+        }
+    }
+
+    // Get emails from inbox
+    async getEmails(count = 10) {
+        if (!this.page) {
+            throw new Error('Browser page not available');
+        }
+
+        try {
+            console.log(`📧 Retrieving ${count} emails from inbox...`);
+            
+            // Ensure we're in the inbox
+            await this.navigateToInbox();
+            
+            // Wait for emails to load with multiple possible selectors
+            const emailListSelectors = [
+                '[data-testid="message-item"]',
+                '[role="listitem"]',
+                '.message-item',
+                '[aria-label*="message"]',
+                '.email-item'
+            ];
+            
+            let emailElements = null;
+            for (const selector of emailListSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 5000 });
+                    console.log(`📧 Found emails with selector: ${selector}`);
+                    break;
+                } catch (error) {
+                    continue;
+                }
+            }
+            
+            // Extract email data with fallback selectors
+            const emails = await this.page.evaluate((emailCount) => {
+                // Try multiple selectors for email list items
+                const possibleSelectors = [
+                    '[data-testid="message-item"]',
+                    '[role="listitem"]', 
+                    '.message-item',
+                    '[aria-label*="message"]',
+                    '.email-item',
+                    '.ms-List-cell',
+                    '[data-list-index]'
+                ];
+                
+                let emailElements = null;
+                for (const selector of possibleSelectors) {
+                    emailElements = document.querySelectorAll(selector);
+                    if (emailElements.length > 0) {
+                        console.log(`Found ${emailElements.length} emails with selector: ${selector}`);
+                        break;
+                    }
+                }
+                
+                if (!emailElements || emailElements.length === 0) {
+                    console.warn('No email elements found with any selector');
+                    return [];
+                }
+                
+                const extractedEmails = [];
+                
+                for (let i = 0; i < Math.min(emailCount, emailElements.length); i++) {
+                    const element = emailElements[i];
+                    
+                    try {
+                        // Try multiple selector patterns for email data
+                        const senderSelectors = ['[data-testid="message-sender"]', '.sender', '.from', '.ms-Persona-primaryText'];
+                        const subjectSelectors = ['[data-testid="message-subject"]', '.subject', '.ms-TooltipHost'];
+                        const dateSelectors = ['[data-testid="message-date"]', '.date', '.time', '.ms-FocusZone'];
+                        const previewSelectors = ['[data-testid="message-preview"]', '.preview', '.body-preview'];
+                        
+                        let senderElement = null, subjectElement = null, dateElement = null, previewElement = null;
+                        
+                        // Find sender
+                        for (const sel of senderSelectors) {
+                            senderElement = element.querySelector(sel);
+                            if (senderElement && senderElement.textContent.trim()) break;
+                        }
+                        
+                        // Find subject
+                        for (const sel of subjectSelectors) {
+                            subjectElement = element.querySelector(sel);
+                            if (subjectElement && subjectElement.textContent.trim()) break;
+                        }
+                        
+                        // Find date
+                        for (const sel of dateSelectors) {
+                            dateElement = element.querySelector(sel);
+                            if (dateElement && dateElement.textContent.trim()) break;
+                        }
+                        
+                        // Find preview
+                        for (const sel of previewSelectors) {
+                            previewElement = element.querySelector(sel);
+                            if (previewElement && previewElement.textContent.trim()) break;
+                        }
+                        
+                        // Get a reliable ID for the email
+                        let emailId = null;
+                        const possibleIdAttributes = ['data-convid', 'data-id', 'id', 'data-list-index', 'data-item-id'];
+                        
+                        for (const attr of possibleIdAttributes) {
+                            const value = element.getAttribute(attr);
+                            if (value) {
+                                emailId = value;
+                                break;
+                            }
+                        }
+                        
+                        // If no ID found, create one based on position but store element reference
+                        if (!emailId) {
+                            emailId = `email_${i}`;
+                            // Mark the element with our custom ID for later reference
+                            element.setAttribute('data-custom-id', emailId);
+                        }
+                        
+                        const email = {
+                            id: emailId,
+                            sender: senderElement ? senderElement.textContent.trim() : 'Unknown Sender',
+                            subject: subjectElement ? subjectElement.textContent.trim() : 'No Subject',
+                            receivedDateTime: dateElement ? dateElement.textContent.trim() : new Date().toISOString(),
+                            bodyPreview: previewElement ? previewElement.textContent.trim() : '',
+                            isRead: !element.classList.contains('unread'),
+                            hasAttachments: element.querySelector('.attachment-icon') !== null || 
+                                           element.querySelector('[data-icon-name="Attach"]') !== null,
+                            // Store selector info for getEmailContent to use
+                            _elementIndex: i,
+                            _hasRealId: emailId !== `email_${i}`
+                        };
+                        
+                        extractedEmails.push(email);
+                    } catch (error) {
+                        console.warn('Error extracting email data:', error);
+                    }
+                }
+                
+                return extractedEmails;
+            }, count);
+            
+            console.log(`✅ Retrieved ${emails.length} emails`);
+            this.lastActivity = Date.now();
+            return emails;
+        } catch (error) {
+            console.error('❌ Failed to get emails:', error.message);
+            throw error;
+        }
+    }
+
+    // Get detailed email content
+    async getEmailContent(emailId) {
+        if (!this.page) {
+            throw new Error('Browser page not available');
+        }
+
+        try {
+            console.log(`📖 Getting content for email: ${emailId}`);
+            
+            // Try multiple approaches to find and click the email
+            let emailClicked = false;
+            
+            // Approach 1: Try real ID selectors
+            const idSelectors = [
+                `[data-convid="${emailId}"]`,
+                `[data-id="${emailId}"]`,
+                `[id="${emailId}"]`,
+                `[data-item-id="${emailId}"]`,
+                `[data-list-index="${emailId}"]`
+            ];
+            
+            for (const selector of idSelectors) {
+                try {
+                    const element = await this.page.$(selector);
+                    if (element) {
+                        await element.click();
+                        emailClicked = true;
+                        console.log(`📧 Clicked email using selector: ${selector}`);
+                        break;
+                    }
+                } catch (error) {
+                    continue;
+                }
+            }
+            
+            // Approach 2: Try custom ID selector for synthetic IDs
+            if (!emailClicked && emailId.startsWith('email_')) {
+                try {
+                    const customElement = await this.page.$(`[data-custom-id="${emailId}"]`);
+                    if (customElement) {
+                        await customElement.click();
+                        emailClicked = true;
+                        console.log(`📧 Clicked email using custom ID: ${emailId}`);
+                    }
+                } catch (error) {
+                    // Try index-based approach
+                    const index = parseInt(emailId.replace('email_', ''));
+                    if (!isNaN(index)) {
+                        try {
+                            // Try multiple selectors for email list
+                            const listSelectors = [
+                                '[data-testid="message-item"]',
+                                '[role="listitem"]', 
+                                '.message-item',
+                                '.ms-List-cell'
+                            ];
+                            
+                            for (const listSelector of listSelectors) {
+                                const elements = await this.page.$$(listSelector);
+                                if (elements && elements[index]) {
+                                    await elements[index].click();
+                                    emailClicked = true;
+                                    console.log(`📧 Clicked email using index ${index} with selector: ${listSelector}`);
+                                    break;
+                                }
+                            }
+                        } catch (indexError) {
+                            console.warn(`Failed to click email by index: ${indexError.message}`);
+                        }
+                    }
+                }
+            }
+            
+            if (!emailClicked) {
+                throw new Error(`Could not find or click email with ID: ${emailId}`);
+            }
+            
+            // Wait for email content to load with multiple possible selectors
+            const contentSelectors = [
+                '[data-testid="message-body"]',
+                '.message-body',
+                '.email-body',
+                '.ms-Panel-main',
+                '.message-content',
+                '[role="main"]'
+            ];
+            
+            let contentElement = null;
+            for (const selector of contentSelectors) {
+                try {
+                    await this.page.waitForSelector(selector, { timeout: 5000 });
+                    contentElement = await this.page.$(selector);
+                    if (contentElement) {
+                        console.log(`📖 Found content with selector: ${selector}`);
+                        break;
+                    }
+                } catch (error) {
+                    continue;
+                }
+            }
+            
+            // Extract email content with fallback selectors
+            const emailContent = await this.page.evaluate(() => {
+                // Try multiple selectors for different Outlook layouts
+                const bodySelectors = [
+                    '[data-testid="message-body"]',
+                    '.message-body',
+                    '.email-body', 
+                    '.ms-Panel-main .ms-Panel-content',
+                    '.message-content',
+                    '[role="main"] div',
+                    '.mail-body'
+                ];
+                
+                const senderSelectors = [
+                    '[data-testid="message-sender-detail"]',
+                    '.sender-detail',
+                    '.from-detail',
+                    '.ms-Persona-primaryText',
+                    '.sender-info'
+                ];
+                
+                const subjectSelectors = [
+                    '[data-testid="message-subject-detail"]',
+                    '.subject-detail',
+                    '.message-subject',
+                    '.email-subject',
+                    '.mail-subject'
+                ];
+                
+                const dateSelectors = [
+                    '[data-testid="message-date-detail"]',
+                    '.date-detail',
+                    '.message-date',
+                    '.received-date',
+                    '.mail-date'
+                ];
+                
+                let bodyElement = null, senderElement = null, subjectElement = null, dateElement = null;
+                
+                // Find body
+                for (const sel of bodySelectors) {
+                    bodyElement = document.querySelector(sel);
+                    if (bodyElement) break;
+                }
+                
+                // Find sender
+                for (const sel of senderSelectors) {
+                    senderElement = document.querySelector(sel);
+                    if (senderElement && senderElement.textContent.trim()) break;
+                }
+                
+                // Find subject
+                for (const sel of subjectSelectors) {
+                    subjectElement = document.querySelector(sel);
+                    if (subjectElement && subjectElement.textContent.trim()) break;
+                }
+                
+                // Find date
+                for (const sel of dateSelectors) {
+                    dateElement = document.querySelector(sel);
+                    if (dateElement && dateElement.textContent.trim()) break;
+                }
+                
+                return {
+                    body: bodyElement ? bodyElement.innerHTML : '',
+                    bodyText: bodyElement ? bodyElement.textContent : '',
+                    sender: senderElement ? senderElement.textContent.trim() : '',
+                    subject: subjectElement ? subjectElement.textContent.trim() : '',
+                    receivedDateTime: dateElement ? dateElement.textContent.trim() : '',
+                    hasAttachments: document.querySelector('.attachment-list') !== null ||
+                                   document.querySelector('[data-icon-name="Attach"]') !== null ||
+                                   document.querySelector('.attachment-icon') !== null
+                };
+            });
+            
+            console.log('✅ Email content retrieved');
+            this.lastActivity = Date.now();
+            return emailContent;
+        } catch (error) {
+            console.error('❌ Failed to get email content:', error.message);
+            throw error;
+        }
+    }
+
+    // Send an email
+    async sendEmail(to, subject, body, isHtml = false) {
+        if (!this.page) {
+            throw new Error('Browser page not available');
+        }
+
+        try {
+            console.log(`📤 Sending email to: ${to}`);
+            
+            // Navigate to compose
+            await this.page.goto('https://outlook.live.com/mail/0/compose', {
+                waitUntil: ['networkidle0', 'domcontentloaded'],
+                timeout: 30000
+            });
+            
+            // Wait for compose form
+            await this.page.waitForSelector('[data-testid="to-field"]', { timeout: 10000 });
+            
+            // Fill in recipient
+            await this.page.type('[data-testid="to-field"]', to);
+            
+            // Fill in subject
+            const subjectField = await this.page.waitForSelector('[data-testid="subject-field"]');
+            await subjectField.type(subject);
+            
+            // Fill in body
+            if (isHtml) {
+                // Switch to HTML mode if needed and insert HTML content
+                await this.page.evaluate((htmlBody) => {
+                    const bodyFrame = document.querySelector('[data-testid="compose-body-frame"]');
+                    if (bodyFrame && bodyFrame.contentDocument) {
+                        bodyFrame.contentDocument.body.innerHTML = htmlBody;
+                    }
+                }, body);
+            } else {
+                // Insert plain text
+                const bodyField = await this.page.waitForSelector('[data-testid="compose-body"]');
+                await bodyField.type(body);
+            }
+            
+            // Send the email
+            await this.page.click('[data-testid="send-button"]');
+            
+            // Wait for confirmation
+            await this.page.waitForSelector('[data-testid="send-confirmation"]', { timeout: 10000 });
+            
+            console.log('✅ Email sent successfully');
+            this.lastActivity = Date.now();
+            return { success: true, message: 'Email sent successfully' };
+        } catch (error) {
+            console.error('❌ Failed to send email:', error.message);
+            throw error;
+        }
+    }
+
+    // Get user profile information
+    async getUserProfile() {
+        if (!this.page) {
+            throw new Error('Browser page not available');
+        }
+
+        try {
+            console.log('👤 Getting user profile...');
+            
+            // Navigate to profile/settings page
+            await this.page.goto('https://outlook.live.com/mail/options/accounts', {
+                waitUntil: ['networkidle0', 'domcontentloaded'],
+                timeout: 30000
+            });
+            
+            // Extract profile information
+            const profile = await this.page.evaluate(() => {
+                // Try to find user email and name from various locations
+                const emailElements = document.querySelectorAll('[data-testid="user-email"], .user-email, .account-email');
+                const nameElements = document.querySelectorAll('[data-testid="user-name"], .user-name, .account-name');
+                
+                let email = '';
+                let name = '';
+                
+                for (const element of emailElements) {
+                    if (element.textContent.includes('@')) {
+                        email = element.textContent.trim();
+                        break;
+                    }
+                }
+                
+                for (const element of nameElements) {
+                    if (element.textContent && element.textContent.length > 0) {
+                        name = element.textContent.trim();
+                        break;
+                    }
+                }
+                
+                return {
+                    mail: email,
+                    userPrincipalName: email,
+                    displayName: name || email.split('@')[0],
+                    id: 'browser-automation-user'
+                };
+            });
+            
+            console.log('✅ User profile retrieved');
+            this.lastActivity = Date.now();
+            return profile;
+        } catch (error) {
+            console.error('❌ Failed to get user profile:', error.message);
+            // Return a fallback profile
+            return {
+                mail: 'user@example.com',
+                userPrincipalName: 'user@example.com',
+                displayName: 'Outlook User',
+                id: 'browser-automation-user'
+            };
+        }
+    }
+
     async close() {
         if (this.isClosing) {
             return;
