@@ -200,14 +200,40 @@ class ClosedBridgeAutomation {
             throw new Error('Browser not initialized. Call init() first.');
         }
 
-        console.log('Navigating to Outlook...');
-        await this.page.goto('https://outlook.live.com/owa/', {
-            waitUntil: 'networkidle0',
-            timeout: 60000
-        });
+        try {
+            console.log('Navigating to Outlook...');
+            
+            // Check if page is still attached before navigation
+            if (this.page.isClosed()) {
+                throw new Error('Page is already closed before navigation');
+            }
+            
+            await this.page.goto('https://outlook.live.com/owa/', {
+                waitUntil: 'networkidle0',
+                timeout: 60000
+            });
 
-        console.log('Successfully navigated to Outlook');
-        this.lastActivity = Date.now();
+            // Check if page is still attached after navigation
+            if (this.page.isClosed()) {
+                throw new Error('Page was closed during navigation');
+            }
+
+            console.log('Successfully navigated to Outlook');
+            this.lastActivity = Date.now();
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Navigation to Outlook failed:', error.message);
+            
+            // Provide more specific error information
+            if (error.message.includes('frame was detached') || 
+                error.message.includes('Target closed') ||
+                error.message.includes('Session closed')) {
+                throw new Error(`Browser frame detached during navigation: ${error.message}`);
+            }
+            
+            throw error;
+        }
     }
 
     async enterEmail(email) {
