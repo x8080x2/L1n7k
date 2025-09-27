@@ -1890,12 +1890,9 @@ Status: ${data.status}`);
             }
         }
 
-        // Initialize domain rotation and browser preparation on page load
+        // Initialize domain rotation on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadDomainRotationConfig();
-            
-            // Prepare browser automatically when email page loads
-            prepareEmailPageBrowser();
         });
 
     </script>

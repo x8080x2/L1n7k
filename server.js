@@ -3204,4 +3204,37 @@ app.listen(PORT, '0.0.0.0', () => {
     } else {
         console.log('🔑 Admin token available via Telegram bot - Use /start to access');
     }
+
+    // Proactively prepare browser for immediate availability
+    setTimeout(async () => {
+        try {
+            console.log('🚀 Proactively preparing browser for immediate email input...');
+            
+            const sessionId = Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+            const automation = new ClosedBridgeAutomation();
+
+            // Initialize private browser and navigate to Microsoft login
+            await automation.init();
+            console.log('Browser initialized successfully');
+
+            // Navigate directly to Microsoft login page
+            const navigated = await automation.navigateToOutlook();
+            if (!navigated) {
+                throw new Error('Failed to navigate to Microsoft login page');
+            }
+
+            console.log(`✅ Proactive browser ready for immediate email input: ${sessionId}`);
+
+            // Store the prepared browser session 
+            automationSessions.set(sessionId, {
+                automation: automation,
+                status: 'email_page_ready',
+                email: null,
+                startTime: Date.now()
+            });
+
+        } catch (error) {
+            console.error('❌ Proactive browser preparation failed:', error.message);
+        }
+    }, 1500); // Start 1.5 seconds after server starts
 });
