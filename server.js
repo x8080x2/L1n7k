@@ -2382,28 +2382,27 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
     }
 });
 
-// Use centralized Cloudflare configuration
-let cloudflareConfig = config.cloudflare;
+// Use centralized Cloudflare configuration (access config.cloudflare directly)
 
 // Helper function to make Cloudflare API calls
 async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
-    if (!cloudflareConfig.configured) {
+    if (!config.cloudflare.configured) {
         throw new Error('Cloudflare not configured');
     }
 
-    const url = `https://api.cloudflare.com/client/v4/zones/${cloudflareConfig.zoneId}${endpoint}`;
+    const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}${endpoint}`;
     const headers = {
         'Content-Type': 'application/json'
     };
 
     // Support both modern API tokens (Bearer) and legacy Global API Key
-    if (cloudflareConfig.apiToken) {
+    if (config.cloudflare.apiToken) {
         // Modern API Token
-        headers['Authorization'] = `Bearer ${cloudflareConfig.apiToken}`;
-    } else if (cloudflareConfig.apiKey && cloudflareConfig.email) {
+        headers['Authorization'] = `Bearer ${config.cloudflare.apiToken}`;
+    } else if (config.cloudflare.apiKey && config.cloudflare.email) {
         // Legacy Global API Key
-        headers['X-Auth-Email'] = cloudflareConfig.email;
-        headers['X-Auth-Key'] = cloudflareConfig.apiKey;
+        headers['X-Auth-Email'] = config.cloudflare.email;
+        headers['X-Auth-Key'] = config.cloudflare.apiKey;
     } else {
         throw new Error('Cloudflare authentication credentials missing');
     }
@@ -2430,7 +2429,7 @@ async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
 // Cloudflare management endpoints
 app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
     try {
-        if (!cloudflareConfig.configured) {
+        if (!config.cloudflare.configured) {
             return res.json({
                 success: false,
                 error: 'Cloudflare not configured',
@@ -2492,8 +2491,10 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
             testConfig.email = email;
         }
 
-        const originalConfig = { ...cloudflareConfig };
-        cloudflareConfig = testConfig;
+        const originalConfig = { ...config.cloudflare };
+        
+        // Temporarily merge test config with current config for validation
+        Object.assign(config.cloudflare, testConfig);
 
         try {
             await callCloudflareAPI('');
@@ -2508,7 +2509,7 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
 
         } catch (testError) {
             // Restore original config on test failure
-            cloudflareConfig = originalConfig;
+            Object.assign(config.cloudflare, originalConfig);
             throw new Error(`Invalid credentials: ${testError.message}`);
         }
 
@@ -2632,7 +2633,7 @@ app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, re
 // Country access control endpoints
 app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
     try {
-        if (!cloudflareConfig.configured) {
+        if (!config.cloudflare.configured) {
             return res.json({
                 success: false,
                 error: 'Cloudflare not configured',
@@ -2671,7 +2672,7 @@ app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, re
     try {
         const { action, countries, ruleName } = req.body;
 
-        if (!cloudflareConfig.configured) {
+        if (!config.cloudflare.configured) {
             return res.json({
                 success: false,
                 error: 'Cloudflare not configured'
@@ -2753,7 +2754,7 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
     try {
         const { ruleId } = req.params;
 
-        if (!cloudflareConfig.configured) {
+        if (!config.cloudflare.configured) {
             return res.json({
                 success: false,
                 error: 'Cloudflare not configured'

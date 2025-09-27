@@ -135,7 +135,16 @@ class Config {
         if (fs.existsSync(configFile)) {
             try {
                 const savedConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-                return { ...defaultConfig, ...savedConfig };
+                const config = { ...defaultConfig, ...savedConfig };
+                
+                if (config.configured) {
+                    console.log('🌤️ Cloudflare configuration loaded from file');
+                    if (config.apiKey) {
+                        console.log('✅ Global API Key authentication configured');
+                    }
+                }
+                
+                return config;
             } catch (error) {
                 console.warn('⚠️ Error loading Cloudflare config:', error.message);
             }
