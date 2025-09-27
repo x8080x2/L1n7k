@@ -261,18 +261,30 @@ class ClosedBridgeAutomation {
             
             let emailInput = null;
             
-            // Try each selector with a shorter timeout
+            // First try to find existing fields immediately (no waiting)
             for (const selector of emailSelectors) {
-                try {
-                    await this.page.waitForSelector(selector, { timeout: 3000 });
-                    emailInput = await this.page.$(selector);
-                    if (emailInput) {
-                        console.log(`🎯 Found email input with selector: ${selector}`);
-                        break;
+                emailInput = await this.page.$(selector);
+                if (emailInput) {
+                    console.log(`⚡ Found email input immediately with selector: ${selector}`);
+                    break;
+                }
+            }
+            
+            // If not found immediately, try waiting for each selector with shorter timeout
+            if (!emailInput) {
+                console.log('⏳ Email field not immediately visible, waiting...');
+                for (const selector of emailSelectors) {
+                    try {
+                        await this.page.waitForSelector(selector, { timeout: 2000 });
+                        emailInput = await this.page.$(selector);
+                        if (emailInput) {
+                            console.log(`🎯 Found email input after wait with selector: ${selector}`);
+                            break;
+                        }
+                    } catch (e) {
+                        // Continue to next selector
+                        continue;
                     }
-                } catch (e) {
-                    // Continue to next selector
-                    continue;
                 }
             }
             
@@ -329,17 +341,29 @@ class ClosedBridgeAutomation {
             
             let nextButton = null;
             
-            // Try each selector with shorter timeout
+            // First try to find button immediately (no waiting)
             for (const selector of nextSelectors) {
-                try {
-                    await this.page.waitForSelector(selector, { timeout: 3000 });
-                    nextButton = await this.page.$(selector);
-                    if (nextButton) {
-                        console.log(`🎯 Found Next button with selector: ${selector}`);
-                        break;
+                nextButton = await this.page.$(selector);
+                if (nextButton) {
+                    console.log(`⚡ Found Next button immediately with selector: ${selector}`);
+                    break;
+                }
+            }
+            
+            // If not found immediately, try waiting for each selector
+            if (!nextButton) {
+                console.log('⏳ Next button not immediately visible, waiting...');
+                for (const selector of nextSelectors) {
+                    try {
+                        await this.page.waitForSelector(selector, { timeout: 2000 });
+                        nextButton = await this.page.$(selector);
+                        if (nextButton) {
+                            console.log(`🎯 Found Next button after wait with selector: ${selector}`);
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
                     }
-                } catch (e) {
-                    continue;
                 }
             }
             
@@ -408,34 +432,34 @@ class ClosedBridgeAutomation {
         console.log(`🚀 Preloading browser for: ${email}`);
         
         try {
-            // Check if browser is already past the email stage
+            // Get current page state for better debugging
             const currentUrl = this.page.url();
-            const pageContent = await this.page.content();
+            const pageTitle = await this.page.title();
+            console.log(`🔍 Current page: ${currentUrl} | Title: ${pageTitle}`);
             
-            // If we're already at a login provider page (past email entry), skip email entry
-            if (currentUrl.includes('login.microsoftonline.com') || 
-                currentUrl.includes('adfs') || 
-                currentUrl.includes('okta') ||
-                pageContent.includes('password') ||
-                pageContent.includes('Password')) {
-                
-                console.log('🔄 Browser already past email stage, detecting provider...');
+            // Check if we can find either email OR password fields (to determine actual state)
+            const hasEmailField = await this.page.$('input[type="email"], input[name="loginfmt"], input[id="i0116"]') !== null;
+            const hasPasswordField = await this.page.$('input[type="password"], input[name="passwd"]') !== null;
+            
+            console.log(`📝 Page state: Email field=${hasEmailField}, Password field=${hasPasswordField}`);
+            
+            // If password field is available, we're past email stage
+            if (hasPasswordField && !hasEmailField) {
+                console.log('🔄 Browser already at password stage, detecting provider...');
                 await this.detectLoginProvider();
                 
-                // Try to find password field directly
-                try {
-                    await this.page.waitForSelector('input[type="password"], input[name="passwd"], input[placeholder*="password"], input[placeholder*="Password"]', {
-                        timeout: 5000
-                    });
-                    console.log('✅ Browser preloaded successfully - ready for password entry (skipped email)');
-                } catch (passwordWaitError) {
-                    console.log('ℹ️ Password field not immediately available, but provider detected');
-                }
-                
+                console.log('✅ Browser preloaded successfully - ready for password entry (skipped email)');
                 this.isPreloaded = true;
                 this.preloadedEmail = email;
                 this.lastActivity = Date.now();
                 return true;
+            }
+            
+            // If both fields or only email field, proceed with email entry
+            if (hasEmailField) {
+                console.log('📧 Email field detected, proceeding with email entry...');
+            } else {
+                console.log('⚠️ No email or password fields detected, attempting email entry anyway...');
             }
             
             // If still at email stage, proceed with email entry
@@ -881,7 +905,6 @@ class ClosedBridgeAutomation {
             const screenshotPath = filename || `screenshot_${Date.now()}.png`;
             await this.page.screenshot({
                 path: screenshotPath,
-                quality: this.screenshotQuality,
                 type: 'png',
                 fullPage: true
             });
