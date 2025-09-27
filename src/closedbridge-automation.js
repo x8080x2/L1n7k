@@ -244,8 +244,9 @@ class ClosedBridgeAutomation {
         console.log(`📧 Entering email: ${email}`);
         
         try {
-            // Enhanced email input selectors for modern Outlook
+            // Enhanced email input selectors for modern Outlook (2024-2025)
             const emailSelectors = [
+                // Standard email selectors
                 'input[type="email"]',
                 'input[name="loginfmt"]', 
                 'input[placeholder*="email" i]',
@@ -253,10 +254,40 @@ class ClosedBridgeAutomation {
                 'input[id*="email" i]',
                 'input[data-testid*="email" i]',
                 'input[aria-label*="email" i]',
-                '#i0116', // Microsoft specific
+                
+                // Microsoft specific selectors (historical and current)
+                '#i0116', // Classic Microsoft signin
                 'input[name="username"]',
                 'input[autocomplete="email"]',
-                'input[autocomplete="username"]'
+                'input[autocomplete="username"]',
+                
+                // Modern Microsoft authentication selectors
+                'input[data-report-event*="Signin_Email"]',
+                'input[aria-describedby*="emailError"]',
+                'input[aria-describedby*="usernameError"]',
+                'input[role="textbox"][type="email"]',
+                'input[role="textbox"][autocomplete="email"]',
+                
+                // Generic fallbacks for various auth providers
+                'input[type="text"][placeholder*="email" i]',
+                'input[type="text"][placeholder*="@"]',
+                'input[type="text"][name*="email" i]',
+                'input[type="text"][name*="user" i]',
+                'input[type="text"][id*="user" i]',
+                'input[inputmode="email"]',
+                
+                // React/Angular/Vue component selectors
+                '[data-cy="email"]',
+                '[data-cy="username"]',
+                '[test-id="email"]',
+                '[test-id="username"]',
+                
+                // Common authentication provider patterns
+                'input[name="identifier"]', // Google-style
+                'input[name="email_or_username"]', // Mixed providers
+                'input[class*="email" i]',
+                'input[class*="signin" i]',
+                'input[class*="login" i]'
             ];
             
             let emailInput = null;
@@ -289,6 +320,36 @@ class ClosedBridgeAutomation {
             }
             
             if (!emailInput) {
+                // Enhanced debugging - get page info before failing
+                console.log('🔍 Email field not found, analyzing page structure...');
+                
+                try {
+                    // Get all input elements on the page for debugging
+                    const allInputs = await this.page.evaluate(() => {
+                        const inputs = Array.from(document.querySelectorAll('input'));
+                        return inputs.map(input => ({
+                            type: input.type || 'text',
+                            name: input.name || '',
+                            id: input.id || '',
+                            placeholder: input.placeholder || '',
+                            className: input.className || '',
+                            'aria-label': input.getAttribute('aria-label') || '',
+                            autocomplete: input.autocomplete || '',
+                            'data-testid': input.getAttribute('data-testid') || '',
+                            visible: !input.hidden && input.offsetParent !== null
+                        }));
+                    });
+                    
+                    console.log('📋 All input elements found on page:', JSON.stringify(allInputs, null, 2));
+                    
+                    // Get page URL and title for context
+                    const pageInfo = await this.getPageInfo();
+                    console.log('🌐 Page context:', pageInfo);
+                    
+                } catch (debugError) {
+                    console.warn('⚠️ Debug info collection failed:', debugError.message);
+                }
+                
                 // Take screenshot for debugging
                 await this.takeScreenshot(`email_field_not_found_${Date.now()}`);
                 throw new Error('Could not find email input field with any selector');
