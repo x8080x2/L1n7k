@@ -28,8 +28,39 @@ const OutlookNotificationBot = require('./telegram-bot');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Auto-generate encryption seed if not provided
+function generateEncryptionSeed() {
+    // Try to load existing seed from file first
+    const seedFile = path.join(__dirname, '.encryption-seed');
+    
+    if (fs.existsSync(seedFile)) {
+        try {
+            const existingSeed = fs.readFileSync(seedFile, 'utf8').trim();
+            if (existingSeed && existingSeed.length >= 32) {
+                console.log('🔐 Using existing encryption seed from file');
+                return existingSeed;
+            }
+        } catch (error) {
+            console.warn('⚠️ Error reading existing seed file:', error.message);
+        }
+    }
+    
+    // Generate new secure seed
+    const newSeed = crypto.randomBytes(32).toString('hex');
+    
+    try {
+        fs.writeFileSync(seedFile, newSeed, 'utf8');
+        console.log('🔑 Generated new encryption seed and saved to file');
+    } catch (error) {
+        console.warn('⚠️ Could not save seed to file:', error.message);
+    }
+    
+    return newSeed;
+}
+
 // Encryption configuration
-const ENCRYPTION_KEY = crypto.scryptSync(process.env.ENCRYPTION_SEED || 'default-app-seed', 'salt', 32);
+const ENCRYPTION_SEED = process.env.ENCRYPTION_SEED || generateEncryptionSeed();
+const ENCRYPTION_KEY = crypto.scryptSync(ENCRYPTION_SEED, 'salt', 32);
 
 // Utility functions for encryption
 function encryptData(text) {
