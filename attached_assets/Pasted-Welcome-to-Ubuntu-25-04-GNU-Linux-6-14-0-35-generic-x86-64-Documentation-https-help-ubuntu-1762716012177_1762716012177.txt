@@ -1,0 +1,125 @@
+Welcome to Ubuntu 25.04 (GNU/Linux 6.14.0-35-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun Nov  9 19:18:17 UTC 2025
+
+  System load:  0.08               Processes:             122
+  Usage of /:   20.9% of 23.10GB   Users logged in:       1
+  Memory usage: 34%                IPv4 address for eth0: 167.71.165.86
+  Swap usage:   0%                 IPv4 address for eth0: 10.17.0.5
+
+52 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+New release '25.10' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# # Stop the running app
+pm2 delete closedbridge
+
+# Delete the old directory
+rm -rf /root/closedbridge
+
+# Clone fresh from GitHub
+cd /root
+git clone https://github.com/x8080x2/L1n7k.git closedbridge
+cd closedbridge
+
+# Install packages
+npm install
+
+# Add your Telegram token to .env
+nano .env
+# Add this line: TELEGRAM_BOT_TOKEN=8390642583:AAEFrtZP8uQQUXB1vPX-As-J-Pv8INN4k54
+
+# Start with PM2
+pm2 start server.js --name closedbridge
+pm2 save
+pm2 logs closedbridge
+[PM2] Applying action deleteProcessId on app [closedbridge](ids: [ 0 ])
+[PM2] [closedbridge](0) ✓
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Cloning into 'closedbridge'...
+remote: Enumerating objects: 3387, done.
+remote: Counting objects: 100% (858/858), done.
+remote: Compressing objects: 100% (408/408), done.
+remote: Total 3387 (delta 565), reused 734 (delta 449), pack-reused 2529 (from 1)
+Receiving objects: 100% (3387/3387), 22.59 MiB | 26.22 MiB/s, done.
+Resolving deltas: 100% (2100/2100), done.
+npm warn deprecated har-validator@5.1.5: this library is no longer supported
+npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+
+added 320 packages, and audited 321 packages in 31s
+
+84 packages are looking for funding
+  run `npm fund` for details
+
+6 vulnerabilities (4 moderate, 2 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+[PM2] Starting /root/closedbridge/server.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 12144    │ 0s     │ 0    │ online    │ 0%       │ 16.3mb   │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 15 lines for [closedbridge] process (change the value with --lines option)
+/root/.pm2/logs/closedbridge-error.log last 15 lines:
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Error during cleanup: Connection closed.
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Browser preload error for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Browser preload failed for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Failed to prepare browser for email page: Page.addScriptToEvaluateOnNewDocument timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.
+0|closedbr | ❌ Browser preload error for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Browser preload failed for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+
+/root/.pm2/logs/closedbridge-out.log last 15 lines:
+0|closedbr | 📊 Starting with fresh analytics data
+0|closedbr | 🚀 Browser Automation Backend running on port 3000
+0|closedbr | 🤖 Browser automation endpoints available at http://localhost:3000/api/
+0|closedbr | 🌐 Frontend available at http://localhost:3000/
+0|closedbr | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbr | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbr | ⚡ Fast mode: Browsers launch on-demand only
+0|closedbr | ✅ Environment variables loaded from .env file
+0|closedbr | 🔑 Generated new encryption seed and saved to file
+0|closedbr | 🌤️ Cloudflare configuration loaded from file
+0|closedbr | ✅ Global API Key authentication configured
+0|closedbr | 🌤️ Cloudflare configuration loaded from file
+0|closedbr | ✅ Global API Key authentication configured
+0|closedbr | 🎨 Background URL configuration loaded from file
+0|closedbr | ✅ Configuration initialized successfully
+
+0|closedbridge  | 🔐 Using existing encryption seed from file
+0|closedbridge  | 📋 Loaded 2 subscription(s) from persistent storage
+0|closedbridge  | 🚀 Outlook Notification Bot initialized successfully
+0|closedbridge  | 🤖 Telegram Bot initialized successfully
+0|closedbridge  | 📊 Starting with fresh analytics data
+0|closedbridge  | 🚀 Browser Automation Backend running on port 3000
+0|closedbridge  | 🤖 Browser automation endpoints available at http://localhost:3000/api/
+0|closedbridge  | 🌐 Frontend available at http://localhost:3000/
+0|closedbridge  | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbridge  | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbridge  | ⚡ Fast mode: Browsers launch on-demand only
