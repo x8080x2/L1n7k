@@ -210,7 +210,7 @@ class Config {
             console.error('❌ Failed to save redirect configuration:', error.message);
             throw error;
         }
-    },
+    }
 
     // Save background URL configuration to file
     saveBackgroundUrl(backgroundUrl) {
@@ -224,7 +224,7 @@ class Config {
             console.error('❌ Failed to save background URL configuration:', error.message);
             throw error;
         }
-    },
+    }
 
     // Load background URL configuration from file
     loadBackgroundConfig() {
