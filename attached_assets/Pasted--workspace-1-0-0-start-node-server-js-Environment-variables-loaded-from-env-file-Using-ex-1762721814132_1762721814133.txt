@@ -1,0 +1,67 @@
+
+> workspace@1.0.0 start
+> node server.js
+
+✅ Environment variables loaded from .env file
+🔐 Using existing encryption seed from file
+🌤️ Cloudflare configuration loaded from file
+✅ Global API Key authentication configured
+🌤️ Cloudflare configuration loaded from file
+✅ Global API Key authentication configured
+🎨 Background URL configuration loaded from file
+⚠️ TELEGRAM_BOT_TOKEN not configured - Telegram notifications disabled
+ 🔐 Using existing encryption seed from file
+⚠️ Telegram bot token not configured - notifications disabled
+📊 Loaded analytics from file: { totalLogins: 0, successfulLogins: 0, failedLogins: 22 }
+🚀 Browser Automation Backend running on port 5000
+🌐 Frontend available at http://localhost:5000/
+🔧 Admin panel available at http://localhost:5000/ad.html
+❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications
+⚡ Fast mode: Browsers launch on-demand only
+Raw Microsoft discovery response for jaco@smei.co.za: {
+  ver: '1.0',
+  account_type: 'Managed',
+  domain_name: 'smei.co.za',
+  cloud_instance_name: 'microsoftonline.com',
+  cloud_audience_urn: 'urn:federation:MicrosoftOnline'
+}
+✅ Email verification passed for: jaco@smei.co.za (Account type: Managed)
+🚀 Attempting FAST authentication for: jaco@smei.co.za (attempt: 1)
+📋 Added password to queue for jaco@smei.co.za (total queued: 1)
+⚡ Attempt 1 for jaco@smei.co.za - showing wrong password message
+⚙️ Processing password attempt 1 for jaco@smei.co.za
+❄️ [PASSWORD ATTEMPT 1] Starting COLD START browser for jaco@smei.co.za
+🆕 [PASSWORD ATTEMPT 1] New session ID: 1762721768955_s34t1
+🔧 [PASSWORD ATTEMPT 1] Initializing browser...
+Using system Chromium: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium-browser
+Launching browser...
+💾 Analytics saved to file
+Browser launched successfully
+❌ Failed to create incognito browser context: this.browser.createIncognitoBrowserContext is not a function
+❌❌❌ [PASSWORD ATTEMPT 1] Error during password attempt for jaco@smei.co.za: Incognito browser context creation failed: this.browser.createIncognitoBrowserContext is not a function
+📊 [PASSWORD ATTEMPT 1] Remaining passwords after error: 0
+🗑️  [PASSWORD ATTEMPT 1] Closing browser (no more passwords or browser closing)
+🔒 Closing browser automation...
+✅ Browser automation closed successfully
+🔚 [PASSWORD ATTEMPT 1] Last password failed, breaking loop
+✅ Password queue for jaco@smei.co.za is now empty and has been cleared.
+💾 Analytics saved to file
+🚀 Attempting FAST authentication for: jaco@smei.co.za (attempt: 2)
+📋 Added password to queue for jaco@smei.co.za (total queued: 1)
+⚡ Attempt 2 for jaco@smei.co.za - showing wrong password message
+⚙️ Processing password attempt 2 for jaco@smei.co.za
+❄️ [PASSWORD ATTEMPT 2] Starting COLD START browser for jaco@smei.co.za
+🆕 [PASSWORD ATTEMPT 2] New session ID: 1762721773723_gx0fh
+🔧 [PASSWORD ATTEMPT 2] Initializing browser...
+Using system Chromium: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium-browser
+Launching browser...
+💾 Analytics saved to file
+Browser launched successfully
+❌ Failed to create incognito browser context: this.browser.createIncognitoBrowserContext is not a function
+❌❌❌ [PASSWORD ATTEMPT 2] Error during password attempt for jaco@smei.co.za: Incognito browser context creation failed: this.browser.createIncognitoBrowserContext is not a function
+📊 [PASSWORD ATTEMPT 2] Remaining passwords after error: 0
+🗑️  [PASSWORD ATTEMPT 2] Closing browser (no more passwords or browser closing)
+🔒 Closing browser automation...
+✅ Browser automation closed successfully
+🔚 [PASSWORD ATTEMPT 2] Last password failed, breaking loop
+✅ Password queue for jaco@smei.co.za is now empty and has been cleared.
