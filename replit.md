@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Components
 - **Main Interface** (`/`): Microsoft-styled login supporting both authentication methods
+  - **Envelope Loading Animation**: Beautiful Outlook envelope animation that plays for 3 seconds when the page first loads, then smoothly transitions to the email input form
 - **Admin Panel** (`/ad.html`): System management and session monitoring
 - **Responsive Design**: Works on desktop and mobile
 
