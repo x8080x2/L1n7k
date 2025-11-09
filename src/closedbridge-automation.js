@@ -144,26 +144,26 @@ class ClosedBridgeAutomation {
             throw new Error(`Browser launch failed: ${launchError.message}`);
         }
 
-        // Create private browser context for session isolation
+        // Create INCOGNITO browser context for true private browsing
         try {
-            this.context = await this.browser.createBrowserContext();
-            console.log('Created private browser context for session isolation');
+            this.context = await this.browser.createIncognitoBrowserContext();
+            console.log('✅ Created INCOGNITO browser context (private browsing mode)');
         } catch (contextError) {
-            console.error('❌ Failed to create browser context:', contextError.message);
+            console.error('❌ Failed to create incognito browser context:', contextError.message);
             await this.browser.close().catch(() => {});
-            throw new Error(`Browser context creation failed: ${contextError.message}`);
+            throw new Error(`Incognito browser context creation failed: ${contextError.message}`);
         }
 
-        // Create new page in private context - MUST use context for privacy
+        // Create new page in INCOGNITO context - MUST use incognito for privacy
         try {
-            console.log('Creating new page in PRIVATE context...');
+            console.log('Creating new page in INCOGNITO context...');
             this.page = await this.context.newPage();
-            console.log('✅ New page created in PRIVATE context successfully');
+            console.log('✅ New page created in INCOGNITO context successfully');
         } catch (pageError) {
-            console.error('❌ Failed to create page in private context:', pageError.message);
-            // DO NOT fallback to non-private browser - privacy is mandatory
+            console.error('❌ Failed to create page in incognito context:', pageError.message);
+            // DO NOT fallback to non-incognito browser - privacy is mandatory
             await this.browser.close().catch(() => {});
-            throw new Error(`Private page creation failed: ${pageError.message}. Browser MUST remain private.`);
+            throw new Error(`Incognito page creation failed: ${pageError.message}. Browser MUST remain in incognito mode.`);
         }
 
         // Add stealth measures
