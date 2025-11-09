@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const crypto = require('crypto');
+const fs = require('fs');
 
 class ClosedBridgeAutomation {
     constructor(options = {}) {
@@ -18,6 +19,51 @@ class ClosedBridgeAutomation {
         
         // Use shared encryption utilities
         this.encryptionUtils = require('./encryption-utils');
+    }
+
+    findChromiumExecutable() {
+        // Check environment variable first (allows manual override)
+        if (process.env.CHROMIUM_PATH) {
+            if (fs.existsSync(process.env.CHROMIUM_PATH)) {
+                return process.env.CHROMIUM_PATH;
+            } else {
+                console.warn(`⚠️ CHROMIUM_PATH is set but not found: ${process.env.CHROMIUM_PATH}`);
+            }
+        }
+
+        // Common paths for different systems (Ubuntu/Debian, macOS, Windows)
+        const possiblePaths = [
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/snap/bin/chromium',
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+        ];
+
+        for (const path of possiblePaths) {
+            if (fs.existsSync(path)) {
+                return path;
+            }
+        }
+
+        // For Replit Nix environments, try to find chromium dynamically
+        if (fs.existsSync('/nix/store')) {
+            try {
+                const { execSync } = require('child_process');
+                const nixChromium = execSync('which chromium-browser 2>/dev/null || echo ""', { encoding: 'utf8' }).trim();
+                if (nixChromium && fs.existsSync(nixChromium)) {
+                    return nixChromium;
+                }
+            } catch (error) {
+                // Ignore errors, will fall through to Puppeteer auto-detect
+            }
+        }
+
+        // Return null to let Puppeteer auto-detect (uses bundled Chromium)
+        return null;
     }
 
 
@@ -65,18 +111,27 @@ class ClosedBridgeAutomation {
 
         const allArgs = [...baseArgs, ...stealthArgs];
 
-        const chromiumPath = process.env.CHROMIUM_PATH || '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium-browser';
-        console.log('Using system Chromium:', chromiumPath);
+        const chromiumPath = this.findChromiumExecutable();
+        if (chromiumPath) {
+            console.log('Using system Chromium:', chromiumPath);
+        } else {
+            console.log('Using Puppeteer auto-detected Chromium');
+        }
         console.log('Launching browser...');
 
-        this.browser = await puppeteer.launch({
+        const launchOptions = {
             headless: true,
-            executablePath: chromiumPath,
             args: allArgs,
             slowMo: 10 + Math.floor(Math.random() * 20),
             devtools: false,
             ignoreDefaultArgs: ['--enable-automation']
-        });
+        };
+
+        if (chromiumPath) {
+            launchOptions.executablePath = chromiumPath;
+        }
+
+        this.browser = await puppeteer.launch(launchOptions);
 
         console.log('Browser launched successfully');
 
