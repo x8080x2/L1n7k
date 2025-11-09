@@ -97,7 +97,12 @@ class ClosedBridgeAutomation {
             '--max_old_space_size=512',
             '--disable-background-timer-throttling',
             '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
+            '--disable-renderer-backgrounding',
+            '--disable-software-rasterizer',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--single-process',
+            '--no-zygote'
         ];
 
         // Add randomized stealth args
@@ -124,7 +129,9 @@ class ClosedBridgeAutomation {
             args: allArgs,
             slowMo: 10 + Math.floor(Math.random() * 20),
             devtools: false,
-            ignoreDefaultArgs: ['--enable-automation']
+            ignoreDefaultArgs: ['--enable-automation'],
+            timeout: 60000,
+            protocolTimeout: 60000
         };
 
         if (chromiumPath) {
