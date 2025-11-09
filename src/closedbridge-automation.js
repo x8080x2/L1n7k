@@ -129,9 +129,8 @@ class ClosedBridgeAutomation {
             args: allArgs,
             slowMo: 10 + Math.floor(Math.random() * 20),
             devtools: false,
-            ignoreDefaultArgs: ['--enable-automation'],
-            timeout: 60000,
-            protocolTimeout: 60000
+            ignoreDefaultArgs: ['--enable-automation']
+            
         };
 
         if (chromiumPath) {
