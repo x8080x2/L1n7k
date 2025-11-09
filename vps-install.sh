@@ -121,27 +121,16 @@ print_info "Installing Chromium browser..."
 apt install -y chromium-browser
 print_success "Chromium installed"
 
-# Install Chromium dependencies (handles both t64 and non-t64 versions)
+# Install Chromium dependencies (complete list for Ubuntu 22.04/24.04/25.04)
 print_info "Installing Chromium dependencies..."
 apt install -y \
-    libnss3-t64 \
-    libnspr4-t64 \
-    libatk1.0-t64 \
-    libatk-bridge2.0-t64 \
-    libcups2-t64 \
-    libdrm2-t64 \
-    libdbus-1-3-t64 \
-    libxkbcommon0-t64 \
-    libxcomposite1-t64 \
-    libxdamage1-t64 \
-    libxfixes3-t64 \
-    libxrandr2-t64 \
-    libgbm1-t64 \
-    libpango-1.0-0-t64 \
-    libcairo2-t64 \
-    libasound2-t64 \
-    libatspi2.0-0-t64 \
-    2>/dev/null || apt install -y \
+    chromium-codecs-ffmpeg \
+    fonts-liberation \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-thai-tlwg \
+    fonts-kacst \
+    fonts-freefont-ttf \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -158,7 +147,18 @@ apt install -y \
     libpango-1.0-0 \
     libcairo2 \
     libasound2 \
-    libatspi2.0-0
+    libatspi2.0-0 \
+    libappindicator3-1 \
+    libnss3-dev \
+    libgconf-2-4 \
+    libx11-xcb1 \
+    libxss1 \
+    libxtst6 \
+    libwayland-client0 \
+    libgtk-3-0 \
+    xdg-utils \
+    ca-certificates \
+    2>/dev/null || true
 
 print_success "Chromium dependencies installed"
 
