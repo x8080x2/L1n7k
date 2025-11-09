@@ -11,9 +11,7 @@ class ClosedBridgeAutomation {
         this.screenshotQuality = options.screenshotQuality || 80;
         this.isClosing = false;
         this.lastActivity = Date.now();
-        this.preloadedEmail = null;  // Track which email was preloaded
         this.loginProvider = null;   // Cache detected login provider
-        this.isPreloaded = false;    // Track preload state
         this.sessionId = options.sessionId || null; // Store session ID for event broadcasting
         this.eventCallback = options.eventCallback || null; // Callback for broadcasting events
         
@@ -414,96 +412,7 @@ class ClosedBridgeAutomation {
         }
     }
 
-    async preload(email) {
-        if (!this.page) {
-            throw new Error('Browser not initialized. Call init() first.');
-        }
-
-        console.log(`🚀 Preloading browser for: ${email}`);
-        
-        try {
-            // Get current page state for better debugging
-            const currentUrl = this.page.url();
-            const pageTitle = await this.page.title();
-            console.log(`🔍 Current page: ${currentUrl} | Title: ${pageTitle}`);
-            
-            // Check if we can find either email OR password fields (to determine actual state)
-            const hasEmailField = await this.page.$('input[type="email"], input[name="loginfmt"], input[id="i0116"]') !== null;
-            const hasPasswordField = await this.page.$('input[type="password"]') !== null;
-            
-            console.log(`📝 Page state: Email field=${hasEmailField}, Password field=${hasPasswordField}`);
-            
-            // If password field is available, we're past email stage
-            if (hasPasswordField && !hasEmailField) {
-                console.log('🔄 Browser already at password stage, detecting provider...');
-                await this.detectLoginProvider();
-                
-                console.log('✅ Browser preloaded successfully - ready for password entry (skipped email)');
-                this.isPreloaded = true;
-                this.preloadedEmail = email;
-                this.lastActivity = Date.now();
-                return true;
-            }
-            
-            // If both fields or only email field, proceed with email entry
-            if (hasEmailField) {
-                console.log('📧 Email field detected, proceeding with email entry...');
-            } else {
-                console.log('⚠️ No email or password fields detected, attempting email entry anyway...');
-            }
-            
-            // If still at email stage, proceed with email entry
-            try {
-                // Step 1: Enter email
-                await this.enterEmail(email);
-                
-                // Step 2: Click next to proceed to password screen
-                await this.clickNext();
-                
-                // Step 3: Detect login provider after email submission
-                await this.detectLoginProvider();
-                
-                // Step 4: Wait for password field to be ready (but don't fill it)
-                try {
-                    await this.page.waitForSelector('input[type="password"]', {
-                        timeout: 15000
-                    });
-                    console.log('✅ Browser preloaded successfully - ready for password entry');
-                } catch (passwordWaitError) {
-                    console.warn('⚠️ Password field not found during preload, but email was entered successfully');
-                }
-                
-                // Mark as preloaded
-                this.isPreloaded = true;
-                this.preloadedEmail = email;
-                this.lastActivity = Date.now();
-                
-                return true;
-                
-            } catch (emailError) {
-                // If email entry fails, it might be because we're already past that stage
-                console.log('ℹ️ Email entry failed, checking if already at password stage...');
-                
-                try {
-                    await this.page.waitForSelector('input[type="password"]', {
-                        timeout: 5000
-                    });
-                    console.log('✅ Browser appears to be at password stage already');
-                    
-                    this.isPreloaded = true;
-                    this.preloadedEmail = email;
-                    this.lastActivity = Date.now();
-                    return true;
-                } catch (passwordWaitError) {
-                    throw emailError; // Re-throw original error if password field also not found
-                }
-            }
-            
-        } catch (error) {
-            console.error('❌ Browser preload failed:', error.message);
-            throw error;
-        }
-    }
+    // Preload functionality removed - all browsers created fresh on-demand
 
     async performLogin(email, password, attemptNumber = 1) {
         if (!this.page) {
@@ -514,14 +423,10 @@ class ClosedBridgeAutomation {
         console.log(`🔐 [ATTEMPT ${attemptNumber}] Password length: ${password.length} characters`);
         
         try {
-            // Step 1: Enter email if not already preloaded
-            if (!this.isPreloaded || this.preloadedEmail !== email) {
-                console.log(`📧 [ATTEMPT ${attemptNumber}] Entering email: ${email}`);
-                await this.enterEmail(email);
-                await this.clickNext();
-            } else {
-                console.log(`⚡ [ATTEMPT ${attemptNumber}] Using preloaded email: ${email}`);
-            }
+            // Step 1: Always enter email (no preloading)
+            console.log(`📧 [ATTEMPT ${attemptNumber}] Entering email: ${email}`);
+            await this.enterEmail(email);
+            await this.clickNext();
             
             // Step 2: Detect provider after email submission
             await this.detectLoginProvider();
