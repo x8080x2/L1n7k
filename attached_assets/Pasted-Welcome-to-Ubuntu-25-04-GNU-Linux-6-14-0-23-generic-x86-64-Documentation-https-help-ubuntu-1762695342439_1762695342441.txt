@@ -1,0 +1,93 @@
+Welcome to Ubuntu 25.04 (GNU/Linux 6.14.0-23-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun Nov  9 13:34:29 UTC 2025
+
+  System load:  0.0                Processes:             111
+  Usage of /:   21.5% of 23.10GB   Users logged in:       1
+  Memory usage: 43%                IPv4 address for eth0: 167.71.165.86
+  Swap usage:   0%                 IPv4 address for eth0: 10.17.0.5
+
+52 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+New release '25.10' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+*** System restart required ***
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# cd /root/closedbridge
+git pull origin main
+pm2 restart closedbridge
+pm2 logs closedbridge --lines 20
+From https://github.com/x8080x2/L1n7k
+ * branch            main       -> FETCH_HEAD
+Updating 71c0369..f41aa16
+error: Your local changes to the following files would be overwritten by merge:
+        .env
+Please commit your changes or stash them before you merge.
+Aborting
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [closedbridge](ids: [ 0 ])
+[PM2] [closedbridge](0) ✓
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 159157   │ 0s     │ 3    │ online    │ 0%       │ 17.8mb   │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴─────────���┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[TAILING] Tailing last 20 lines for [closedbridge] process (change the value with --lines option)
+/root/.pm2/logs/closedbridge-out.log last 20 lines:
+0|closedbr | 🌤️ Cloudflare configuration loaded from file
+0|closedbr | ✅ Global API Key authentication configured
+0|closedbr | ✅ Configuration initialized successfully
+0|closedbr | 🔐 Using existing encryption seed from file
+0|closedbr | 📋 Loaded 1 subscription(s) from persistent storage
+0|closedbr | 🚀 Outlook Notification Bot initialized successfully
+0|closedbr | 🤖 Telegram Bot initialized successfully
+0|closedbr | 📊 Starting with fresh analytics data
+0|closedbr | 🚀 Browser Automation Backend running on port 5000
+0|closedbr | 🤖 Browser automation endpoints available at http://localhost:5000/api/
+0|closedbr | 🌐 Frontend available at http://localhost:5000/
+0|closedbr | 🔧 Admin panel available at http://localhost:5000/ad.html
+0|closedbr | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbr | 🚀 Proactively preparing browser for immediate email input...
+0|closedbr | Using system Chromium: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+0|closedbr | Launching browser...
+0|closedbr | 🧹 Cleaning up failed browser instance...
+0|closedbr | 🔒 Closing browser automation...
+0|closedbr | ✅ Browser automation closed successfully
+0|closedbr | ✅ Browser cleanup completed
+
+/root/.pm2/logs/closedbridge-error.log last 20 lines:
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser was not found at the configured executablePath (/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium)
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser was not found at the configured executablePath (/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium)
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser was not found at the configured executablePath (/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium)
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser was not found at the configured executablePath (/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium)
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser was not found at the configured executablePath (/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium)
+
+0|closedbridge  | ✅ Environment variables loaded from .env file
+0|closedbridge  | 🔐 Using existing encryption seed from file
+0|closedbridge  | 🌤️ Cloudflare configuration loaded from file
+0|closedbridge  | ✅ Global API Key authentication configured
+0|closedbridge  | ✅ Configuration initialized successfully
+0|closedbridge  | 🔐 Using existing encryption seed from file
+0|closedbridge  | 📋 Loaded 1 subscription(s) from persistent storage
+0|closedbridge  | 🚀 Outlook Notification Bot initialized successfully
+0|closedbridge  | 🤖 Telegram Bot initialized successfully
+0|closedbridge  | 📊 Starting with fresh analytics data
+0|closedbridge  | 🚀 Browser Automation Backend running on port 5000
+0|closedbridge  | 🤖 Browser automation endpoints available at http://localhost:5000/api/
+0|closedbridge  | 🌐 Frontend available at http://localhost:5000/
+0|closedbridge  | 🔧 Admin panel available at http://localhost:5000/ad.html
+0|closedbridge  | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbridge  | 🚀 Proactively preparing browser for immediate email input...
+0|closedbridge  | Using system Chromium: /nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium
+0|closedbridge  | Launching browser...
+0|closedbridge  | ⚠️ Proactive browser preparation failed (server continues normally): Browser was not found at the configured executablePath (/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium)
+0|closedbridge  | 🧹 Cleaning up failed browser instance...
+0|closedbridge  | 🔒 Closing browser automation...
+0|closedbridge  | ✅ Browser automation closed successfully
+0|closedbridge  | ✅ Browser cleanup completed
