@@ -137,17 +137,45 @@ class ClosedBridgeAutomation {
             launchOptions.executablePath = chromiumPath;
         }
 
-        this.browser = await puppeteer.launch(launchOptions);
-
-        console.log('Browser launched successfully');
+        try {
+            this.browser = await puppeteer.launch(launchOptions);
+            console.log('Browser launched successfully');
+        } catch (launchError) {
+            console.error('❌ Failed to launch browser:', launchError.message);
+            throw new Error(`Browser launch failed: ${launchError.message}`);
+        }
 
         // Create private browser context for session isolation
-        this.context = await this.browser.createBrowserContext();
-        console.log('Created private browser context for session isolation');
+        try {
+            this.context = await this.browser.createBrowserContext();
+            console.log('Created private browser context for session isolation');
+        } catch (contextError) {
+            console.error('❌ Failed to create browser context:', contextError.message);
+            await this.browser.close().catch(() => {});
+            throw new Error(`Browser context creation failed: ${contextError.message}`);
+        }
 
         // Create new page in private context
-        this.page = await this.context.newPage();
-        console.log('New page created in private context successfully');
+        try {
+            console.log('Creating new page in context...');
+            this.page = await this.context.newPage();
+            console.log('✅ New page created in private context successfully');
+        } catch (pageError) {
+            console.error('❌ Failed to create page in context:', pageError.message);
+            console.log('⚠️ Attempting fallback: creating page directly from browser...');
+            
+            // Fallback: try creating page directly from browser instead of context
+            try {
+                this.page = await this.browser.newPage();
+                console.log('✅ Fallback successful: page created directly from browser');
+                // Don't use context if it failed
+                this.context = null;
+            } catch (fallbackError) {
+                console.error('❌ Fallback also failed:', fallbackError.message);
+                await this.browser.close().catch(() => {});
+                throw new Error(`Page creation failed: ${pageError.message}`);
+            }
+        }
 
         // Add stealth measures
         await this.page.evaluateOnNewDocument(() => {
