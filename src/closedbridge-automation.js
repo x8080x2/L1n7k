@@ -966,11 +966,20 @@ class ClosedBridgeAutomation {
         }
 
         try {
-            // Ensure filename has .png extension
-            let screenshotPath = filename || `screenshot_${Date.now()}`;
-            if (!screenshotPath.endsWith('.png')) {
-                screenshotPath += '.png';
+            // Create ss folder if it doesn't exist
+            const ssDir = 'ss';
+            if (!fs.existsSync(ssDir)) {
+                fs.mkdirSync(ssDir, { recursive: true });
             }
+            
+            // Ensure filename has .png extension
+            let screenshotName = filename || `screenshot_${Date.now()}`;
+            if (!screenshotName.endsWith('.png')) {
+                screenshotName += '.png';
+            }
+            
+            // Save screenshot in ss folder
+            const screenshotPath = `${ssDir}/${screenshotName}`;
             
             await this.page.screenshot({
                 path: screenshotPath,
