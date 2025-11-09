@@ -144,7 +144,8 @@ class ClosedBridgeAutomation {
 
         // Create INCOGNITO browser context for true private browsing
         try {
-            this.context = await this.browser.createIncognitoBrowserContext();
+            // Use createBrowserContext() instead of deprecated createIncognitoBrowserContext()
+            this.context = await this.browser.createBrowserContext();
             console.log('✅ Created INCOGNITO browser context (private browsing mode)');
         } catch (contextError) {
             console.error('❌ Failed to create incognito browser context:', contextError.message);
