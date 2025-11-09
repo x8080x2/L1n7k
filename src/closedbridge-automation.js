@@ -65,12 +65,13 @@ class ClosedBridgeAutomation {
 
         const allArgs = [...baseArgs, ...stealthArgs];
 
-        console.log('Using system Chromium: /usr/bin/chromium-browser');
+        const chromiumPath = process.env.CHROMIUM_PATH || '/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium-browser';
+        console.log('Using system Chromium:', chromiumPath);
         console.log('Launching browser...');
 
         this.browser = await puppeteer.launch({
             headless: true,
-            executablePath: '/usr/bin/chromium-browser',
+            executablePath: chromiumPath,
             args: allArgs,
             slowMo: 10 + Math.floor(Math.random() * 20),
             devtools: false,
