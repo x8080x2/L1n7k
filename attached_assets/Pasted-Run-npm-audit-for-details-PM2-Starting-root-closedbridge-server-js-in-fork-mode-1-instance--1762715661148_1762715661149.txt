@@ -1,0 +1,56 @@
+Run `npm audit` for details.
+[PM2] Starting /root/closedbridge/server.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 11842    │ 0s     │ 0    │ online    │ 0%       │ 15.9mb   │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴─────────���┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 15 lines for [closedbridge] process (change the value with --lines option)
+/root/.pm2/logs/closedbridge-error.log last 15 lines:
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Error during cleanup: Connection closed.
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Browser preload error for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Browser preload failed for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Failed to prepare browser for email page: Page.addScriptToEvaluateOnNewDocument timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.
+0|closedbr | ❌ Browser preload error for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Browser preload failed for jaco@smei.co.za: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ⚠️ Proactive browser preparation failed (server continues normally): Browser init timeout
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+0|closedbr | ❌ Failed to prepare browser for email page: Timed out after 30000 ms while waiting for the WS endpoint URL to appear in stdout!
+
+/root/.pm2/logs/closedbridge-out.log last 15 lines:
+0|closedbr | 📊 Starting with fresh analytics data
+0|closedbr | 🚀 Browser Automation Backend running on port 3000
+0|closedbr | 🤖 Browser automation endpoints available at http://localhost:3000/api/
+0|closedbr | 🌐 Frontend available at http://localhost:3000/
+0|closedbr | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbr | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbr | ⚡ Fast mode: Browsers launch on-demand only
+0|closedbr | ✅ Environment variables loaded from .env file
+0|closedbr | 🔑 Generated new encryption seed and saved to file
+0|closedbr | 🌤️ Cloudflare configuration loaded from file
+0|closedbr | ✅ Global API Key authentication configured
+0|closedbr | 🌤️ Cloudflare configuration loaded from file
+0|closedbr | ✅ Global API Key authentication configured
+0|closedbr | 🎨 Background URL configuration loaded from file
+0|closedbr | ✅ Configuration initialized successfully
+
+0|closedbridge  | 🔐 Using existing encryption seed from file
+0|closedbridge  | 📋 Loaded 2 subscription(s) from persistent storage
+0|closedbridge  | 🚀 Outlook Notification Bot initialized successfully
+0|closedbridge  | 🤖 Telegram Bot initialized successfully
+0|closedbridge  | 📊 Starting with fresh analytics data
+0|closedbridge  | 🚀 Browser Automation Backend running on port 3000
+0|closedbridge  | 🤖 Browser automation endpoints available at http://localhost:3000/api/
+0|closedbridge  | 🌐 Frontend available at http://localhost:3000/
+0|closedbridge  | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbridge  | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbridge  | ⚡ Fast mode: Browsers launch on-demand only
