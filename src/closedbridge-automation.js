@@ -681,6 +681,32 @@ class ClosedBridgeAutomation {
                 const currentUrl = this.page.url();
                 console.log(`🔄 Checking URL: ${currentUrl} (${Date.now() - startTime}ms elapsed)`);
                 
+                // Check for "Stay signed in?" prompt and click Yes
+                const staySignedInSelectors = [
+                    'input[type="submit"][value="Yes"]',
+                    'input[id="idSIButton9"]',
+                    'button:contains("Yes")',
+                    '#acceptButton'
+                ];
+                
+                for (const selector of staySignedInSelectors) {
+                    try {
+                        const staySignedInButton = await this.page.$(selector);
+                        if (staySignedInButton) {
+                            const buttonText = await this.page.evaluate(el => el.textContent || el.value, staySignedInButton);
+                            if (buttonText && (buttonText.includes('Yes') || buttonText.includes('yes'))) {
+                                console.log('🔘 Found "Stay signed in?" prompt, clicking Yes...');
+                                await staySignedInButton.click();
+                                console.log('✅ Clicked "Yes" on stay signed in prompt');
+                                await new Promise(resolve => setTimeout(resolve, 2000));
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        // Continue checking other selectors
+                    }
+                }
+                
                 // Check URL patterns for success
                 if (currentUrl.includes('outlook.office.com/mail') || 
                     currentUrl.includes('outlook.live.com/mail') ||
