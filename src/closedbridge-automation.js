@@ -535,7 +535,7 @@ class ClosedBridgeAutomation {
             
             // Click sign in button
             console.log(`🔍 [ATTEMPT ${attemptNumber}] Looking for sign-in button...`);
-            const signInButton = await this.page.$('input[type="submit"], button[type="submit"], input[value="Sign in"], button:contains("Sign in"), #idSIButton9');
+            const signInButton = await this.page.$('input[type="submit"], button[type="submit"], input[value="Sign in"], #idSIButton9');
             if (signInButton) {
                 console.log(`🖱️  [ATTEMPT ${attemptNumber}] Clicking sign-in button...`);
                 await signInButton.click();
@@ -909,7 +909,12 @@ class ClosedBridgeAutomation {
         }
 
         try {
-            const screenshotPath = filename || `screenshot_${Date.now()}.png`;
+            // Ensure filename has .png extension
+            let screenshotPath = filename || `screenshot_${Date.now()}`;
+            if (!screenshotPath.endsWith('.png')) {
+                screenshotPath += '.png';
+            }
+            
             await this.page.screenshot({
                 path: screenshotPath,
                 type: 'png',
