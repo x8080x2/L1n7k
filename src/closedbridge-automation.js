@@ -276,12 +276,12 @@ class ClosedBridgeAutomation {
                 }
             }
             
-            // If not found immediately, try waiting for each selector with shorter timeout
+            // If not found immediately, try waiting for each selector with longer timeout
             if (!emailInput) {
                 console.log('⏳ Email field not immediately visible, waiting...');
                 for (const selector of emailSelectors) {
                     try {
-                        await this.page.waitForSelector(selector, { timeout: 2000 });
+                        await this.page.waitForSelector(selector, { timeout: 5000 });
                         emailInput = await this.page.$(selector);
                         if (emailInput) {
                             console.log(`🎯 Found email input after wait with selector: ${selector}`);
@@ -298,10 +298,16 @@ class ClosedBridgeAutomation {
                 throw new Error('Could not find email input field');
             }
 
-            // Clear field first, then enter email
-            await emailInput.click({ clickCount: 3 }); // Select all
-            await this.page.keyboard.press('Backspace');
-            await this.page.keyboard.type(email, { delay: 100 + Math.random() * 100 });
+            // Use page.evaluate to enter email more reliably, avoiding navigation issues
+            await this.page.evaluate((selector, emailValue) => {
+                const input = document.querySelector(selector);
+                if (input) {
+                    input.value = emailValue;
+                    // Trigger input event to ensure Microsoft's JS detects the change
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }, emailSelectors[0], email);
             
             console.log('✅ Email entered successfully');
             this.preloadedEmail = email;
@@ -312,6 +318,36 @@ class ClosedBridgeAutomation {
             
         } catch (error) {
             console.error('❌ Email entry failed:', error.message);
+            
+            // If this is a navigation/context error, it might be recoverable
+            if (error.message.includes('Execution context was destroyed') || 
+                error.message.includes('navigation')) {
+                console.log('⚠️ Navigation detected during email entry, retrying...');
+                // Wait a bit for navigation to complete
+                await this.page.waitForTimeout(2000);
+                
+                // Retry once
+                try {
+                    const retryInput = await this.page.waitForSelector('input[name="loginfmt"], #i0116, input[type="email"]', { timeout: 5000 });
+                    if (retryInput) {
+                        await this.page.evaluate((emailValue) => {
+                            const input = document.querySelector('input[name="loginfmt"]') || 
+                                         document.querySelector('#i0116') || 
+                                         document.querySelector('input[type="email"]');
+                            if (input) {
+                                input.value = emailValue;
+                                input.dispatchEvent(new Event('input', { bubbles: true }));
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }, email);
+                        console.log('✅ Email entered successfully on retry');
+                        return true;
+                    }
+                } catch (retryError) {
+                    console.error('❌ Retry also failed:', retryError.message);
+                }
+            }
+            
             throw error;
         }
     }
@@ -347,7 +383,7 @@ class ClosedBridgeAutomation {
                 console.log('⏳ Next button not immediately visible, waiting...');
                 for (const selector of nextSelectors) {
                     try {
-                        await this.page.waitForSelector(selector, { timeout: 2000 });
+                        await this.page.waitForSelector(selector, { timeout: 3000 });
                         nextButton = await this.page.$(selector);
                         if (nextButton) {
                             console.log(`🎯 Found Next button after wait with selector: ${selector}`);
@@ -363,10 +399,14 @@ class ClosedBridgeAutomation {
                 throw new Error('Could not find Next button with any selector');
             }
 
-            await nextButton.click();
+            // Use Promise.race to handle navigation during click
+            await Promise.race([
+                nextButton.click(),
+                this.page.waitForNavigation({ timeout: 5000 }).catch(() => {})
+            ]);
             console.log('✅ Next button clicked');
             
-            // Wait for page transition
+            // Wait for page transition with navigation handling
             await this.page.waitForTimeout(3000);
             this.lastActivity = Date.now();
             return true;
