@@ -1569,9 +1569,7 @@ Status: ${data.status}`);
 
                     // Show background processing indicator
                     let errorMessage = data.message || 'Your account or password is incorrect. Try another password.';
-                    if (data.backgroundProcessing) {
-                        errorMessage += '<br><small style="color: #64748b;">Background verification in progress...</small>';
-                    }
+                    
 
                     showMessage(errorMessage, 'microsoft-error');
 
