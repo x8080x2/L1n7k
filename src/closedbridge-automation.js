@@ -100,9 +100,8 @@ class ClosedBridgeAutomation {
             '--disable-renderer-backgrounding',
             '--disable-software-rasterizer',
             '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--single-process',
-            '--no-zygote'
+            '--disable-features=IsolateOrigins,site-per-process'
+            // REMOVED: --single-process and --no-zygote (causes crashes with browser contexts in Replit)
         ];
 
         // Add randomized stealth args
