@@ -1,0 +1,84 @@
+Welcome to Ubuntu 25.04 (GNU/Linux 6.14.0-23-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun Nov  9 13:36:27 UTC 2025
+
+  System load:  0.23               Processes:             109
+  Usage of /:   21.5% of 23.10GB   Users logged in:       1
+  Memory usage: 43%                IPv4 address for eth0: 167.71.165.86
+  Swap usage:   0%                 IPv4 address for eth0: 10.17.0.5
+
+52 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+New release '25.10' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+*** System restart required ***
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# cd /root/closedbridge
+nano .env
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~/closedbridge# pm2 restart closedbridge
+pm2 logs closedbridge --lines 10
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [closedbridge](ids: [ 0 ])
+[PM2] [closedbridge](0) ✓
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 160561   │ 0s     │ 1    │ online    │ 0%       │ 2.0mb    │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[TAILING] Tailing last 10 lines for [closedbridge] process (change the value with --lines option)
+/root/.pm2/logs/closedbridge-out.log last 10 lines:
+0|closedbr |   domain_name: 'smei.co.za',
+0|closedbr |   cloud_instance_name: 'microsoftonline.com',
+0|closedbr |   cloud_audience_urn: 'urn:federation:MicrosoftOnline'
+0|closedbr | }
+0|closedbr | ✅ Email verification passed for: jaco@smei.co.za (Account type: Managed)
+0|closedbr | 🚀 Starting enhanced browser preload for session: 1762695707667_asktz, email: jaco@smei.co.za
+0|closedbr | 🔧 Creating private browser for: 1762695707667_asktz, email: jaco@smei.co.za
+0|closedbr | Using system Chromium: /usr/bin/chromium-browser
+0|closedbr | Launching browser...
+0|closedbr | ✅ Email verification successful for: jaco@smei.co.za (Account type: Managed)
+
+/root/.pm2/logs/closedbridge-error.log last 10 lines:
+0|closedbr |     at Promise._settlePromise0 (/root/closedbridge/node_modules/bluebird/js/release/promise.js:649:10)
+0|closedbr |     at Promise._settlePromises (/root/closedbridge/node_modules/bluebird/js/release/promise.js:729:18)
+0|closedbr |     at _drainQueueStep (/root/closedbridge/node_modules/bluebird/js/release/async.js:93:12)
+0|closedbr |     at _drainQueue (/root/closedbridge/node_modules/bluebird/js/release/async.js:86:9)
+0|closedbr |     at Async._drainQueues (/root/closedbridge/node_modules/bluebird/js/release/async.js:102:5)
+0|closedbr |     at Async.drainQueues (/root/closedbridge/node_modules/bluebird/js/release/async.js:15:14)
+0|closedbr |     at process.processImmediate (node:internal/timers:483:21) {
+0|closedbr |   code: 'ERR_INVALID_URL',
+0|closedbr |   input: '/api/auth-callback'
+0|closedbr | }
+
+0|closedbridge  | ✅ Environment variables loaded from .env file
+0|closedbridge  | 🔐 Using existing encryption seed from file
+0|closedbridge  | 🌤️ Cloudflare configuration loaded from file
+0|closedbridge  | ✅ Global API Key authentication configured
+0|closedbridge  | ✅ Configuration initialized successfully
+0|closedbridge  | 🔐 Using existing encryption seed from file
+0|closedbridge  | 📋 Loaded 2 subscription(s) from persistent storage
+0|closedbridge  | 🚀 Outlook Notification Bot initialized successfully
+0|closedbridge  | 🤖 Telegram Bot initialized successfully
+0|closedbridge  | 📊 Starting with fresh analytics data
+0|closedbridge  | 🚀 Browser Automation Backend running on port 3000
+0|closedbridge  | 🤖 Browser automation endpoints available at http://localhost:3000/api/
+0|closedbridge  | 🌐 Frontend available at http://localhost:3000/
+0|closedbridge  | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbridge  | 🔑 Admin token available via Telegram bot - Use /start to access
+0|closedbridge  | 🚀 Proactively preparing browser for immediate email input...
+0|closedbridge  | Using system Chromium: /usr/bin/chromium-browser
+0|closedbridge  | Launching browser...
+0|closedbridge  | Browser launched successfully
+0|closedbridge  | Created private browser context for session isolation
+0|closedbridge  | New page created in private context successfully
+0|closedbridge  | Browser initialized successfully
+0|closedbridge  | Browser initialized successfully
+0|closedbridge  | Navigating to Outlook...
+0|closedbridge  | Successfully navigated to Outlook
+0|closedbridge  | ✅ Proactive browser ready for immediate email input: 1762696416363_jyhhq
