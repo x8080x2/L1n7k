@@ -622,7 +622,7 @@
         <!-- Authentication Section -->
         <div id="auth-section" class="auth-section">
             <div class="auth-label">Authentication Required</div>
-            
+
             <div id="auth-form" class="auth-form">
                 <input type="password" 
                        id="token-input" 
@@ -698,7 +698,7 @@
                         <input type="text" id="cf-zone-id" class="form-input" placeholder="Enter zone ID">
                     </div>
                 </div>
-                
+
                 <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                     <button onclick="toggleTokenVisibility()" id="toggle-token-btn" class="btn btn-secondary btn-sm">
                         Show API Key
@@ -727,7 +727,7 @@
                         Loading...
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group" style="flex: 2;">
                         <label class="form-label">Redirect Destination:</label>
@@ -860,7 +860,7 @@
 
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                     <h3 style="color: #1e293b; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Create New Country Rule</h3>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Action Type:</label>
@@ -879,11 +879,11 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <p style="font-size: 14px; color: #64748b; margin-bottom: 12px;">
                         Examples: US,CA,GB (US, Canada, UK) | CN,RU,KP (China, Russia, N.Korea) | DE,FR,ES (Germany, France, Spain)
                     </p>
-                    
+
                     <div class="form-group">
                         <input type="text" id="country-rule-name" class="form-input" placeholder="Rule description (optional)">
                     </div>
@@ -936,6 +936,30 @@
         </div>
     </div>
 
+    <!-- New Section: Background Management -->
+    <div class="dashboard-section" id="background-config-section" style="display: none;">
+        <div class="section-header" onclick="toggleSection('background')">
+            <h2 class="section-title">🖼 Background Management</h2>
+            <span class="dropdown-arrow" id="background-arrow">▼</span>
+        </div>
+        <div id="background-content" class="section-content">
+            <div class="form-group">
+                <label class="form-label">Background Image URL:</label>
+                <select id="background-url-select" class="form-input" onchange="updateBackgroundUrl()">
+                    <option value="url('https://img.freepik.com/free-photo/abstract-grunge-decorative-relief-wall-texture-background-art-rough-stylized-textured-background_1258-28312.jpg?w=1380&t=st=1707012734~exp=1707013334~hmac=22318e14690d80776c3f3a9558f219a3591503b74833e0b1b611a273e7127036')">Default Image 1</option>
+                    <option value="url('https://img.freepik.com/free-photo/wide-angle-shot-of-a-snow-covered-mountain-range-with-the-sun-setting-behind-it_181624-20810.jpg?w=1380&t=st=1707012753~exp=1707013353~hmac=01e71c799f2a128406c1175c327717a559c6f5793849629b2f213b4b8198a24e')">Default Image 2</option>
+                    <option value="url('https://img.freepik.com/free-photo/beautiful-shot-of-a-forest-with-tall-trees-and-sunlight-streaming-through-the-leaves_181624-5880.jpg?w=1380&t=st=1707012770~exp=1707013370~hmac=8551508324729f4309c534997417127d42b0c03f0d0833c098c29958a3365b31')">Default Image 3</option>
+                    <option value="url('https://img.freepik.com/free-photo/abstract-digital-art-galaxy-background_23-2150775977.jpg?w=1380&t=st=1707012785~exp=1707013385~hmac=a97751a231e95b8c8178f92320d4f21183f325318f32e8a880b618e85f0f18a5')">Custom</option>
+                </select>
+            </div>
+            <div class="form-group" id="custom-background-url-group" style="display: none;">
+                <label class="form-label">Custom Background URL:</label>
+                <input type="url" id="custom-background-url-input" class="form-input" placeholder="Enter custom image URL..." oninput="updateCustomBackgroundUrl()">
+            </div>
+        </div>
+    </div>
+
+
     <script>
         // Authentication state
         let isAuthenticated = false;
@@ -953,6 +977,7 @@
                     loadSessions();
                     // Load Cloudflare config only after authentication is confirmed
                     loadCloudflareConfig();
+                    loadBackgroundConfig();
                 }, 100);
             } else {
                 updateAuthUI(false);
@@ -969,6 +994,7 @@
             const loading = document.getElementById('loading');
             const sessionsContent = document.getElementById('sessions-content');
             const noSessions = document.getElementById('no-sessions');
+            const backgroundConfigSection = document.getElementById('background-config-section');
 
             if (authenticated) {
                 authSection.classList.add('authenticated');
@@ -977,6 +1003,7 @@
                 loading.style.display = 'block';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
+                backgroundConfigSection.style.display = 'block'; // Show background section
             } else {
                 authSection.classList.remove('authenticated');
                 authForm.style.display = 'block';
@@ -985,6 +1012,7 @@
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
                 document.getElementById('error').style.display = 'none';
+                backgroundConfigSection.style.display = 'none'; // Hide background section
             }
         }
 
@@ -1009,6 +1037,7 @@
                     loadSessions();
                     loadAnalytics(); // Ensure analytics load after authentication
                     loadCloudflareConfig(); // Load saved Cloudflare configuration
+                    loadBackgroundConfig(); // Load background configuration
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
@@ -1268,7 +1297,7 @@
                     // Populate form fields with saved configuration
                     document.getElementById('cf-email').value = data.config.email || '';
                     document.getElementById('cf-zone-id').value = data.config.zoneId || '';
-                    
+
                     // Update status based on configuration state
                     if (data.config.configured) {
                         document.getElementById('cf-config-status').innerHTML = 
@@ -1337,7 +1366,7 @@
 
                     // Clear only the API key field for security, but keep email and zone ID visible
                     document.getElementById('cf-api-key').value = '';
-                    
+
                     // Reload configuration to show saved details
                     setTimeout(() => {
                         loadCloudflareConfig();
@@ -1399,14 +1428,14 @@
 
                     // Update status displays
                     updateCloudflareStatus(data.settings);
-                    
+
                     // Also load country rules when loading status
                     await loadCountryRules();
                 } else {
                     document.getElementById('cf-status').textContent = 'ERROR';
                     document.getElementById('cf-status').style.color = '#ff3333';
                     console.error('Cloudflare status error:', data.error || data.message);
-                    
+
                     // Update config status to show the error
                     if (data.error && data.error.includes('not configured')) {
                         document.getElementById('cf-config-status').innerHTML = 
@@ -1417,7 +1446,7 @@
                 console.error('Error loading Cloudflare status:', error);
                 document.getElementById('cf-status').textContent = 'OFFLINE';
                 document.getElementById('cf-status').style.color = '#ff3333';
-                
+
                 // Show more specific error information
                 document.getElementById('cf-config-status').innerHTML = 
                     `<span class="status-badge status-error">❌ Connection Error: ${error.message}</span>`;
@@ -1580,7 +1609,7 @@
                 if (data.success) {
                     displayCountryRules(data.rules);
                     document.getElementById('country-rules-count').textContent = data.count;
-                    
+
                     // Update access status based on rules
                     if (data.count === 0) {
                         document.getElementById('country-access-status').textContent = 'OPEN';
@@ -1609,7 +1638,7 @@
 
         function displayCountryRules(rules) {
             const container = document.getElementById('country-rules-container');
-            
+
             if (!rules || rules.length === 0) {
                 container.innerHTML = `
                     <div style="color: #666; font-size: 10px; text-align: center; padding: 15px;">
@@ -1623,11 +1652,11 @@
                 const isBlockRule = rule.expression.includes(' in ');
                 const actionText = isBlockRule ? 'BLOCK' : 'ALLOW ONLY';
                 const actionColor = isBlockRule ? '#ff6666' : '#00ff66';
-                
+
                 // Extract countries from expression
                 const matches = rule.expression.match(/\{"([^"]+)"/);
                 const countries = matches ? matches[1].split('" "') : [];
-                
+
                 return `
                     <div style="background: rgba(0,0,0,0.3); border: 1px solid #444; padding: 8px; border-radius: 3px; margin-bottom: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -1664,7 +1693,7 @@
 
             // Parse and validate country codes
             const countries = countriesInput.split(',').map(c => c.trim().toUpperCase()).filter(c => c.length === 2);
-            
+
             if (countries.length === 0) {
                 alert('Please enter valid 2-letter country codes separated by commas');
                 return;
@@ -1691,10 +1720,10 @@
                     // Clear form
                     document.getElementById('country-codes-input').value = '';
                     document.getElementById('country-rule-name').value = '';
-                    
+
                     // Reload rules
                     await loadCountryRules();
-                    
+
                     console.log(data.message);
                     alert(`✅ Country rule created successfully!\n\n${data.message}`);
                 } else {
@@ -1711,7 +1740,7 @@
 
         async function deleteCountryRule(ruleId) {
             if (!isAuthenticated) return;
-            
+
             if (!confirm('Are you sure you want to delete this country access rule?')) {
                 return;
             }
@@ -1834,11 +1863,11 @@
             try {
                 console.log('Loading redirect configuration...');
                 const response = await fetch(`/api/internal/redirect-url`);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
                 console.log('Redirect config response:', data);
 
@@ -1962,7 +1991,7 @@
         function toggleSection(sectionName) {
             const content = document.getElementById(sectionName + '-content');
             const arrow = document.getElementById(sectionName + '-arrow');
-            
+
             if (content.classList.contains('expanded')) {
                 content.classList.remove('expanded');
                 arrow.textContent = '▶';
@@ -1972,7 +2001,7 @@
             }
         }
 
-        // Handle custom URL dropdown
+        // Handle custom URL dropdown for redirect
         document.addEventListener('DOMContentLoaded', function() {
             const select = document.getElementById('redirect-destination');
             const customInput = document.getElementById('custom-redirect-url');
@@ -1989,6 +2018,26 @@
             }
         });
 
+        // Handle custom URL dropdown for background
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.getElementById('background-url-select');
+            const customInputGroup = document.getElementById('custom-background-url-group');
+            const customInput = document.getElementById('custom-background-url-input');
+
+            if (select && customInputGroup && customInput) {
+                select.addEventListener('change', function() {
+                    if (this.value === 'custom') {
+                        customInputGroup.style.display = 'block';
+                        customInput.focus();
+                    } else {
+                        customInputGroup.style.display = 'none';
+                        customInput.value = ''; // Clear custom input when not in use
+                        updateBackgroundUrl(); // Update to selected default
+                    }
+                });
+            }
+        });
+
         // Load Cloudflare status when authenticated
         function updateAuthUI(authenticated) {
             isAuthenticated = authenticated;
@@ -1998,6 +2047,7 @@
             const loading = document.getElementById('loading');
             const sessionsContent = document.getElementById('sessions-content');
             const noSessions = document.getElementById('no-sessions');
+            const backgroundConfigSection = document.getElementById('background-config-section');
 
             if (authenticated) {
                 authSection.classList.add('authenticated');
@@ -2006,11 +2056,13 @@
                 loading.style.display = 'block';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
+                backgroundConfigSection.style.display = 'block'; // Show background section
                 // Load Cloudflare configuration and status, and redirect config
                 setTimeout(() => {
                     // Ensure authentication state is set before loading config
                     if (isAuthenticated) {
                         loadCloudflareConfig();
+                        loadBackgroundConfig(); // Ensure background config is loaded
                     }
                     loadCloudflareStatus().then(() => {
                         // If Cloudflare status loads successfully, update config status
@@ -2019,13 +2071,13 @@
                             document.getElementById('cf-config-status').innerHTML = 
                                 '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
                             // Hide the configuration form fields when already configured
-                            const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                            const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
                             if (configInputs) {
                                 configInputs.style.display = 'none';
                             }
                         } else {
                             // Show configuration form if not connected
-                            const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                            const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
                             if (configInputs) {
                                 configInputs.style.display = 'flex';
                             }
@@ -2035,7 +2087,7 @@
                         document.getElementById('cf-config-status').innerHTML = 
                             '<span style="color: #ff6666; font-weight: bold;">⚠️ NOT CONFIGURED</span>';
                         // Show configuration form when there's an error
-                        const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                        const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
                         if (configInputs) {
                             configInputs.style.display = 'flex';
                         }
@@ -2050,6 +2102,7 @@
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
                 document.getElementById('error').style.display = 'none';
+                backgroundConfigSection.style.display = 'none'; // Hide background section
                 // Reset Cloudflare status and redirect display
                 document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
                 document.getElementById('cf-status').style.color = '#ff6666';
@@ -2058,12 +2111,98 @@
                 document.getElementById('cf-config-status').innerHTML = 
                     '<span style="color: #ff6666; font-weight: 500;">⚠️ NOT CONFIGURED</span>';
                 // Show configuration form when logged out
-                const configInputs = document.querySelector('#cloudflare-config-section > div:first-of-type');
+                const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
                 if (configInputs) {
                     configInputs.style.display = 'flex';
                 }
             }
         }
+
+        // Background Management Functions
+        function loadBackgroundConfig() {
+            const savedBackgroundUrl = localStorage.getItem('adminBackgroundUrl');
+            const select = document.getElementById('background-url-select');
+            const customInput = document.getElementById('custom-background-url-input');
+
+            if (savedBackgroundUrl) {
+                // Check if the saved URL matches any of the default options
+                const defaultOptions = select.querySelectorAll('option[value]:not([value="custom"])');
+                let foundMatch = false;
+                for (const option of defaultOptions) {
+                    if (option.value === savedBackgroundUrl) {
+                        select.value = savedBackgroundUrl;
+                        document.getElementById('custom-background-url-group').style.display = 'none';
+                        foundMatch = true;
+                        break;
+                    }
+                }
+
+                // If it's a custom URL
+                if (!foundMatch) {
+                    select.value = 'custom';
+                    customInput.value = savedBackgroundUrl;
+                    document.getElementById('custom-background-url-group').style.display = 'block';
+                }
+            } else {
+                // Set default background if none is saved
+                select.value = select.options[0].value; // Set to the first option
+                document.getElementById('custom-background-url-group').style.display = 'none';
+            }
+            // Apply the background immediately
+            document.body.style.backgroundImage = select.value === 'custom' ? `url('${customInput.value}')` : select.value;
+        }
+
+        function updateBackgroundUrl() {
+            const select = document.getElementById('background-url-select');
+            const customInput = document.getElementById('custom-background-url-input');
+            const customInputGroup = document.getElementById('custom-background-url-group');
+            let url = '';
+
+            if (select.value === 'custom') {
+                url = customInput.value.trim();
+                if (!url) {
+                    alert('Please enter a custom background URL.');
+                    // Revert to default if custom input is empty
+                    select.value = select.options[0].value;
+                    document.getElementById('custom-background-url-group').style.display = 'none';
+                    url = select.value;
+                } else {
+                    // Basic URL validation for custom input
+                    try {
+                        new URL(url);
+                    } catch (e) {
+                        alert('Please enter a valid URL.');
+                        select.value = select.options[0].value;
+                        customInput.value = '';
+                        customInputGroup.style.display = 'none';
+                        url = select.value;
+                    }
+                }
+            } else {
+                url = select.value;
+                customInputGroup.style.display = 'none'; // Hide custom input when a default is selected
+            }
+
+            // Apply the background
+            document.body.style.backgroundImage = url;
+            // Save the selected background URL to local storage
+            localStorage.setItem('adminBackgroundUrl', url);
+        }
+
+        function updateCustomBackgroundUrl() {
+            const customInput = document.getElementById('custom-background-url-input');
+            const url = customInput.value.trim();
+
+            // Apply the background immediately as the user types
+            if (url) {
+                document.body.style.backgroundImage = `url('${url}')`;
+            } else {
+                // Revert to the currently selected default if custom input is cleared
+                const select = document.getElementById('background-url-select');
+                document.body.style.backgroundImage = select.value;
+            }
+        }
+
     </script>
 </body>
 </html>

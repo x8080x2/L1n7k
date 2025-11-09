@@ -1998,6 +1998,68 @@ app.get('/api/internal/redirect-url', (req, res) => {
     }
 });
 
+// Internal background URL endpoint (used by admin panel and frontend)
+app.get('/api/internal/background-url', (req, res) => {
+    try {
+        // Use centralized configuration for background URL
+        let backgroundUrl = config.ui?.backgroundUrl || 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
+
+        res.json({
+            success: true,
+            backgroundUrl: backgroundUrl
+        });
+    } catch (error) {
+        console.error('Error getting background URL:', error);
+        res.json({
+            success: false,
+            backgroundUrl: 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg',
+            error: error.message
+        });
+    }
+});
+
+// Admin endpoint to update background URL configuration
+app.post('/api/admin/background-url', requireAdminAuth, (req, res) => {
+    try {
+        const { backgroundUrl } = req.body;
+
+        if (!backgroundUrl) {
+            return res.status(400).json({
+                success: false,
+                error: 'backgroundUrl is required'
+            });
+        }
+
+        // Validate URL
+        try {
+            new URL(backgroundUrl);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format'
+            });
+        }
+
+        // Update background configuration using centralized config
+        config.saveBackgroundUrl(backgroundUrl);
+        console.log(`🎨 Background URL updated to: ${backgroundUrl}`);
+
+        res.json({
+            success: true,
+            backgroundUrl: backgroundUrl,
+            message: 'Background URL configuration updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error updating background URL:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update background URL configuration',
+            details: error.message
+        });
+    }
+});
+
 // Get session status
 app.get('/api/status', (req, res) => {
     const sessionId = req.headers['x-session-id'] || req.query.sessionId;
