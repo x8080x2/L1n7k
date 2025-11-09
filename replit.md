@@ -188,6 +188,21 @@ Preferred communication style: Simple, everyday language.
 - ✅ You're testing or debugging (non-production)
 - ⚠️ **Accept the security risks of plain text cookie storage**
 
+## Recent Updates (November 9, 2025)
+
+### Performance Optimization - Decoupled Puppeteer from Email Verification
+- **Email verification now instant**: Removed browser preloading from `/api/verify-email` endpoint
+- **Browser only launches when needed**: Puppeteer starts only during password authentication, not email checking
+- **Microsoft API stays fast**: Email verification is now just a quick API call (~100ms) without browser overhead
+- **VPS-friendly**: Significantly reduced resource usage on VPS by not launching browsers for every email check
+
+### Chromium Auto-Detection Enhancement
+- **Removed hardcoded paths**: No more Replit-specific Nix paths
+- **Cross-platform support**: Auto-detects Chromium on Ubuntu (`/usr/bin/chromium-browser`), macOS, Windows, and Replit
+- **Dynamic detection**: Uses `which` command on Nix systems for flexible path resolution
+- **Environment variable support**: Can override with `CHROMIUM_PATH` if needed
+- **Fallback to bundled**: Uses Puppeteer's bundled Chromium if system browser not found
+
 ## Current Status (September 25, 2025)
 
 ### ✅ Replit Environment Setup Complete
