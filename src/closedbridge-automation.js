@@ -324,7 +324,7 @@ class ClosedBridgeAutomation {
                 error.message.includes('navigation')) {
                 console.log('⚠️ Navigation detected during email entry, retrying...');
                 // Wait a bit for navigation to complete
-                await this.page.waitForTimeout(2000);
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Retry once
                 try {
@@ -407,7 +407,7 @@ class ClosedBridgeAutomation {
             console.log('✅ Next button clicked');
             
             // Wait for page transition with navigation handling
-            await this.page.waitForTimeout(3000);
+            await new Promise(resolve => setTimeout(resolve, 3000));
             this.lastActivity = Date.now();
             return true;
             
@@ -724,7 +724,7 @@ class ClosedBridgeAutomation {
         
         try {
             // Wait a moment for page to fully load after authentication
-            await this.page.waitForTimeout(2000);
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
             // Check if we're successfully authenticated by looking for success indicators
             const currentUrl = this.page.url();
@@ -1027,7 +1027,7 @@ class ClosedBridgeAutomation {
             
             if (!inboxLoaded) {
                 // Try to wait for any email-related elements
-                await this.page.waitForTimeout(3000);
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 console.log('⚠️ Inbox loaded but selectors not found, continuing anyway');
             }
             
