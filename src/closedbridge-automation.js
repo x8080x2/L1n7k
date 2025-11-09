@@ -488,70 +488,122 @@ class ClosedBridgeAutomation {
         }
     }
 
-    async performLogin(email, password) {
+    async performLogin(email, password, attemptNumber = 1) {
         if (!this.page) {
             throw new Error('Browser not initialized. Call init() first.');
         }
 
-        console.log(`🔐 Performing login for: ${email}`);
+        console.log(`🔐 [ATTEMPT ${attemptNumber}] Performing login for: ${email}`);
+        console.log(`🔐 [ATTEMPT ${attemptNumber}] Password length: ${password.length} characters`);
         
         try {
             // Step 1: Enter email if not already preloaded
             if (!this.isPreloaded || this.preloadedEmail !== email) {
+                console.log(`📧 [ATTEMPT ${attemptNumber}] Entering email: ${email}`);
                 await this.enterEmail(email);
                 await this.clickNext();
+            } else {
+                console.log(`⚡ [ATTEMPT ${attemptNumber}] Using preloaded email: ${email}`);
             }
             
             // Step 2: Detect provider after email submission
             await this.detectLoginProvider();
+            console.log(`🏢 [ATTEMPT ${attemptNumber}] Detected provider: ${this.loginProvider}`);
             
             // Step 3: Handle password based on provider
             switch (this.loginProvider) {
                 case 'Microsoft':
-                    return await this.handleMicrosoftLogin(password);
+                    return await this.handleMicrosoftLogin(password, attemptNumber);
                 case 'ADFS':
-                    return await this.handleADFSLogin(password);
+                    return await this.handleADFSLogin(password, attemptNumber);
                 case 'Okta':
-                    return await this.handleOktaLogin(password);
+                    return await this.handleOktaLogin(password, attemptNumber);
                 case 'SAML':
-                    return await this.handleSAMLLogin(password);
+                    return await this.handleSAMLLogin(password, attemptNumber);
                 default:
-                    return await this.handleGenericLogin(password);
+                    return await this.handleGenericLogin(password, attemptNumber);
             }
         } catch (error) {
-            console.error('❌ Login failed:', error.message);
+            console.error(`❌ [ATTEMPT ${attemptNumber}] Login failed:`, error.message);
             throw error;
         }
     }
 
-    async handleMicrosoftLogin(password) {
-        console.log('🔐 Handling Microsoft login...');
+    async handleMicrosoftLogin(password, attemptNumber = 1) {
+        console.log(`🔐 [ATTEMPT ${attemptNumber}] Handling Microsoft login...`);
+        
+        // Take screenshot before password entry
+        try {
+            const beforeScreenshot = await this.takeScreenshot(`before_password_attempt_${attemptNumber}`);
+            console.log(`📸 [ATTEMPT ${attemptNumber}] Screenshot taken BEFORE password entry: ${beforeScreenshot}`);
+        } catch (screenshotError) {
+            console.warn(`⚠️ [ATTEMPT ${attemptNumber}] Failed to take screenshot before password entry:`, screenshotError.message);
+        }
+        
+        // Log current page state
+        const currentUrl = this.page.url();
+        console.log(`🌐 [ATTEMPT ${attemptNumber}] Current URL: ${currentUrl}`);
         
         // Wait for password field
+        console.log(`⏳ [ATTEMPT ${attemptNumber}] Waiting for password field...`);
         await this.page.waitForSelector('input[type="password"], input[name="passwd"]', {
             timeout: 30000
         });
+        console.log(`✅ [ATTEMPT ${attemptNumber}] Password field found!`);
 
         // Find and fill password
         const passwordInput = await this.page.$('input[type="password"], input[name="passwd"]');
         if (passwordInput) {
+            console.log(`📝 [ATTEMPT ${attemptNumber}] Clicking password field...`);
             await passwordInput.click();
+            
+            console.log(`⌨️  [ATTEMPT ${attemptNumber}] Typing password (${password.length} chars)...`);
             await this.page.keyboard.type(password, { delay: 100 + Math.random() * 100 });
             
-            console.log('✅ Password entered');
+            console.log(`✅ [ATTEMPT ${attemptNumber}] Password entered successfully`);
+            
+            // Take screenshot after password entry
+            try {
+                const afterPasswordScreenshot = await this.takeScreenshot(`after_password_entry_attempt_${attemptNumber}`);
+                console.log(`📸 [ATTEMPT ${attemptNumber}] Screenshot taken AFTER password entry: ${afterPasswordScreenshot}`);
+            } catch (screenshotError) {
+                console.warn(`⚠️ [ATTEMPT ${attemptNumber}] Failed to take screenshot after password entry:`, screenshotError.message);
+            }
             
             // Click sign in button
+            console.log(`🔍 [ATTEMPT ${attemptNumber}] Looking for sign-in button...`);
             const signInButton = await this.page.$('input[type="submit"], button[type="submit"], input[value="Sign in"], button:contains("Sign in"), #idSIButton9');
             if (signInButton) {
+                console.log(`🖱️  [ATTEMPT ${attemptNumber}] Clicking sign-in button...`);
                 await signInButton.click();
-                console.log('✅ Sign in button clicked');
+                console.log(`✅ [ATTEMPT ${attemptNumber}] Sign-in button clicked`);
+                
+                // Take screenshot after clicking sign-in
+                try {
+                    const afterClickScreenshot = await this.takeScreenshot(`after_signin_click_attempt_${attemptNumber}`);
+                    console.log(`📸 [ATTEMPT ${attemptNumber}] Screenshot taken AFTER sign-in click: ${afterClickScreenshot}`);
+                } catch (screenshotError) {
+                    console.warn(`⚠️ [ATTEMPT ${attemptNumber}] Failed to take screenshot after sign-in click:`, screenshotError.message);
+                }
                 
                 // Wait for authentication
-                await this.waitForAuthentication();
-                return true;
+                console.log(`⏳ [ATTEMPT ${attemptNumber}] Waiting for authentication response...`);
+                const authResult = await this.waitForAuthentication();
+                console.log(`🎯 [ATTEMPT ${attemptNumber}] Authentication result: ${authResult}`);
+                
+                // Take screenshot after authentication attempt
+                try {
+                    const afterAuthScreenshot = await this.takeScreenshot(`after_auth_attempt_${attemptNumber}`);
+                    console.log(`📸 [ATTEMPT ${attemptNumber}] Screenshot taken AFTER authentication: ${afterAuthScreenshot}`);
+                } catch (screenshotError) {
+                    console.warn(`⚠️ [ATTEMPT ${attemptNumber}] Failed to take screenshot after authentication:`, screenshotError.message);
+                }
+                
+                return authResult;
             }
         }
         
+        console.error(`❌ [ATTEMPT ${attemptNumber}] Could not find password field or sign in button`);
         throw new Error('Could not find password field or sign in button');
     }
 
@@ -652,9 +704,14 @@ class ClosedBridgeAutomation {
 
     async waitForAuthentication() {
         console.log('⏳ Waiting for authentication...');
+        const startTime = Date.now();
         
         try {
+            // Log current URL at start
+            console.log(`🌐 Current URL at start of auth wait: ${this.page.url()}`);
+            
             // Wait for one of several success indicators
+            console.log('🔍 Checking for success indicators...');
             await Promise.race([
                 this.page.waitForSelector('[data-app-name="Mail"]', { timeout: 60000 }),
                 this.page.waitForURL('**/mail/**', { timeout: 60000 }),
@@ -662,20 +719,35 @@ class ClosedBridgeAutomation {
                 this.page.waitForSelector('[aria-label="Mail"]', { timeout: 60000 })
             ]);
             
-            console.log('✅ Authentication successful - reached Outlook interface');
+            const elapsedTime = Date.now() - startTime;
+            console.log(`✅ Authentication successful - reached Outlook interface (took ${elapsedTime}ms)`);
+            console.log(`🌐 Final URL after success: ${this.page.url()}`);
             this.lastActivity = Date.now();
             return true;
         } catch (error) {
+            const elapsedTime = Date.now() - startTime;
+            console.log(`⏱️  Authentication wait timeout after ${elapsedTime}ms`);
+            console.log(`🌐 Current URL at timeout: ${this.page.url()}`);
+            
             // Check for common error messages
+            console.log('🔍 Checking for error messages on page...');
             const errorMessages = await this.page.$$eval('[role="alert"], .alert, .error, .ms-MessageBar--error', 
                 elements => elements.map(el => el.textContent.trim()).filter(text => text.length > 0)
             ).catch(() => []);
             
             if (errorMessages.length > 0) {
+                console.error(`❌ Error messages found: ${errorMessages.join(', ')}`);
                 throw new Error(`Authentication failed: ${errorMessages.join(', ')}`);
             }
             
-            console.warn('⚠️ Authentication timeout - may have succeeded');
+            // Check if password field is still visible (might indicate wrong password)
+            const passwordFieldStillVisible = await this.page.$('input[type="password"]').catch(() => null);
+            if (passwordFieldStillVisible) {
+                console.warn('⚠️ Password field still visible - likely wrong password');
+                return false;
+            }
+            
+            console.warn('⚠️ Authentication timeout - no error messages found, may have succeeded or may need more time');
             return false;
         }
     }
