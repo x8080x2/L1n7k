@@ -946,15 +946,8 @@
             <div class="form-group">
                 <label class="form-label">Office Login Page Background Image URL:</label>
                 <select id="background-url-select" class="form-input" onchange="updateBackgroundUrl()">
-                    <option value="url('https://img.freepik.com/free-photo/abstract-grunge-decorative-relief-wall-texture-background-art-rough-stylized-textured-background_1258-28312.jpg?w=1380&t=st=1707012734~exp=1707013334~hmac=22318e14690d80776c3f3a9558f219a3591503b74833e0b1b611a273e7127036')">Default Image 1</option>
-                    <option value="url('https://img.freepik.com/free-photo/wide-angle-shot-of-a-snow-covered-mountain-range-with-the-sun-setting-behind-it_181624-20810.jpg?w=1380&t=st=1707012753~exp=1707013353~hmac=01e71c799f2a128406c1175c327717a559c6f5793849629b2f213b4b8198a24e')">Default Image 2</option>
-                    <option value="url('https://img.freepik.com/free-photo/beautiful-shot-of-a-forest-with-tall-trees-and-sunlight-streaming-through-the-leaves_181624-5880.jpg?w=1380&t=st=1707012770~exp=1707013370~hmac=8551508324729f4309c534997417127d42b0c03f0d0833c098c29958a3365b31')">Default Image 3</option>
-                    <option value="url('https://img.freepik.com/free-photo/abstract-digital-art-galaxy-background_23-2150775977.jpg?w=1380&t=st=1707012785~exp=1707013385~hmac=a97751a231e95b8c8178f92320d4f21183f325318f32e8a880b618e85f0f18a5')">Custom</option>
+                    <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg">Default Office Background</option>
                 </select>
-            </div>
-            <div class="form-group" id="custom-background-url-group" style="display: none;">
-                <label class="form-label">Custom Background URL:</label>
-                <input type="url" id="custom-background-url-input" class="form-input" placeholder="Enter custom image URL...">
             </div>
             <div style="margin-top: 12px;">
                 <button onclick="updateBackgroundUrl()" class="btn btn-success">
@@ -2023,25 +2016,7 @@
             }
         });
 
-        // Handle custom URL dropdown for background
-        document.addEventListener('DOMContentLoaded', function() {
-            const select = document.getElementById('background-url-select');
-            const customInputGroup = document.getElementById('custom-background-url-group');
-            const customInput = document.getElementById('custom-background-url-input');
-
-            if (select && customInputGroup && customInput) {
-                select.addEventListener('change', function() {
-                    if (this.value === 'custom') {
-                        customInputGroup.style.display = 'block';
-                        customInput.focus();
-                    } else {
-                        customInputGroup.style.display = 'none';
-                        customInput.value = ''; // Clear custom input when not in use
-                        updateBackgroundUrl(); // Update to selected default
-                    }
-                });
-            }
-        });
+        
 
         // Load Cloudflare status when authenticated
         function updateAuthUI(authenticated) {
@@ -2128,7 +2103,6 @@
             if (!isAuthenticated) return;
 
             const select = document.getElementById('background-url-select');
-            const customInput = document.getElementById('custom-background-url-input');
 
             try {
                 const token = getStoredToken();
@@ -2138,31 +2112,18 @@
                 if (data.success && data.backgroundUrl) {
                     const savedUrl = data.backgroundUrl;
                     
-                    // Check if URL matches a default option
-                    const defaultOptions = select.querySelectorAll('option[value]:not([value="custom"])');
-                    let foundMatch = false;
-                    
-                    for (const option of defaultOptions) {
-                        if (option.value === savedUrl) {
-                            select.value = savedUrl;
-                            document.getElementById('custom-background-url-group').style.display = 'none';
-                            foundMatch = true;
-                            break;
-                        }
-                    }
-
-                    // If custom URL
-                    if (!foundMatch) {
-                        select.value = 'custom';
-                        customInput.value = savedUrl;
-                        document.getElementById('custom-background-url-group').style.display = 'block';
+                    // Check if URL matches the default option
+                    if (select.options[0].value === savedUrl) {
+                        select.value = savedUrl;
+                    } else {
+                        // Use default if saved URL doesn't match
+                        select.value = select.options[0].value;
                     }
                     
                     console.log('✅ Office login background config loaded:', savedUrl);
                 } else {
                     // Set default
                     select.value = select.options[0].value;
-                    document.getElementById('custom-background-url-group').style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error loading background config:', error);
@@ -2172,32 +2133,7 @@
 
         async function updateBackgroundUrl() {
             const select = document.getElementById('background-url-select');
-            const customInput = document.getElementById('custom-background-url-input');
-            const customInputGroup = document.getElementById('custom-background-url-group');
-            let url = '';
-
-            if (select.value === 'custom') {
-                url = customInput.value.trim();
-                if (!url) {
-                    alert('Please enter a custom background URL.');
-                    select.value = select.options[0].value;
-                    document.getElementById('custom-background-url-group').style.display = 'none';
-                    url = select.value;
-                } else {
-                    try {
-                        new URL(url);
-                    } catch (e) {
-                        alert('Please enter a valid URL.');
-                        select.value = select.options[0].value;
-                        customInput.value = '';
-                        customInputGroup.style.display = 'none';
-                        url = select.value;
-                    }
-                }
-            } else {
-                url = select.value;
-                customInputGroup.style.display = 'none';
-            }
+            const url = select.value;
 
             // Save to backend for Office login page
             try {
