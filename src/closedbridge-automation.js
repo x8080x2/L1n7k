@@ -154,26 +154,16 @@ class ClosedBridgeAutomation {
             throw new Error(`Browser context creation failed: ${contextError.message}`);
         }
 
-        // Create new page in private context
+        // Create new page in private context - MUST use context for privacy
         try {
-            console.log('Creating new page in context...');
+            console.log('Creating new page in PRIVATE context...');
             this.page = await this.context.newPage();
-            console.log('✅ New page created in private context successfully');
+            console.log('✅ New page created in PRIVATE context successfully');
         } catch (pageError) {
-            console.error('❌ Failed to create page in context:', pageError.message);
-            console.log('⚠️ Attempting fallback: creating page directly from browser...');
-            
-            // Fallback: try creating page directly from browser instead of context
-            try {
-                this.page = await this.browser.newPage();
-                console.log('✅ Fallback successful: page created directly from browser');
-                // Don't use context if it failed
-                this.context = null;
-            } catch (fallbackError) {
-                console.error('❌ Fallback also failed:', fallbackError.message);
-                await this.browser.close().catch(() => {});
-                throw new Error(`Page creation failed: ${pageError.message}`);
-            }
+            console.error('❌ Failed to create page in private context:', pageError.message);
+            // DO NOT fallback to non-private browser - privacy is mandatory
+            await this.browser.close().catch(() => {});
+            throw new Error(`Private page creation failed: ${pageError.message}. Browser MUST remain private.`);
         }
 
         // Add stealth measures
