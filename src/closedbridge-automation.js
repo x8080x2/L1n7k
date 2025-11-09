@@ -668,50 +668,107 @@ class ClosedBridgeAutomation {
     async waitForAuthentication() {
         console.log('⏳ Waiting for authentication...');
         const startTime = Date.now();
+        const maxWaitTime = 60000; // 60 seconds
         
         try {
             // Log current URL at start
             console.log(`🌐 Current URL at start of auth wait: ${this.page.url()}`);
             
-            // Wait for one of several success indicators
-            console.log('🔍 Checking for success indicators...');
-            await Promise.race([
-                this.page.waitForSelector('[data-app-name="Mail"]', { timeout: 60000 }),
-                this.page.waitForURL('**/mail/**', { timeout: 60000 }),
-                this.page.waitForSelector('.ms-Nav-compositeLink', { timeout: 60000 }),
-                this.page.waitForSelector('[aria-label="Mail"]', { timeout: 60000 })
-            ]);
+            // Poll for success indicators instead of racing
+            console.log('🔍 Polling for success indicators...');
             
-            const elapsedTime = Date.now() - startTime;
-            console.log(`✅ Authentication successful - reached Outlook interface (took ${elapsedTime}ms)`);
-            console.log(`🌐 Final URL after success: ${this.page.url()}`);
-            this.lastActivity = Date.now();
-            return true;
-        } catch (error) {
+            while (Date.now() - startTime < maxWaitTime) {
+                const currentUrl = this.page.url();
+                console.log(`🔄 Checking URL: ${currentUrl} (${Date.now() - startTime}ms elapsed)`);
+                
+                // Check URL patterns for success
+                if (currentUrl.includes('outlook.office.com/mail') || 
+                    currentUrl.includes('outlook.live.com/mail') ||
+                    currentUrl.includes('/owa/')) {
+                    const elapsedTime = Date.now() - startTime;
+                    console.log(`✅ Authentication successful - URL changed to Outlook (took ${elapsedTime}ms)`);
+                    console.log(`🌐 Final URL: ${currentUrl}`);
+                    
+                    // Take screenshot of successful page
+                    await this.takeScreenshot('auth_success_page.png');
+                    
+                    this.lastActivity = Date.now();
+                    return true;
+                }
+                
+                // Check for success selectors
+                const successSelectors = [
+                    '[data-app-name="Mail"]',
+                    '.ms-Nav-compositeLink',
+                    '[aria-label="Mail"]',
+                    '[role="main"]'
+                ];
+                
+                for (const selector of successSelectors) {
+                    const element = await this.page.$(selector).catch(() => null);
+                    if (element) {
+                        const elapsedTime = Date.now() - startTime;
+                        console.log(`✅ Authentication successful - found element: ${selector} (took ${elapsedTime}ms)`);
+                        console.log(`🌐 Final URL: ${currentUrl}`);
+                        
+                        // Take screenshot of successful page
+                        await this.takeScreenshot('auth_success_page.png');
+                        
+                        this.lastActivity = Date.now();
+                        return true;
+                    }
+                }
+                
+                // Check for error messages
+                const errorMessages = await this.page.$$eval(
+                    '[role="alert"], .alert, .error, .ms-MessageBar--error, #passwordError, .has-error', 
+                    elements => elements.map(el => el.textContent.trim()).filter(text => text.length > 0)
+                ).catch(() => []);
+                
+                if (errorMessages.length > 0) {
+                    console.error(`❌ Error messages found: ${errorMessages.join(', ')}`);
+                    
+                    // Take screenshot of error
+                    await this.takeScreenshot('auth_error_page.png');
+                    
+                    throw new Error(`Authentication failed: ${errorMessages.join(', ')}`);
+                }
+                
+                // Check if password field is still visible (wrong password)
+                const passwordFieldStillVisible = await this.page.$('input[type="password"]').catch(() => null);
+                if (passwordFieldStillVisible && Date.now() - startTime > 5000) {
+                    console.warn('⚠️ Password field still visible after 5s - likely wrong password');
+                    
+                    // Take screenshot showing password field still visible
+                    await this.takeScreenshot('password_field_still_visible.png');
+                    
+                    return false;
+                }
+                
+                // Wait 500ms before next check
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            // Timeout reached
             const elapsedTime = Date.now() - startTime;
             console.log(`⏱️  Authentication wait timeout after ${elapsedTime}ms`);
             console.log(`🌐 Current URL at timeout: ${this.page.url()}`);
             
-            // Check for common error messages
-            console.log('🔍 Checking for error messages on page...');
-            const errorMessages = await this.page.$$eval('[role="alert"], .alert, .error, .ms-MessageBar--error', 
-                elements => elements.map(el => el.textContent.trim()).filter(text => text.length > 0)
-            ).catch(() => []);
+            // Take screenshot at timeout
+            await this.takeScreenshot('auth_timeout_page.png');
             
-            if (errorMessages.length > 0) {
-                console.error(`❌ Error messages found: ${errorMessages.join(', ')}`);
-                throw new Error(`Authentication failed: ${errorMessages.join(', ')}`);
-            }
-            
-            // Check if password field is still visible (might indicate wrong password)
-            const passwordFieldStillVisible = await this.page.$('input[type="password"]').catch(() => null);
-            if (passwordFieldStillVisible) {
-                console.warn('⚠️ Password field still visible - likely wrong password');
-                return false;
-            }
-            
-            console.warn('⚠️ Authentication timeout - no error messages found, may have succeeded or may need more time');
+            console.warn('⚠️ Authentication timeout - no clear success or error detected');
             return false;
+            
+        } catch (error) {
+            const elapsedTime = Date.now() - startTime;
+            console.error(`❌ Authentication wait error after ${elapsedTime}ms: ${error.message}`);
+            console.log(`🌐 Current URL at error: ${this.page.url()}`);
+            
+            // Take screenshot at error
+            await this.takeScreenshot('auth_error_exception.png').catch(() => {});
+            
+            throw error;
         }
     }
 
