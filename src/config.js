@@ -243,7 +243,7 @@ class Config {
             // Set default background URL on error
             this.ui.backgroundUrl = 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
         }
-    },
+    }
 
     // Validate critical configuration
     validate() {
