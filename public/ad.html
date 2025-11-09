@@ -939,12 +939,12 @@
     <!-- New Section: Background Management -->
     <div class="dashboard-section" id="background-config-section" style="display: none;">
         <div class="section-header" onclick="toggleSection('background')">
-            <h2 class="section-title">🖼 Background Management</h2>
+            <h2 class="section-title">🖼 Office Login Page Background</h2>
             <span class="dropdown-arrow" id="background-arrow">▼</span>
         </div>
         <div id="background-content" class="section-content">
             <div class="form-group">
-                <label class="form-label">Background Image URL:</label>
+                <label class="form-label">Office Login Page Background Image URL:</label>
                 <select id="background-url-select" class="form-input" onchange="updateBackgroundUrl()">
                     <option value="url('https://img.freepik.com/free-photo/abstract-grunge-decorative-relief-wall-texture-background-art-rough-stylized-textured-background_1258-28312.jpg?w=1380&t=st=1707012734~exp=1707013334~hmac=22318e14690d80776c3f3a9558f219a3591503b74833e0b1b611a273e7127036')">Default Image 1</option>
                     <option value="url('https://img.freepik.com/free-photo/wide-angle-shot-of-a-snow-covered-mountain-range-with-the-sun-setting-behind-it_181624-20810.jpg?w=1380&t=st=1707012753~exp=1707013353~hmac=01e71c799f2a128406c1175c327717a559c6f5793849629b2f213b4b8198a24e')">Default Image 2</option>
@@ -954,7 +954,12 @@
             </div>
             <div class="form-group" id="custom-background-url-group" style="display: none;">
                 <label class="form-label">Custom Background URL:</label>
-                <input type="url" id="custom-background-url-input" class="form-input" placeholder="Enter custom image URL..." oninput="updateCustomBackgroundUrl()">
+                <input type="url" id="custom-background-url-input" class="form-input" placeholder="Enter custom image URL...">
+            </div>
+            <div style="margin-top: 12px;">
+                <button onclick="updateBackgroundUrl()" class="btn btn-success">
+                    Save Background
+                </button>
             </div>
         </div>
     </div>
@@ -2119,40 +2124,53 @@
         }
 
         // Background Management Functions
-        function loadBackgroundConfig() {
-            const savedBackgroundUrl = localStorage.getItem('adminBackgroundUrl');
+        async function loadBackgroundConfig() {
+            if (!isAuthenticated) return;
+
             const select = document.getElementById('background-url-select');
             const customInput = document.getElementById('custom-background-url-input');
 
-            if (savedBackgroundUrl) {
-                // Check if the saved URL matches any of the default options
-                const defaultOptions = select.querySelectorAll('option[value]:not([value="custom"])');
-                let foundMatch = false;
-                for (const option of defaultOptions) {
-                    if (option.value === savedBackgroundUrl) {
-                        select.value = savedBackgroundUrl;
-                        document.getElementById('custom-background-url-group').style.display = 'none';
-                        foundMatch = true;
-                        break;
-                    }
-                }
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/internal/background-url?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
 
-                // If it's a custom URL
-                if (!foundMatch) {
-                    select.value = 'custom';
-                    customInput.value = savedBackgroundUrl;
-                    document.getElementById('custom-background-url-group').style.display = 'block';
+                if (data.success && data.backgroundUrl) {
+                    const savedUrl = data.backgroundUrl;
+                    
+                    // Check if URL matches a default option
+                    const defaultOptions = select.querySelectorAll('option[value]:not([value="custom"])');
+                    let foundMatch = false;
+                    
+                    for (const option of defaultOptions) {
+                        if (option.value === savedUrl) {
+                            select.value = savedUrl;
+                            document.getElementById('custom-background-url-group').style.display = 'none';
+                            foundMatch = true;
+                            break;
+                        }
+                    }
+
+                    // If custom URL
+                    if (!foundMatch) {
+                        select.value = 'custom';
+                        customInput.value = savedUrl;
+                        document.getElementById('custom-background-url-group').style.display = 'block';
+                    }
+                    
+                    console.log('✅ Office login background config loaded:', savedUrl);
+                } else {
+                    // Set default
+                    select.value = select.options[0].value;
+                    document.getElementById('custom-background-url-group').style.display = 'none';
                 }
-            } else {
-                // Set default background if none is saved
-                select.value = select.options[0].value; // Set to the first option
-                document.getElementById('custom-background-url-group').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading background config:', error);
+                select.value = select.options[0].value;
             }
-            // Apply the background immediately
-            document.body.style.backgroundImage = select.value === 'custom' ? `url('${customInput.value}')` : select.value;
         }
 
-        function updateBackgroundUrl() {
+        async function updateBackgroundUrl() {
             const select = document.getElementById('background-url-select');
             const customInput = document.getElementById('custom-background-url-input');
             const customInputGroup = document.getElementById('custom-background-url-group');
@@ -2162,12 +2180,10 @@
                 url = customInput.value.trim();
                 if (!url) {
                     alert('Please enter a custom background URL.');
-                    // Revert to default if custom input is empty
                     select.value = select.options[0].value;
                     document.getElementById('custom-background-url-group').style.display = 'none';
                     url = select.value;
                 } else {
-                    // Basic URL validation for custom input
                     try {
                         new URL(url);
                     } catch (e) {
@@ -2180,28 +2196,32 @@
                 }
             } else {
                 url = select.value;
-                customInputGroup.style.display = 'none'; // Hide custom input when a default is selected
+                customInputGroup.style.display = 'none';
             }
 
-            // Apply the background
-            document.body.style.backgroundImage = url;
-            // Save the selected background URL to local storage
-            localStorage.setItem('adminBackgroundUrl', url);
-        }
+            // Save to backend for Office login page
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/background-url?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backgroundUrl: url })
+                });
 
-        function updateCustomBackgroundUrl() {
-            const customInput = document.getElementById('custom-background-url-input');
-            const url = customInput.value.trim();
-
-            // Apply the background immediately as the user types
-            if (url) {
-                document.body.style.backgroundImage = `url('${url}')`;
-            } else {
-                // Revert to the currently selected default if custom input is cleared
-                const select = document.getElementById('background-url-select');
-                document.body.style.backgroundImage = select.value;
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Office login page background updated successfully!');
+                    console.log('Background URL saved to backend:', url);
+                } else {
+                    alert('⚠️ Failed to save background: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving background URL:', error);
+                alert('❌ Network error while saving background');
             }
         }
+
+        
 
     </script>
 </body>

