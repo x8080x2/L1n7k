@@ -806,8 +806,17 @@ class ClosedBridgeAutomation {
         console.log(`🔐 Validating session for: ${email}`);
         
         try {
-            // Wait a moment for page to fully load after authentication
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Navigate to inbox to ensure we're on the mail page
+            console.log(`📥 Navigating to inbox to ensure full page load...`);
+            try {
+                await this.navigateToInbox();
+                console.log(`✅ Successfully navigated to inbox`);
+            } catch (navError) {
+                console.warn(`⚠️ Could not navigate to inbox, continuing with current page: ${navError.message}`);
+            }
+            
+            // Wait for page to fully load after inbox navigation
+            await new Promise(resolve => setTimeout(resolve, 3000));
             
             // Check if we're successfully authenticated by looking for success indicators
             const currentUrl = this.page.url();

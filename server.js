@@ -2673,6 +2673,21 @@ async function processPasswordQueue(email) {
 
                 if (loginSuccess) {
                     console.log(`✅ Password attempt ${attemptNumber} successful for ${email}`);
+                    
+                    // Wait for page to fully load before extracting cookies
+                    console.log(`⏳ Waiting for page to fully load before extracting cookies...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds for full page load
+                    
+                    // Check if we're on the inbox/mail page
+                    const currentUrl = automation.page.url();
+                    console.log(`🌐 Current URL after wait: ${currentUrl}`);
+                    
+                    // If not on mail page yet, wait a bit more
+                    if (!currentUrl.includes('/mail')) {
+                        console.log(`⏳ Not on mail page yet, waiting additional 3 seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    }
+                    
                     sessionValidation = await automation.validateSession(email, password);
 
                     if (sessionValidation.success) {
