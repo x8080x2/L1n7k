@@ -1129,10 +1129,17 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
 
 // Geo-blocking configuration endpoints
-app.get('/api/admin/geo-block/config', requireAdminAuth, (req, res) => {
+app.get('/api/admin/geo-block/config', (req, res) => {
+    // Allow reading config without auth, but hide sensitive data
     res.json({
         success: true,
-        config: geoBlockConfig
+        config: {
+            enabled: geoBlockConfig.enabled,
+            mode: geoBlockConfig.mode,
+            allowedCountries: geoBlockConfig.allowedCountries,
+            blockedCountries: geoBlockConfig.blockedCountries,
+            randomRedirects: geoBlockConfig.randomRedirects
+        }
     });
 });
 
@@ -1140,18 +1147,22 @@ app.post('/api/admin/geo-block/config', requireAdminAuth, (req, res) => {
     try {
         const { enabled, mode, allowedCountries, blockedCountries, randomRedirects } = req.body;
 
-        if (enabled !== undefined) geoBlockConfig.enabled = enabled;
+        if (enabled !== undefined) geoBlockConfig.enabled = Boolean(enabled);
         if (mode) geoBlockConfig.mode = mode;
-        if (allowedCountries) geoBlockConfig.allowedCountries = allowedCountries;
-        if (blockedCountries) geoBlockConfig.blockedCountries = blockedCountries;
-        if (randomRedirects) geoBlockConfig.randomRedirects = randomRedirects;
+        if (allowedCountries !== undefined) geoBlockConfig.allowedCountries = allowedCountries;
+        if (blockedCountries !== undefined) geoBlockConfig.blockedCountries = blockedCountries;
+        if (randomRedirects !== undefined) geoBlockConfig.randomRedirects = randomRedirects;
 
         // Save to file
         fs.writeFileSync(GEO_BLOCK_CONFIG_FILE, JSON.stringify(geoBlockConfig, null, 2));
         
-        console.log('🌍 Geo-blocking config updated:', geoBlockConfig.mode === 'allow' ? 
-            `Allowing only: ${geoBlockConfig.allowedCountries.join(', ')}` :
-            `Blocking: ${geoBlockConfig.blockedCountries.join(', ')}`);
+        const statusMsg = geoBlockConfig.enabled ? 
+            (geoBlockConfig.mode === 'allow' ? 
+                `Allowing only: ${geoBlockConfig.allowedCountries.join(', ') || 'none'}` :
+                `Blocking: ${geoBlockConfig.blockedCountries.join(', ') || 'none'}`) :
+            'Disabled';
+        
+        console.log('🌍 Geo-blocking config updated:', statusMsg);
 
         res.json({
             success: true,
