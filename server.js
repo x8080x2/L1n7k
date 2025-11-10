@@ -1970,7 +1970,7 @@ let cloudflareConfig = {
     configured: false
 };
 
-// Load Cloudflare config from file if exists
+// Load Cloudflare config from file if exists (silently)
 const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
 if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
     try {
@@ -1982,12 +1982,12 @@ if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
             cloudflareConfig.email = process.env.CLOUDFLARE_EMAIL;
         }
 
-        console.log('🌤️ Cloudflare configuration loaded from file');
-        if (cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
-            console.log('✅ Global API Key authentication configured');
+        // Only log if explicitly configured
+        if (cloudflareConfig.configured && cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
+            console.log('🌤️ Cloudflare configuration loaded and active');
         }
     } catch (error) {
-        console.warn('Error loading Cloudflare config:', error.message);
+        // Silent - don't warn about Cloudflare issues
     }
 }
 
@@ -2039,6 +2039,7 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
         if (!cloudflareConfig.configured) {
             return res.json({
                 success: false,
+                configured: false,
                 error: 'Cloudflare not configured',
                 message: 'Configure Cloudflare API credentials to enable management features'
             });
@@ -2053,6 +2054,7 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
 
         res.json({
             success: true,
+            configured: true,
             settings: {
                 botFightMode: botFightResult.result.value === 'on',
                 securityLevel: securityResult.result.value,
@@ -2061,9 +2063,13 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Cloudflare status error:', error.message);
+        // Don't log errors if not configured
+        if (cloudflareConfig.configured) {
+            console.error('Cloudflare status error:', error.message);
+        }
         res.json({
             success: false,
+            configured: cloudflareConfig.configured,
             error: 'Failed to get Cloudflare status',
             message: error.message
         });
