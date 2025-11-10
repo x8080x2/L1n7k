@@ -751,6 +751,16 @@
             <div id="geoblock-tab" class="tab-content">
                 <h2 class="section-title">Geo-Blocking Control</h2>
 
+                <div class="form-group">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button onclick="toggleGeoBlocking()" id="geo-toggle-btn" class="btn">
+                            Enable Geo-Blocking
+                        </button>
+                        <span id="geo-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
+                    </div>
+                </div>
+
+                
                 <div class="dashboard-grid" style="margin-bottom: 20px;">
                     <div class="dashboard-card">
                         <div class="dashboard-card-icon">🌍</div>
@@ -777,14 +787,7 @@
 
                     <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">Geo-Blocking Settings</h3>
 
-                    <div class="form-group">
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            <button onclick="toggleGeoBlocking()" id="geo-toggle-btn" class="btn">
-                                Enable Geo-Blocking
-                            </button>
-                            <span id="geo-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
-                        </div>
-                    </div>
+                  
 
                     <div class="form-group">
                         <label class="form-label">Access Mode:</label>
