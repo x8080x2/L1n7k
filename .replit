@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash"]
+modules = ["web", "nodejs-20", "bash"]
 [agent]
 expertMode = true
 
@@ -81,6 +81,10 @@ externalPort = 3002
 [[ports]]
 localPort = 45027
 externalPort = 6800
+
+[[ports]]
+localPort = 45271
+externalPort = 8099
 
 [[ports]]
 localPort = 46119
