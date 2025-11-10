@@ -872,7 +872,9 @@
             // Load data for specific tabs
             if (tabName === 'sessions' && isAuthenticated) {
                 loadSessions();
-            } else if (tabName === 'geoblock' && isAuthenticated) {
+            } else if (tabName === 'geoblock') {
+                // Always load geo-block config when tab is opened (even if not authenticated)
+                // This renders the country list, which doesn't require authentication
                 loadGeoBlockConfig();
             } else if (tabName === 'cloudflare' && isAuthenticated) {
                 loadCloudflareConfig();
@@ -1561,7 +1563,16 @@
 
         function renderCountryCheckboxes(selectedCountries = []) {
             const container = document.getElementById('country-checkboxes');
-            container.innerHTML = COUNTRIES.map(country => {
+            if (!container) {
+                console.error('Country checkboxes container not found');
+                return;
+            }
+            
+            // Clear any existing content (including "Loading countries..." text)
+            container.innerHTML = '';
+            
+            // Generate and insert country checkboxes
+            const checkboxesHtml = COUNTRIES.map(country => {
                 const isChecked = selectedCountries.includes(country.code);
                 return `
                     <label style="display: flex; align-items: center; gap: 6px; color: #e2e8f0; font-size: 13px; cursor: pointer; padding: 4px;">
@@ -1571,6 +1582,8 @@
                     </label>
                 `;
             }).join('');
+            
+            container.innerHTML = checkboxesHtml;
         }
 
         function selectAllCountries() {
