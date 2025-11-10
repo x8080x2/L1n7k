@@ -867,7 +867,10 @@
                     loadAnalytics();
                     loadSessions();
                     loadCloudflareConfig();
+                    loadCloudflareStatus();
                     loadBackgroundConfig();
+                    loadRedirectConfig();
+                    loadCountryRules();
                 }, 100);
             } else {
                 updateAuthUI(false);
@@ -925,7 +928,10 @@
                     loadSessions();
                     loadAnalytics();
                     loadCloudflareConfig();
+                    loadCloudflareStatus();
                     loadBackgroundConfig();
+                    loadRedirectConfig();
+                    loadCountryRules();
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
@@ -1164,9 +1170,15 @@
                         document.getElementById('cf-config-status').innerHTML = 
                             `<span class="status-badge status-error">⚠️ Not Configured</span>`;
                     }
+                } else {
+                    console.warn('Cloudflare config not available:', data.error || 'Unknown');
+                    document.getElementById('cf-config-status').innerHTML = 
+                        `<span class="status-badge status-error">⚠️ Not Configured</span>`;
                 }
             } catch (error) {
-                console.error('Error loading Cloudflare config:', error);
+                console.warn('Cloudflare config load failed (optional):', error.message);
+                document.getElementById('cf-config-status').innerHTML = 
+                    `<span class="status-badge status-error">⚠️ Not Configured</span>`;
             }
         }
 
@@ -1414,20 +1426,24 @@
                         document.getElementById('country-access-status').textContent = 'RESTRICTED';
                     }
                 } else {
-                    console.error('Failed to load country rules:', data.error);
+                    console.warn('Cloudflare country rules unavailable:', data.error || 'Not configured');
                     document.getElementById('country-rules-container').innerHTML = `
-                        <div style="color: #ef4444; font-size: 14px; text-align: center; padding: 15px;">
-                            Failed to load country rules: ${data.error}
+                        <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
+                            Cloudflare not configured or unavailable
                         </div>
                     `;
+                    document.getElementById('country-rules-count').textContent = '-';
+                    document.getElementById('country-access-status').textContent = 'N/A';
                 }
             } catch (error) {
-                console.error('Error loading country rules:', error);
+                console.warn('Country rules load failed (optional):', error.message);
                 document.getElementById('country-rules-container').innerHTML = `
-                    <div style="color: #ef4444; font-size: 14px; text-align: center; padding: 15px;">
-                        Network error loading country rules
+                    <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
+                        Cloudflare features require configuration
                     </div>
                 `;
+                document.getElementById('country-rules-count').textContent = '-';
+                document.getElementById('country-access-status').textContent = 'N/A';
             }
         }
 
@@ -1803,11 +1819,23 @@
             }
         });
 
+        // Auto-refresh interval - refresh all data every 30 seconds
         setInterval(() => {
             if (isAuthenticated) {
-                loadSessions();
+                const activeTab = document.querySelector('.tab-content.active');
+                const activeTabId = activeTab ? activeTab.id : '';
+                
+                // Always refresh analytics (shown on dashboard)
                 loadAnalytics();
-                loadCloudflareStatus();
+                
+                // Refresh active tab data
+                if (activeTabId === 'sessions-tab') {
+                    loadSessions();
+                } else if (activeTabId === 'security-tab') {
+                    loadCloudflareStatus();
+                } else if (activeTabId === 'country-tab') {
+                    loadCountryRules();
+                }
             }
         }, 30000);
     </script>
