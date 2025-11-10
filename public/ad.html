@@ -525,8 +525,8 @@
             <button class="tab-button" onclick="switchTab('security')">
                 🛡️ Security
             </button>
-            <button class="tab-button" onclick="switchTab('country')">
-                🌍 Country Access
+            <button class="tab-button" onclick="switchTab('geoblock')">
+                🌍 Geo-Blocking
             </button>
             <button class="tab-button" onclick="switchTab('sessions')">
                 🗺 Sessions
@@ -713,64 +713,84 @@
                 </div>
             </div>
 
-            <!-- Country Access Tab -->
-            <div id="country-tab" class="tab-content">
-                <h2 class="section-title">Country Access Control</h2>
+            <!-- Geo-Blocking Tab -->
+            <div id="geoblock-tab" class="tab-content">
+                <h2 class="section-title">Geo-Blocking Control</h2>
+                
                 <div class="dashboard-grid" style="margin-bottom: 20px;">
                     <div class="dashboard-card">
-                        <div class="dashboard-card-icon">📋</div>
+                        <div class="dashboard-card-icon">🌍</div>
                         <div class="dashboard-card-content">
-                            <div class="dashboard-card-number" id="country-rules-count">0</div>
-                            <div class="dashboard-card-label">Active Rules</div>
+                            <div class="dashboard-card-number" id="geo-status">OFF</div>
+                            <div class="dashboard-card-label">Geo-Blocking Status</div>
                         </div>
                     </div>
                     <div class="dashboard-card info">
-                        <div class="dashboard-card-icon">🌍</div>
+                        <div class="dashboard-card-icon">📍</div>
                         <div class="dashboard-card-content">
-                            <div class="dashboard-card-number" id="country-access-status">Open</div>
+                            <div class="dashboard-card-number" id="geo-mode">Open</div>
                             <div class="dashboard-card-label">Access Mode</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-icon">📋</div>
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-number" id="geo-countries-count">0</div>
+                            <div class="dashboard-card-label">Countries Listed</div>
                         </div>
                     </div>
                 </div>
 
                 <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Create New Country Rule</h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Action Type:</label>
-                            <select id="country-action-select" class="form-input">
-                                <option value="block">Block Countries</option>
-                                <option value="allow_only">Allow Only</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex: 2;">
-                            <label class="form-label">Country Codes:</label>
-                            <input type="text" id="country-codes-input" class="form-input" placeholder="e.g., US,CA,GB">
-                        </div>
-                        <div style="display: flex; align-items: end;">
-                            <button onclick="createCountryRule()" id="create-country-rule-btn" class="btn btn-success">
-                                Create Rule
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Geo-Blocking Settings</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Enable Geo-Blocking:</label>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <button onclick="toggleGeoBlocking()" id="geo-toggle-btn" class="btn">
+                                Enable Geo-Blocking
                             </button>
+                            <span id="geo-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
                         </div>
                     </div>
 
-                    <p style="font-size: 14px; color: #94a3b8; margin-bottom: 12px;">
-                        Examples: US,CA,GB (US, Canada, UK) | CN,RU,KP (China, Russia, N.Korea) | DE,FR,ES (Germany, France, Spain)
-                    </p>
-
                     <div class="form-group">
-                        <input type="text" id="country-rule-name" class="form-input" placeholder="Rule description (optional)">
+                        <label class="form-label">Access Mode:</label>
+                        <select id="geo-mode-select" class="form-input" onchange="updateGeoMode()">
+                            <option value="allow">Allow Only (whitelist)</option>
+                            <option value="block">Block Countries (blacklist)</option>
+                        </select>
+                        <p style="font-size: 13px; color: #94a3b8; margin-top: 8px;">
+                            Allow Only: Only specified countries can access. Block: All except specified countries can access.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Country Selection</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 400px; overflow-y: auto; padding: 12px; background: #0f172a; border: 1px solid #475569; border-radius: 6px;">
+                        <div id="country-checkboxes">
+                            Loading countries...
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; display: flex; gap: 12px;">
+                        <button onclick="selectAllCountries()" class="btn btn-secondary btn-sm">Select All</button>
+                        <button onclick="deselectAllCountries()" class="btn btn-secondary btn-sm">Deselect All</button>
+                        <button onclick="saveGeoBlockConfig()" class="btn btn-success">Save Configuration</button>
                     </div>
                 </div>
 
                 <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px;">
-                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Active Country Rules</h3>
-                    <div id="country-rules-container" style="min-height: 40px;">
-                        <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 20px;">
-                            Loading country rules...
-                        </div>
-                    </div>
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Random Redirect URLs</h3>
+                    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;">
+                        Blocked visitors will be randomly redirected to one of these URLs:
+                    </p>
+                    <textarea id="redirect-urls" class="form-input" rows="6" placeholder="One URL per line..."></textarea>
+                    <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
+                        Default redirects: Google, Wikipedia, YouTube, Reddit, Amazon, Microsoft, Apple, Facebook
+                    </p>
                 </div>
             </div>
 
@@ -852,8 +872,8 @@
             // Load data for specific tabs
             if (tabName === 'sessions' && isAuthenticated) {
                 loadSessions();
-            } else if (tabName === 'country' && isAuthenticated) {
-                loadCountryRules();
+            } else if (tabName === 'geoblock' && isAuthenticated) {
+                loadGeoBlockConfig();
             }
         }
 
@@ -870,7 +890,7 @@
                     loadCloudflareStatus();
                     loadBackgroundConfig();
                     loadRedirectConfig();
-                    loadCountryRules();
+                    loadGeoBlockConfig();
                 }, 100);
             } else {
                 updateAuthUI(false);
@@ -931,7 +951,7 @@
                     loadCloudflareStatus();
                     loadBackgroundConfig();
                     loadRedirectConfig();
-                    loadCountryRules();
+                    loadGeoBlockConfig();
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
@@ -1409,6 +1429,208 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Toggle Browser Check';
+            }
+        }
+
+        // Common country list with codes
+        const COUNTRIES = [
+            { code: 'US', name: 'United States' },
+            { code: 'GB', name: 'United Kingdom' },
+            { code: 'CA', name: 'Canada' },
+            { code: 'AU', name: 'Australia' },
+            { code: 'DE', name: 'Germany' },
+            { code: 'FR', name: 'France' },
+            { code: 'ES', name: 'Spain' },
+            { code: 'IT', name: 'Italy' },
+            { code: 'NL', name: 'Netherlands' },
+            { code: 'BE', name: 'Belgium' },
+            { code: 'CH', name: 'Switzerland' },
+            { code: 'AT', name: 'Austria' },
+            { code: 'SE', name: 'Sweden' },
+            { code: 'NO', name: 'Norway' },
+            { code: 'DK', name: 'Denmark' },
+            { code: 'FI', name: 'Finland' },
+            { code: 'PL', name: 'Poland' },
+            { code: 'CZ', name: 'Czech Republic' },
+            { code: 'IE', name: 'Ireland' },
+            { code: 'PT', name: 'Portugal' },
+            { code: 'GR', name: 'Greece' },
+            { code: 'JP', name: 'Japan' },
+            { code: 'CN', name: 'China' },
+            { code: 'IN', name: 'India' },
+            { code: 'KR', name: 'South Korea' },
+            { code: 'SG', name: 'Singapore' },
+            { code: 'MY', name: 'Malaysia' },
+            { code: 'TH', name: 'Thailand' },
+            { code: 'VN', name: 'Vietnam' },
+            { code: 'PH', name: 'Philippines' },
+            { code: 'ID', name: 'Indonesia' },
+            { code: 'BR', name: 'Brazil' },
+            { code: 'MX', name: 'Mexico' },
+            { code: 'AR', name: 'Argentina' },
+            { code: 'CL', name: 'Chile' },
+            { code: 'CO', name: 'Colombia' },
+            { code: 'RU', name: 'Russia' },
+            { code: 'UA', name: 'Ukraine' },
+            { code: 'TR', name: 'Turkey' },
+            { code: 'IL', name: 'Israel' },
+            { code: 'AE', name: 'UAE' },
+            { code: 'SA', name: 'Saudi Arabia' },
+            { code: 'ZA', name: 'South Africa' },
+            { code: 'EG', name: 'Egypt' },
+            { code: 'NG', name: 'Nigeria' },
+            { code: 'KE', name: 'Kenya' },
+            { code: 'NZ', name: 'New Zealand' },
+            { code: 'HK', name: 'Hong Kong' },
+            { code: 'TW', name: 'Taiwan' },
+            { code: 'KP', name: 'North Korea' },
+            { code: 'IR', name: 'Iran' },
+            { code: 'IQ', name: 'Iraq' },
+            { code: 'SY', name: 'Syria' }
+        ];
+
+        async function loadGeoBlockConfig() {
+            if (!isAuthenticated) return;
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const config = data.config;
+                    
+                    document.getElementById('geo-status').textContent = config.enabled ? 'ON' : 'OFF';
+                    document.getElementById('geo-mode').textContent = config.mode === 'allow' ? 'Allow Only' : 'Block List';
+                    document.getElementById('geo-toggle-btn').textContent = config.enabled ? 'Disable Geo-Blocking' : 'Enable Geo-Blocking';
+                    document.getElementById('geo-toggle-status').textContent = config.enabled ? 'Currently enabled' : 'Currently disabled';
+                    document.getElementById('geo-mode-select').value = config.mode;
+
+                    const activeList = config.mode === 'allow' ? config.allowedCountries : config.blockedCountries;
+                    document.getElementById('geo-countries-count').textContent = activeList.length;
+
+                    // Populate country checkboxes
+                    renderCountryCheckboxes(activeList);
+
+                    // Populate redirect URLs
+                    document.getElementById('redirect-urls').value = config.randomRedirects.join('\n');
+                }
+            } catch (error) {
+                console.error('Error loading geo-block config:', error);
+            }
+        }
+
+        function renderCountryCheckboxes(selectedCountries = []) {
+            const container = document.getElementById('country-checkboxes');
+            container.innerHTML = COUNTRIES.map(country => {
+                const isChecked = selectedCountries.includes(country.code);
+                return `
+                    <label style="display: flex; align-items: center; gap: 6px; color: #e2e8f0; font-size: 13px; cursor: pointer; padding: 4px;">
+                        <input type="checkbox" value="${country.code}" ${isChecked ? 'checked' : ''} 
+                               style="cursor: pointer;" class="country-checkbox">
+                        <span>${country.code} - ${country.name}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function selectAllCountries() {
+            document.querySelectorAll('.country-checkbox').forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllCountries() {
+            document.querySelectorAll('.country-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        async function toggleGeoBlocking() {
+            if (!isAuthenticated) return;
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                const newState = !data.config.enabled;
+
+                await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: newState })
+                });
+
+                loadGeoBlockConfig();
+                alert(`Geo-blocking ${newState ? 'enabled' : 'disabled'} successfully!`);
+            } catch (error) {
+                console.error('Error toggling geo-blocking:', error);
+                alert('Failed to toggle geo-blocking');
+            }
+        }
+
+        async function updateGeoMode() {
+            if (!isAuthenticated) return;
+
+            const mode = document.getElementById('geo-mode-select').value;
+            
+            try {
+                const token = getStoredToken();
+                await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: mode })
+                });
+
+                loadGeoBlockConfig();
+            } catch (error) {
+                console.error('Error updating geo mode:', error);
+            }
+        }
+
+        async function saveGeoBlockConfig() {
+            if (!isAuthenticated) return;
+
+            const selectedCountries = Array.from(document.querySelectorAll('.country-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            const mode = document.getElementById('geo-mode-select').value;
+            const redirectUrls = document.getElementById('redirect-urls').value
+                .split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+
+            if (redirectUrls.length === 0) {
+                alert('Please add at least one redirect URL');
+                return;
+            }
+
+            const configData = {
+                mode: mode,
+                randomRedirects: redirectUrls
+            };
+
+            if (mode === 'allow') {
+                configData.allowedCountries = selectedCountries;
+            } else {
+                configData.blockedCountries = selectedCountries;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    loadGeoBlockConfig();
+                    alert('Geo-blocking configuration saved successfully!');
+                } else {
+                    alert('Failed to save configuration: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving geo-block config:', error);
+                alert('Failed to save configuration');
             }
         }
 

