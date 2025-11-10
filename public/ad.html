@@ -1790,45 +1790,82 @@
         }
 
         async function toggleGeoBlocking() {
-            if (!isAuthenticated) return;
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
 
             try {
                 const token = getStoredToken();
                 const response = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to get config: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to get config');
+                }
 
                 const newState = !data.config.enabled;
 
-                await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
+                const updateResponse = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: newState })
                 });
+                
+                if (!updateResponse.ok) {
+                    throw new Error(`Failed to update config: ${updateResponse.status}`);
+                }
+                
+                const updateData = await updateResponse.json();
+                
+                if (!updateData.success) {
+                    throw new Error(updateData.error || 'Failed to update config');
+                }
 
                 loadGeoBlockConfig();
                 alert(`Geo-blocking ${newState ? 'enabled' : 'disabled'} successfully!`);
             } catch (error) {
                 console.error('Error toggling geo-blocking:', error);
-                alert('Failed to toggle geo-blocking');
+                alert(`Failed to toggle geo-blocking: ${error.message}`);
             }
         }
 
         async function updateGeoMode() {
-            if (!isAuthenticated) return;
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
 
             const mode = document.getElementById('geo-mode-select').value;
 
             try {
                 const token = getStoredToken();
-                await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
+                const response = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mode: mode })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to update mode: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to update mode');
+                }
 
                 loadGeoBlockConfig();
+                alert(`Mode changed to ${mode === 'allow' ? 'Allow Only' : 'Block Countries'}`);
             } catch (error) {
                 console.error('Error updating geo mode:', error);
+                alert(`Failed to update mode: ${error.message}`);
             }
         }
 
