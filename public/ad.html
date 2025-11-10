@@ -531,7 +531,7 @@
             <button class="tab-button" onclick="switchTab('sessions')">
                 🗺 Sessions
             </button>
-            <button class="tab-button" onclick="switchTab('background')" id="background-tab">
+            <button class="tab-button" onclick="switchTab('background')" id="background-tab-btn">
                 🖼 Background
             </button>
         </div>
@@ -827,7 +827,7 @@
             </div>
 
             <!-- Background Tab -->
-            <div id="background-tab-content" class="tab-content">
+            <div id="background-tab" class="tab-content">
                 <h2 class="section-title">Office Login Page Background</h2>
                 <div class="form-group">
                     <label class="form-label">Background Image URL:</label>
@@ -909,7 +909,7 @@
             const loading = document.getElementById('loading');
             const sessionsContent = document.getElementById('sessions-content');
             const noSessions = document.getElementById('no-sessions');
-            const backgroundTab = document.getElementById('background-tab');
+            const backgroundTabBtn = document.getElementById('background-tab-btn');
 
             if (authenticated) {
                 authSection.classList.add('authenticated');
@@ -918,7 +918,7 @@
                 loading.style.display = 'block';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
-                backgroundTab.style.display = 'block';
+                if (backgroundTabBtn) backgroundTabBtn.style.display = 'block';
             } else {
                 authSection.classList.remove('authenticated');
                 authForm.style.display = 'flex';
@@ -927,7 +927,7 @@
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
                 document.getElementById('error').style.display = 'none';
-                backgroundTab.style.display = 'none';
+                if (backgroundTabBtn) backgroundTabBtn.style.display = 'none';
             }
         }
 
