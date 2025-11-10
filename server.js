@@ -2646,10 +2646,7 @@ app.get('/api/admin/cloudflare/status', requireAdminAuth, async (req, res) => {
         });
 
     } catch (error) {
-        // Don't log errors if not configured
-        if (cloudflareConfig.configured) {
-            console.error('Cloudflare status error:', error.message);
-        }
+        // Silent fail when Cloudflare is disabled or not configured
         res.json({
             success: false,
             configured: cloudflareConfig.configured,
