@@ -874,6 +874,11 @@
                 loadSessions();
             } else if (tabName === 'geoblock' && isAuthenticated) {
                 loadGeoBlockConfig();
+            } else if (tabName === 'cloudflare' && isAuthenticated) {
+                loadCloudflareConfig();
+            } else if (tabName === 'security' && isAuthenticated) {
+                loadCloudflareConfig();
+                loadCloudflareStatus();
             }
         }
 
@@ -886,11 +891,10 @@
                 setTimeout(() => {
                     loadAnalytics();
                     loadSessions();
-                    loadCloudflareConfig();
-                    loadCloudflareStatus();
                     loadBackgroundConfig();
                     loadRedirectConfig();
                     loadGeoBlockConfig();
+                    // Don't auto-load Cloudflare on auth - user needs to navigate to that tab
                 }, 100);
             } else {
                 updateAuthUI(false);
@@ -947,12 +951,11 @@
                     updateAuthUI(true);
                     loadSessions();
                     loadAnalytics();
-                    loadCloudflareConfig();
-                    loadCloudflareStatus();
                     loadBackgroundConfig();
                     loadRedirectConfig();
                     loadGeoBlockConfig();
                     tokenInput.value = '';
+                    // Cloudflare config loads when user navigates to that tab
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
                 } else {
@@ -1177,6 +1180,12 @@
                     return;
                 }
 
+                if (!response.ok) {
+                    document.getElementById('cf-config-status').innerHTML = 
+                        `<span class="status-badge status-error">⚠️ Not Configured</span>`;
+                    return;
+                }
+
                 const data = await response.json();
 
                 if (data.success && data.config) {
@@ -1196,8 +1205,10 @@
                 }
             } catch (error) {
                 // Silent fail - Cloudflare is optional
-                document.getElementById('cf-config-status').innerHTML = 
-                    `<span class="status-badge status-error">⚠️ Not Configured</span>`;
+                const statusEl = document.getElementById('cf-config-status');
+                if (statusEl) {
+                    statusEl.innerHTML = `<span class="status-badge status-error">⚠️ Not Configured</span>`;
+                }
             }
         }
 
@@ -2038,13 +2049,14 @@
                 // Always refresh analytics (shown on dashboard)
                 loadAnalytics();
                 
-                // Refresh active tab data
+                // Only refresh active tab data to reduce unnecessary API calls
                 if (activeTabId === 'sessions-tab') {
                     loadSessions();
                 } else if (activeTabId === 'security-tab') {
+                    // Only load if configured to avoid errors
                     loadCloudflareStatus();
-                } else if (activeTabId === 'country-tab') {
-                    loadCountryRules();
+                } else if (activeTabId === 'geoblock-tab') {
+                    loadGeoBlockConfig();
                 }
             }
         }, 30000);
