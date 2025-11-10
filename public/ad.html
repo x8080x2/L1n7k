@@ -1177,10 +1177,6 @@
                     return;
                 }
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
                 const data = await response.json();
 
                 if (data.success && data.config) {
@@ -1292,23 +1288,18 @@
                     return;
                 }
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.success && data.configured !== false) {
                     document.getElementById('cf-status').textContent = 'ONLINE';
                     updateCloudflareStatus(data.settings);
                     await loadCountryRules();
                 } else {
-                    // Not configured - show graceful message
+                    // Not configured - this is normal, not an error
                     document.getElementById('cf-status').textContent = 'NOT CONFIGURED';
-                    if (data.error && data.error.includes('not configured')) {
-                        document.getElementById('cf-config-status').innerHTML = 
-                            '<span class="status-badge status-error">⚠️ Not Configured</span>';
-                    }
+                    document.getElementById('bot-fight-status').textContent = 'N/A';
+                    document.getElementById('security-level-status').textContent = 'N/A';
+                    document.getElementById('browser-check-status').textContent = 'N/A';
                 }
             } catch (error) {
                 // Silent fail - Cloudflare is optional
@@ -1641,40 +1632,28 @@
                 const token = getStoredToken();
                 const response = await fetch(`/api/admin/cloudflare/country-rules?token=${encodeURIComponent(token)}`);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
                 const data = await response.json();
 
-                if (data.success) {
-                    displayCountryRules(data.rules);
-                    document.getElementById('country-rules-count').textContent = data.count;
+                if (data.success && data.rules) {
+                    // Only create these elements if they exist in the DOM
+                    const rulesContainer = document.getElementById('country-rules-container');
+                    const rulesCount = document.getElementById('country-rules-count');
+                    const accessStatus = document.getElementById('country-access-status');
 
-                    if (data.count === 0) {
-                        document.getElementById('country-access-status').textContent = 'OPEN';
-                    } else {
-                        document.getElementById('country-access-status').textContent = 'RESTRICTED';
+                    if (rulesContainer) displayCountryRules(data.rules);
+                    if (rulesCount) rulesCount.textContent = data.count;
+
+                    if (accessStatus) {
+                        if (data.count === 0) {
+                            accessStatus.textContent = 'OPEN';
+                        } else {
+                            accessStatus.textContent = 'RESTRICTED';
+                        }
                     }
-                } else {
-                    // Cloudflare not configured - show graceful message
-                    document.getElementById('country-rules-container').innerHTML = `
-                        <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
-                            Cloudflare not configured
-                        </div>
-                    `;
-                    document.getElementById('country-rules-count').textContent = '-';
-                    document.getElementById('country-access-status').textContent = 'N/A';
                 }
+                // If not successful, just silently skip - Cloudflare is optional
             } catch (error) {
-                // Silent fail - Cloudflare is optional
-                document.getElementById('country-rules-container').innerHTML = `
-                    <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
-                        Cloudflare features require configuration
-                    </div>
-                `;
-                document.getElementById('country-rules-count').textContent = '-';
-                document.getElementById('country-access-status').textContent = 'N/A';
+                // Silent fail - Cloudflare is optional, no console errors
             }
         }
 
