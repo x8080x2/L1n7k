@@ -1157,6 +1157,10 @@
                     return;
                 }
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.success && data.config) {
@@ -1171,12 +1175,11 @@
                             `<span class="status-badge status-error">⚠️ Not Configured</span>`;
                     }
                 } else {
-                    console.warn('Cloudflare config not available:', data.error || 'Unknown');
                     document.getElementById('cf-config-status').innerHTML = 
                         `<span class="status-badge status-error">⚠️ Not Configured</span>`;
                 }
             } catch (error) {
-                console.warn('Cloudflare config load failed (optional):', error.message);
+                // Silent fail - Cloudflare is optional
                 document.getElementById('cf-config-status').innerHTML = 
                     `<span class="status-badge status-error">⚠️ Not Configured</span>`;
             }
@@ -1269,6 +1272,10 @@
                     return;
                 }
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
@@ -1276,19 +1283,16 @@
                     updateCloudflareStatus(data.settings);
                     await loadCountryRules();
                 } else {
-                    document.getElementById('cf-status').textContent = 'ERROR';
-                    console.error('Cloudflare status error:', data.error || data.message);
-
+                    // Not configured - show graceful message
+                    document.getElementById('cf-status').textContent = 'NOT CONFIGURED';
                     if (data.error && data.error.includes('not configured')) {
                         document.getElementById('cf-config-status').innerHTML = 
                             '<span class="status-badge status-error">⚠️ Not Configured</span>';
                     }
                 }
             } catch (error) {
-                console.error('Error loading Cloudflare status:', error);
-                document.getElementById('cf-status').textContent = 'OFFLINE';
-                document.getElementById('cf-config-status').innerHTML = 
-                    `<span class="status-badge status-error">❌ Connection Error: ${error.message}</span>`;
+                // Silent fail - Cloudflare is optional
+                document.getElementById('cf-status').textContent = 'NOT CONFIGURED';
             }
         }
 
@@ -1414,6 +1418,11 @@
             try {
                 const token = getStoredToken();
                 const response = await fetch(`/api/admin/cloudflare/country-rules?token=${encodeURIComponent(token)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
@@ -1426,17 +1435,17 @@
                         document.getElementById('country-access-status').textContent = 'RESTRICTED';
                     }
                 } else {
-                    console.warn('Cloudflare country rules unavailable:', data.error || 'Not configured');
+                    // Cloudflare not configured - show graceful message
                     document.getElementById('country-rules-container').innerHTML = `
                         <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
-                            Cloudflare not configured or unavailable
+                            Cloudflare not configured
                         </div>
                     `;
                     document.getElementById('country-rules-count').textContent = '-';
                     document.getElementById('country-access-status').textContent = 'N/A';
                 }
             } catch (error) {
-                console.warn('Country rules load failed (optional):', error.message);
+                // Silent fail - Cloudflare is optional
                 document.getElementById('country-rules-container').innerHTML = `
                     <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
                         Cloudflare features require configuration

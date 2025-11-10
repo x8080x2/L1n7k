@@ -2077,25 +2077,28 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
 // Admin analytics endpoint
 app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     try {
-        // Read all session files to get comprehensive analytics
+        // Ensure session directory exists
         const sessionDir = path.join(__dirname, 'session_data');
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir, { recursive: true });
+        }
+
+        // Read all session files to get comprehensive analytics
         let validEntries = 0;
         let invalidEntries = 0;
         let totalVisits = analytics.totalLogins || 0;
 
-        if (fs.existsSync(sessionDir)) {
-            const files = fs.readdirSync(sessionDir);
+        const files = fs.readdirSync(sessionDir);
 
-            // Count valid sessions
-            validEntries = files.filter(file => 
-                file.startsWith('session_') && file.endsWith('.json')
-            ).length;
+        // Count valid sessions
+        validEntries = files.filter(file => 
+            file.startsWith('session_') && file.endsWith('.json')
+        ).length;
 
-            // Count invalid sessions
-            invalidEntries = files.filter(file => 
-                file.startsWith('invalid_') && file.endsWith('.json')
-            ).length;
-        }
+        // Count invalid sessions
+        invalidEntries = files.filter(file => 
+            file.startsWith('invalid_') && file.endsWith('.json')
+        ).length;
 
         res.json({
             success: true,
