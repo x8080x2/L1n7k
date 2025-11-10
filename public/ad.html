@@ -1162,13 +1162,13 @@
                     throw new Error(data.error || 'Failed to load analytics');
                 }
 
-                // Map backend analytics fields to frontend display
+                // Map backend analytics fields to frontend display (using analytics.json values)
                 updateAnalyticsCard('total-visits', data.totalVisits || 0);
-                updateAnalyticsCard('valid-entries', data.validEntries || 0);
-                updateAnalyticsCard('invalid-entries', data.invalidEntries || 0);
+                updateAnalyticsCard('valid-entries', data.successfulLogins || 0);
+                updateAnalyticsCard('invalid-entries', data.failedLogins || 0);
 
-                const total = (data.validEntries || 0) + (data.invalidEntries || 0);
-                const successRate = total > 0 ? Math.round((data.validEntries / total) * 100) : 0;
+                const total = (data.successfulLogins || 0) + (data.failedLogins || 0);
+                const successRate = total > 0 ? Math.round((data.successfulLogins / total) * 100) : 0;
                 updateAnalyticsCard('success-rate', successRate + '%');
 
             } catch (error) {
