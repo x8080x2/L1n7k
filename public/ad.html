@@ -658,20 +658,6 @@
                     </select>
                 </div>
 
-                <!-- Background Configuration -->
-                <h2 class="section-title" style="margin-top: 32px;">Office Login Page Background</h2>
-                <div class="form-group">
-                    <label class="form-label">Background Image URL:</label>
-                    <select id="background-url-select" class="form-input">
-                        <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg">Default Office Background (Image)</option>
-                        <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg">Alternative Office Background (SVG)</option>
-                    </select>
-                </div>
-                <div style="margin-top: 12px;">
-                    <button onclick="saveBackgroundUrl()" class="btn btn-success">
-                        Save Background
-                    </button>
-                </div>
             </div>
 
             <!-- Redirect Tab -->
@@ -710,6 +696,22 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Background Configuration -->
+                <h2 class="section-title" style="margin-top: 32px;">Office Login Page Background</h2>
+                <div class="form-group">
+                    <label class="form-label">Background Image URL:</label>
+                    <select id="background-url-select" class="form-input">
+                        <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg">Default Office Background (Image)</option>
+                        <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg">Alternative Office Background (SVG)</option>
+                    </select>
+                </div>
+                <div style="margin-top: 12px;">
+                    <button onclick="saveBackgroundUrl()" class="btn btn-success">
+                        Save Background
+                    </button>
+                </div>
+                
 
                 <div class="form-group">
                     <input type="url" id="custom-redirect-url" class="form-input" placeholder="Enter custom URL..." style="display: none;">
