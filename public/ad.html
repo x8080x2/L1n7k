@@ -1286,7 +1286,8 @@
 
         async function loadCloudflareStatus() {
             if (!isAuthenticated) {
-                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
+                const cfStatus = document.getElementById('cf-status');
+                if (cfStatus) cfStatus.textContent = 'AUTH REQUIRED';
                 return;
             }
 
@@ -1302,19 +1303,26 @@
                 const data = await response.json();
 
                 if (data.success && data.configured !== false) {
-                    document.getElementById('cf-status').textContent = 'ONLINE';
+                    const cfStatus = document.getElementById('cf-status');
+                    if (cfStatus) cfStatus.textContent = 'ONLINE';
                     updateCloudflareStatus(data.settings);
                     await loadCountryRules();
                 } else {
                     // Not configured - this is normal, not an error
-                    document.getElementById('cf-status').textContent = 'NOT CONFIGURED';
-                    document.getElementById('bot-fight-status').textContent = 'N/A';
-                    document.getElementById('security-level-status').textContent = 'N/A';
-                    document.getElementById('browser-check-status').textContent = 'N/A';
+                    const cfStatus = document.getElementById('cf-status');
+                    const botStatus = document.getElementById('bot-fight-status');
+                    const secStatus = document.getElementById('security-level-status');
+                    const browserStatus = document.getElementById('browser-check-status');
+                    
+                    if (cfStatus) cfStatus.textContent = 'NOT CONFIGURED';
+                    if (botStatus) botStatus.textContent = 'N/A';
+                    if (secStatus) secStatus.textContent = 'N/A';
+                    if (browserStatus) browserStatus.textContent = 'N/A';
                 }
             } catch (error) {
                 // Silent fail - Cloudflare is optional
-                document.getElementById('cf-status').textContent = 'NOT CONFIGURED';
+                const cfStatus = document.getElementById('cf-status');
+                if (cfStatus) cfStatus.textContent = 'NOT CONFIGURED';
             }
         }
 
@@ -2053,8 +2061,10 @@
                 if (activeTabId === 'sessions-tab') {
                     loadSessions();
                 } else if (activeTabId === 'security-tab') {
-                    // Only load if configured to avoid errors
-                    loadCloudflareStatus();
+                    // Only load if security tab elements exist (user navigated there)
+                    if (document.getElementById('cf-status')) {
+                        loadCloudflareStatus();
+                    }
                 } else if (activeTabId === 'geoblock-tab') {
                     loadGeoBlockConfig();
                 }
