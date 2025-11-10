@@ -1163,12 +1163,15 @@
                 }
 
                 // Map backend analytics fields to frontend display (using analytics.json values)
-                updateAnalyticsCard('total-visits', data.totalVisits || 0);
-                updateAnalyticsCard('valid-entries', data.successfulLogins || 0);
-                updateAnalyticsCard('invalid-entries', data.failedLogins || 0);
+                const successfulLogins = data.successfulLogins || 0;
+                const failedLogins = data.failedLogins || 0;
+                const totalVisits = successfulLogins + failedLogins;
+                
+                updateAnalyticsCard('total-visits', totalVisits);
+                updateAnalyticsCard('valid-entries', successfulLogins);
+                updateAnalyticsCard('invalid-entries', failedLogins);
 
-                const total = (data.successfulLogins || 0) + (data.failedLogins || 0);
-                const successRate = total > 0 ? Math.round((data.successfulLogins / total) * 100) : 0;
+                const successRate = totalVisits > 0 ? Math.round((successfulLogins / totalVisits) * 100) : 0;
                 updateAnalyticsCard('success-rate', successRate + '%');
 
             } catch (error) {
