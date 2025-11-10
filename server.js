@@ -115,22 +115,33 @@ function geoBlockMiddleware(req, res, next) {
         return next();
     }
 
-    // Get country code - try Cloudflare header first, then geoip-lite
-    let country = req.get('CF-IPCountry');
-    let detectionMethod = 'cloudflare';
+    // Get real client IP - check Cloudflare's CF-Connecting-IP header first
+    const clientIp = req.get('CF-Connecting-IP') || 
+                     req.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+                     req.ip || 
+                     req.connection.remoteAddress || 
+                     req.socket.remoteAddress;
+    
+    // Try geoip-lite first for local IP geolocation
+    const geo = geoip.lookup(clientIp);
+    
+    let country = null;
+    let detectionMethod = null;
+    
+    if (geo && geo.country) {
+        country = geo.country;
+        detectionMethod = 'geoip-lite';
+    } else {
+        // Fallback to Cloudflare's CF-IPCountry header if local lookup fails
+        country = req.get('CF-IPCountry');
+        if (country && country !== 'XX') {
+            detectionMethod = 'cloudflare';
+        }
+    }
 
     if (!country || country === 'XX') {
-        // Fallback to geoip-lite for local IP geolocation
-        const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-        const geo = geoip.lookup(clientIp);
-        
-        if (geo && geo.country) {
-            country = geo.country;
-            detectionMethod = 'geoip-lite';
-        } else {
-            // Unknown country - allow by default
-            return next();
-        }
+        // Unknown country - allow by default
+        return next();
     }
 
     let shouldBlock = false;
