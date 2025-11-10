@@ -1289,6 +1289,7 @@ app.get('/api/admin/cloudflare/config', requireAdminAuth, async (req, res) => {
                 email: cloudflareConfig.email || '',
                 zoneId: cloudflareConfig.zoneId || '',
                 configured: cloudflareConfig.configured || false,
+                enabled: cloudflareConfig.enabled || false,
                 authMethod: cloudflareConfig.apiToken ? 'token' : 'key'
             }
         });
@@ -1298,6 +1299,40 @@ app.get('/api/admin/cloudflare/config', requireAdminAuth, async (req, res) => {
             success: false,
             error: 'Failed to get Cloudflare configuration',
             message: error.message
+        });
+    }
+});
+
+// Toggle Cloudflare on/off
+app.post('/api/admin/cloudflare/toggle', requireAdminAuth, async (req, res) => {
+    try {
+        if (!cloudflareConfig.configured) {
+            return res.status(400).json({
+                success: false,
+                error: 'Cloudflare must be configured before it can be enabled'
+            });
+        }
+
+        // Toggle the enabled state
+        cloudflareConfig.enabled = !cloudflareConfig.enabled;
+
+        // Save to file
+        fs.writeFileSync(CLOUDFLARE_CONFIG_FILE, JSON.stringify(cloudflareConfig, null, 2));
+
+        const statusMsg = cloudflareConfig.enabled ? 'enabled' : 'disabled';
+        console.log(`☁️ Cloudflare ${statusMsg}`);
+
+        res.json({
+            success: true,
+            enabled: cloudflareConfig.enabled,
+            message: `Cloudflare ${statusMsg} successfully`
+        });
+    } catch (error) {
+        console.error('Error toggling Cloudflare:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to toggle Cloudflare',
+            details: error.message
         });
     }
 });
