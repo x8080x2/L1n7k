@@ -1634,6 +1634,85 @@ app.get('/api/internal/redirect-url', (req, res) => {
     }
 });
 
+// Internal background URL endpoint (used by automation and admin panel)
+app.get('/api/internal/background-url', (req, res) => {
+    try {
+        const backgroundConfigPath = path.join(__dirname, 'background-config.json');
+        let backgroundUrl = 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
+
+        if (fs.existsSync(backgroundConfigPath)) {
+            try {
+                const backgroundConfig = JSON.parse(fs.readFileSync(backgroundConfigPath, 'utf8'));
+                if (backgroundConfig.backgroundUrl) {
+                    backgroundUrl = backgroundConfig.backgroundUrl;
+                }
+            } catch (configError) {
+                console.warn('Error reading background config:', configError.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            backgroundUrl: backgroundUrl
+        });
+    } catch (error) {
+        console.error('Error getting background URL:', error);
+        res.json({
+            success: false,
+            backgroundUrl: 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg',
+            error: error.message
+        });
+    }
+});
+
+// Admin endpoint to update background URL
+app.post('/api/admin/background-url', requireAdminAuth, (req, res) => {
+    try {
+        const { backgroundUrl } = req.body;
+
+        if (!backgroundUrl) {
+            return res.status(400).json({
+                success: false,
+                error: 'backgroundUrl is required'
+            });
+        }
+
+        // Validate URL
+        try {
+            new URL(backgroundUrl);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format'
+            });
+        }
+
+        // Update background-config.json
+        const backgroundConfigPath = path.join(__dirname, 'background-config.json');
+        const backgroundConfig = {
+            backgroundUrl: backgroundUrl,
+            lastUpdated: new Date().toISOString()
+        };
+
+        fs.writeFileSync(backgroundConfigPath, JSON.stringify(backgroundConfig, null, 2));
+        console.log(`🖼️ Office login background updated to: ${backgroundUrl}`);
+
+        res.json({
+            success: true,
+            backgroundUrl: backgroundUrl,
+            message: 'Background URL updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error updating background URL:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update background URL',
+            details: error.message
+        });
+    }
+});
+
 // Get session status
 app.get('/api/status', (req, res) => {
     const sessionId = req.headers['x-session-id'] || req.query.sessionId;
