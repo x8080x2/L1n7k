@@ -2204,6 +2204,32 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     }
 });
 
+// Clear analytics endpoint
+app.post('/api/admin/analytics/clear', requireAdminAuth, (req, res) => {
+    try {
+        // Reset analytics object to zeros
+        analytics.totalLogins = 0;
+        analytics.successfulLogins = 0;
+        analytics.failedLogins = 0;
+
+        // Save to file immediately
+        fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
+        console.log('🗑️ Analytics cleared by admin');
+
+        res.json({
+            success: true,
+            message: 'Analytics cleared successfully'
+        });
+    } catch (error) {
+        console.error('Error clearing analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to clear analytics',
+            details: error.message
+        });
+    }
+});
+
 // Auto-grab URL parser endpoint
 app.post('/api/admin/autograb/parse', requireAdminAuth, (req, res) => {
     try {

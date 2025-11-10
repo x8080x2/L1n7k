@@ -568,6 +568,11 @@
                         </div>
                     </div>
                 </div>
+                <div style="margin-top: 24px;">
+                    <button onclick="clearAnalytics()" class="btn btn-danger">
+                        🗑️ Clear Analytics Log
+                    </button>
+                </div>
             </div>
 
             <!-- Cloudflare Tab -->
@@ -1269,6 +1274,42 @@
                     element.textContent = value;
                     element.style.opacity = '1';
                 }, 100);
+            }
+        }
+
+        async function clearAnalytics() {
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
+
+            if (!confirm('⚠️ Are you sure you want to clear all analytics data? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/analytics/clear?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ Analytics cleared successfully!');
+                    loadAnalytics();
+                } else {
+                    throw new Error(data.error || 'Failed to clear analytics');
+                }
+            } catch (error) {
+                console.error('Error clearing analytics:', error);
+                alert(`❌ Failed to clear analytics: ${error.message}`);
             }
         }
 
