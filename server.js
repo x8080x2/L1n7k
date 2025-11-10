@@ -2484,7 +2484,8 @@ let cloudflareConfig = {
     apiKey: null,      // For legacy Global API Key
     email: null,       // Required for Global API Key
     zoneId: null,
-    configured: false
+    configured: false,
+    enabled: false     // Toggle to enable/disable Cloudflare features
 };
 
 // Load Cloudflare config from file if exists (silently)
@@ -2512,6 +2513,10 @@ if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
 async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
     if (!cloudflareConfig.configured) {
         throw new Error('Cloudflare not configured');
+    }
+    
+    if (!cloudflareConfig.enabled) {
+        throw new Error('Cloudflare is disabled');
     }
 
     const url = `https://api.cloudflare.com/client/v4/zones/${cloudflareConfig.zoneId}${endpoint}`;
