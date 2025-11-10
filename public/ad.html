@@ -794,16 +794,7 @@
                     </div>
                 </div>
 
-                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px;">
-                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Random Redirect URLs</h3>
-                    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;">
-                        Blocked visitors will be randomly redirected to one of these URLs:
-                    </p>
-                    <textarea id="redirect-urls" class="form-input" rows="6" placeholder="One URL per line..."></textarea>
-                    <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
-                        Default redirects: Google, Wikipedia, YouTube, Reddit, Amazon, Microsoft, Apple, Facebook
-                    </p>
-                </div>
+                
             </div>
 
             <!-- Sessions Tab -->
@@ -1743,7 +1734,6 @@
                         (config.mode === 'allow' ? config.allowedCountries : config.blockedCountries).length;
 
                     document.getElementById('geo-mode-select').value = config.mode;
-                    document.getElementById('redirect-urls').value = (config.customRedirects || []).join('\n');
                 }
             } catch {
                 // Silent fail - API not available yet
@@ -1870,19 +1860,9 @@
                 .map(cb => cb.value);
 
             const mode = document.getElementById('geo-mode-select').value;
-            const redirectUrls = document.getElementById('redirect-urls').value
-                .split('\n')
-                .map(url => url.trim())
-                .filter(url => url.length > 0);
-
-            if (redirectUrls.length === 0) {
-                alert('Please add at least one redirect URL');
-                return;
-            }
 
             const configData = {
-                mode: mode,
-                customRedirects: redirectUrls
+                mode: mode
             };
 
             if (mode === 'allow') {
