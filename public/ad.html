@@ -1531,6 +1531,10 @@
         ];
 
         async function loadGeoBlockConfig() {
+            // Always render country checkboxes (doesn't require authentication)
+            renderCountryCheckboxes([]);
+
+            // Only fetch and update config if authenticated
             if (!isAuthenticated) return;
 
             try {
@@ -1550,7 +1554,7 @@
                     const activeList = config.mode === 'allow' ? config.allowedCountries : config.blockedCountries;
                     document.getElementById('geo-countries-count').textContent = activeList.length;
 
-                    // Populate country checkboxes
+                    // Update country checkboxes with saved config
                     renderCountryCheckboxes(activeList);
 
                     // Populate redirect URLs
