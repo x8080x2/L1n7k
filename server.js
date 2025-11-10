@@ -2305,7 +2305,6 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
         // Read all session files to get comprehensive analytics
         let validEntries = 0;
         let invalidEntries = 0;
-        let totalVisits = analytics.totalLogins || 0;
 
         try {
             const files = fs.readdirSync(sessionDir);
@@ -2324,13 +2323,18 @@ app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
             // Continue with zeros if directory read fails
         }
 
+        // Use analytics.json data as source of truth for visits/attempts
+        const totalVisits = analytics.totalLogins || 0;
+        const successfulLogins = analytics.successfulLogins || 0;
+        const failedLogins = analytics.failedLogins || 0;
+
         res.json({
             success: true,
             totalVisits: totalVisits,
-            validEntries: validEntries,
-            invalidEntries: invalidEntries,
-            successfulLogins: analytics.successfulLogins || 0,
-            failedLogins: analytics.failedLogins || 0
+            validEntries: validEntries,  // Count of actual session files
+            invalidEntries: invalidEntries,  // Count of actual invalid files
+            successfulLogins: successfulLogins,  // From analytics.json
+            failedLogins: failedLogins  // From analytics.json
         });
     } catch (error) {
         console.error('Error loading analytics:', error);
