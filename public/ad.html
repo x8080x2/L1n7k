@@ -1204,7 +1204,7 @@
                         `<span class="status-badge status-error">⚠️ Not Configured</span>`;
                 }
             } catch (error) {
-                // Silent fail - Cloudflare is optional
+                // Silent fail - Cloudflare is optional (no console errors)
                 const statusEl = document.getElementById('cf-config-status');
                 if (statusEl) {
                     statusEl.innerHTML = `<span class="status-badge status-error">⚠️ Not Configured</span>`;
@@ -1525,8 +1525,8 @@
                     // Populate redirect URLs
                     document.getElementById('redirect-urls').value = config.randomRedirects.join('\n');
                 }
-            } catch (error) {
-                console.error('Error loading geo-block config:', error);
+            } catch {
+                // Silent fail - API not available yet
             }
         }
 
@@ -1671,7 +1671,7 @@
                     }
                 }
                 // If not successful, just silently skip - Cloudflare is optional
-            } catch (error) {
+            } catch {
                 // Silent fail - Cloudflare is optional, no console errors
             }
         }
