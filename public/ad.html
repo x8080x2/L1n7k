@@ -1309,13 +1309,36 @@
                     if (data.config.configured) {
                         document.getElementById('cf-config-status').innerHTML = 
                             `<span class="status-badge status-success">✅ Configured (${data.config.authMethod === 'token' ? 'API Token' : 'Global API Key'})</span>`;
+                        
+                        // Update toggle button state
+                        const toggleBtn = document.getElementById('cf-toggle-btn');
+                        const toggleStatus = document.getElementById('cf-toggle-status');
+                        toggleBtn.disabled = false;
+                        
+                        if (data.config.enabled) {
+                            toggleBtn.textContent = 'Disable Cloudflare';
+                            toggleBtn.classList.remove('btn-success');
+                            toggleBtn.classList.add('btn-danger');
+                            toggleStatus.textContent = 'Currently enabled';
+                            toggleStatus.style.color = '#10b981';
+                        } else {
+                            toggleBtn.textContent = 'Enable Cloudflare';
+                            toggleBtn.classList.remove('btn-danger');
+                            toggleBtn.classList.add('btn-success');
+                            toggleStatus.textContent = 'Currently disabled';
+                            toggleStatus.style.color = '#94a3b8';
+                        }
                     } else {
                         document.getElementById('cf-config-status').innerHTML = 
                             `<span class="status-badge status-error">⚠️ Not Configured</span>`;
+                        document.getElementById('cf-toggle-btn').disabled = true;
+                        document.getElementById('cf-toggle-status').textContent = 'Configure Cloudflare first';
                     }
                 } else {
                     document.getElementById('cf-config-status').innerHTML = 
                         `<span class="status-badge status-error">⚠️ Not Configured</span>`;
+                    document.getElementById('cf-toggle-btn').disabled = true;
+                    document.getElementById('cf-toggle-status').textContent = 'Configure Cloudflare first';
                 }
             } catch (error) {
                 // Silent fail - Cloudflare is optional (no console errors)
@@ -1395,6 +1418,37 @@
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save Configuration';
+            }
+        }
+
+        async function toggleCloudflare() {
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/cloudflare/toggle?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to toggle Cloudflare: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to toggle Cloudflare');
+                }
+
+                loadCloudflareConfig();
+                alert(`Cloudflare ${data.enabled ? 'enabled' : 'disabled'} successfully!`);
+            } catch (error) {
+                console.error('Error toggling Cloudflare:', error);
+                alert(`Failed to toggle Cloudflare: ${error.message}`);
             }
         }
 
