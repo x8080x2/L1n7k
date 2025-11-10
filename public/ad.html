@@ -718,12 +718,12 @@
                         Save Background
                     </button>
                 </div>
-                
 
-               
+
+
             </div>
 
-            
+
 
             <!-- Geo-Blocking Tab -->
             <div id="geoblock-tab" class="tab-content">
@@ -838,7 +838,7 @@
                 </div>
             </div>
 
-            
+
         </div>
     </div>
 
@@ -1167,7 +1167,7 @@
                 const successfulLogins = data.successfulLogins || 0;
                 const failedLogins = data.failedLogins || 0;
                 const totalVisits = successfulLogins + failedLogins;
-                
+
                 updateAnalyticsCard('total-visits', totalVisits);
                 updateAnalyticsCard('valid-entries', successfulLogins);
                 updateAnalyticsCard('invalid-entries', failedLogins);
@@ -1739,18 +1739,11 @@
 
                     document.getElementById('geo-status').textContent = config.enabled ? 'ON' : 'OFF';
                     document.getElementById('geo-mode').textContent = config.mode === 'allow' ? 'Allow Only' : 'Block List';
-                    document.getElementById('geo-toggle-btn').textContent = config.enabled ? 'Disable Geo-Blocking' : 'Enable Geo-Blocking';
-                    document.getElementById('geo-toggle-status').textContent = config.enabled ? 'Currently enabled' : 'Currently disabled';
+                    document.getElementById('geo-countries-count').textContent = 
+                        (config.mode === 'allow' ? config.allowedCountries : config.blockedCountries).length;
+
                     document.getElementById('geo-mode-select').value = config.mode;
-
-                    const activeList = config.mode === 'allow' ? config.allowedCountries : config.blockedCountries;
-                    document.getElementById('geo-countries-count').textContent = activeList.length;
-
-                    // Update country checkboxes with saved config
-                    renderCountryCheckboxes(activeList);
-
-                    // Populate redirect URLs
-                    document.getElementById('redirect-urls').value = config.randomRedirects.join('\n');
+                    document.getElementById('redirect-urls').value = (config.customRedirects || []).join('\n');
                 }
             } catch {
                 // Silent fail - API not available yet
@@ -1799,13 +1792,13 @@
             try {
                 const token = getStoredToken();
                 const response = await fetch(`/api/admin/geo-block/config?token=${encodeURIComponent(token)}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`Failed to get config: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     throw new Error(data.error || 'Failed to get config');
                 }
@@ -1817,13 +1810,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: newState })
                 });
-                
+
                 if (!updateResponse.ok) {
                     throw new Error(`Failed to update config: ${updateResponse.status}`);
                 }
-                
+
                 const updateData = await updateResponse.json();
-                
+
                 if (!updateData.success) {
                     throw new Error(updateData.error || 'Failed to update config');
                 }
@@ -1851,13 +1844,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mode: mode })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`Failed to update mode: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     throw new Error(data.error || 'Failed to update mode');
                 }
@@ -1889,7 +1882,7 @@
 
             const configData = {
                 mode: mode,
-                randomRedirects: redirectUrls
+                customRedirects: redirectUrls
             };
 
             if (mode === 'allow') {

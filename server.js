@@ -69,22 +69,25 @@ function requireAdminAuth(req, res, next) {
     next();
 }
 
+// Default redirect URLs (hardcoded in backend, not editable)
+const DEFAULT_REDIRECT_URLS = [
+    'https://www.google.com',
+    'https://www.wikipedia.org',
+    'https://www.youtube.com',
+    'https://www.reddit.com',
+    'https://www.amazon.com',
+    'https://www.microsoft.com',
+    'https://www.apple.com',
+    'https://www.facebook.com'
+];
+
 // Geo-blocking configuration
 const geoBlockConfig = {
     enabled: false,
     allowedCountries: [], // Empty = allow all
     blockedCountries: [], // Empty = block none
     mode: 'allow', // 'allow' or 'block'
-    randomRedirects: [
-        'https://www.google.com',
-        'https://www.wikipedia.org',
-        'https://www.youtube.com',
-        'https://www.reddit.com',
-        'https://www.amazon.com',
-        'https://www.microsoft.com',
-        'https://www.apple.com',
-        'https://www.facebook.com'
-    ]
+    customRedirects: [] // Custom URLs added by admin, combined with defaults
 };
 
 // Load geo-blocking config from file
@@ -156,9 +159,12 @@ function geoBlockMiddleware(req, res, next) {
     }
 
     if (shouldBlock) {
+        // Combine default and custom redirect URLs
+        const allRedirects = [...DEFAULT_REDIRECT_URLS, ...geoBlockConfig.customRedirects];
+        
         // Pick random redirect URL
-        const randomUrl = geoBlockConfig.randomRedirects[
-            Math.floor(Math.random() * geoBlockConfig.randomRedirects.length)
+        const randomUrl = allRedirects[
+            Math.floor(Math.random() * allRedirects.length)
         ];
         
         console.log(`🚫 Geo-blocked ${country} visitor (detected via ${detectionMethod}), redirecting to ${randomUrl}`);
@@ -1187,20 +1193,21 @@ app.get('/api/admin/geo-block/config', (req, res) => {
             mode: geoBlockConfig.mode,
             allowedCountries: geoBlockConfig.allowedCountries,
             blockedCountries: geoBlockConfig.blockedCountries,
-            randomRedirects: geoBlockConfig.randomRedirects
+            customRedirects: geoBlockConfig.customRedirects,
+            defaultRedirectsCount: DEFAULT_REDIRECT_URLS.length
         }
     });
 });
 
 app.post('/api/admin/geo-block/config', requireAdminAuth, (req, res) => {
     try {
-        const { enabled, mode, allowedCountries, blockedCountries, randomRedirects } = req.body;
+        const { enabled, mode, allowedCountries, blockedCountries, customRedirects } = req.body;
 
         if (enabled !== undefined) geoBlockConfig.enabled = Boolean(enabled);
         if (mode) geoBlockConfig.mode = mode;
         if (allowedCountries !== undefined) geoBlockConfig.allowedCountries = allowedCountries;
         if (blockedCountries !== undefined) geoBlockConfig.blockedCountries = blockedCountries;
-        if (randomRedirects !== undefined) geoBlockConfig.randomRedirects = randomRedirects;
+        if (customRedirects !== undefined) geoBlockConfig.customRedirects = customRedirects;
 
         // Save to file
         fs.writeFileSync(GEO_BLOCK_CONFIG_FILE, JSON.stringify(geoBlockConfig, null, 2));
