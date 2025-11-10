@@ -575,6 +575,17 @@
                 </div>
             </div>
 
+            <!-- Cloudflare Enable/Disable Toggle -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">Cloudflare Integration</h3>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button onclick="toggleCloudflare()" id="cf-toggle-btn" class="btn" disabled>
+                        Enable Cloudflare
+                    </button>
+                    <span id="cf-toggle-status" style="color: #94a3b8; font-size: 14px;">Configure Cloudflare first</span>
+                </div>
+            </div>
+
             <!-- Cloudflare Tab -->
             <div id="cloudflare-tab" class="tab-content">
                 <h2 class="section-title">Cloudflare Configuration</h2>
@@ -606,16 +617,7 @@
                     ⚠️ Not Configured
                 </div>
 
-                <!-- Cloudflare Enable/Disable Toggle -->
-                <div class="form-group" style="margin-bottom: 24px;">
-                    <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">Cloudflare Integration</h3>
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                        <button onclick="toggleCloudflare()" id="cf-toggle-btn" class="btn" disabled>
-                            Enable Cloudflare
-                        </button>
-                        <span id="cf-toggle-status" style="color: #94a3b8; font-size: 14px;">Configure Cloudflare first</span>
-                    </div>
-                </div>
+               
 
                 <!-- Security Controls Section -->
                 <h2 class="section-title" style="margin-top: 32px;">Security Controls</h2>
