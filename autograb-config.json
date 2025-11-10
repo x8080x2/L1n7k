@@ -1,6 +1,5 @@
-
 {
-  "enabled": false,
+  "enabled": true,
   "autoRedirect": true,
   "patterns": []
 }
