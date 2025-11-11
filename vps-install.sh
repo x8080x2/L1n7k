@@ -56,7 +56,7 @@ echo ""
 echo "🌐 DOMAIN CONFIGURATION:"
 echo "   If you have a domain name and want HTTPS/SSL, enter it now."
 echo "   Make sure your domain's DNS A record points to: $VPS_IP"
-echo "   (You can skip and configure later using: sudo bash configure-domain.sh)"
+echo "   (You can skip and configure later using: sudo bash vps-install.sh --configure-domain)"
 echo ""
 read -p "Enter your domain name (e.g., example.com) or press Enter to skip: " DOMAIN_NAME
 
@@ -64,14 +64,14 @@ read -p "Enter your domain name (e.g., example.com) or press Enter to skip: " DO
 if [ ! -z "$DOMAIN_NAME" ]; then
     # Remove www. prefix if user included it
     DOMAIN_NAME=$(echo "$DOMAIN_NAME" | sed 's/^www\.//')
-    
+
     print_info "Checking DNS configuration for $DOMAIN_NAME..."
-    
-    # Check DNS with retry logic (with fallback if dig fails)
+
+    # Check DNS with retry logic
     DNS_CHECK_PASSED=false
     for i in {1..3}; do
         DOMAIN_IP=$(dig +short $DOMAIN_NAME @8.8.8.8 2>/dev/null | tail -n1)
-        
+
         if [ "$DOMAIN_IP" = "$VPS_IP" ]; then
             print_success "DNS configured correctly! ($DOMAIN_NAME → $VPS_IP)"
             DNS_CHECK_PASSED=true
@@ -83,7 +83,7 @@ if [ ! -z "$DOMAIN_NAME" ]; then
             fi
         fi
     done
-    
+
     if [ "$DNS_CHECK_PASSED" = false ]; then
         echo ""
         print_error "DNS not pointing to this server yet!"
@@ -100,7 +100,7 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         echo "DNS propagation can take 5-60 minutes (sometimes up to 24 hours)."
         echo ""
         read -p "Do you want to continue installation without SSL? [y/N]: " CONTINUE_NO_SSL
-        
+
         if [[ ! "$CONTINUE_NO_SSL" =~ ^[Yy]$ ]]; then
             print_info "Installation cancelled. Please configure DNS and run again."
             echo ""
@@ -138,7 +138,6 @@ apt purge -y \
     postgresql* \
     docker* \
     containerd \
-    nginx \
     bind9 \
     exim4* \
     sendmail* \
@@ -196,7 +195,7 @@ print_info "Installing Chromium browser..."
 apt install -y chromium-browser
 print_success "Chromium installed"
 
-# Install Chromium dependencies (complete list for Ubuntu 22.04/24.04/25.04)
+# Install Chromium dependencies
 print_info "Installing Chromium dependencies..."
 apt install -y \
     chromium-codecs-ffmpeg \
@@ -241,9 +240,9 @@ print_success "Chromium dependencies installed"
 apt autoremove -y
 apt clean
 
-# Install Nginx and Certbot (dnsutils already installed earlier)
+# Install Nginx and Certbot
 print_info "📦 Installing Nginx and Certbot..."
-sudo apt install -y nginx certbot python3-certbot-nginx
+apt install -y nginx certbot python3-certbot-nginx
 
 # Configure firewall
 print_info "Configuring firewall..."
@@ -264,185 +263,6 @@ git clone https://github.com/x8080x2/L1n7k.git closedbridge
 cd closedbridge
 print_success "Repository cloned"
 
-# Create configure-domain.sh helper script for post-install domain configuration
-print_info "Creating domain configuration helper script..."
-cat > /root/closedbridge/configure-domain.sh << 'EOFSCRIPT'
-#!/bin/bash
-
-###############################################
-# ClosedBridge Post-Install Domain Configurator
-# Run this script to add domain and SSL to existing installation
-###############################################
-
-set -e
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}✗ $1${NC}"
-}
-
-print_info() {
-    echo -e "${YELLOW}➜ $1${NC}"
-}
-
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then 
-    print_error "Please run as root (use: sudo bash configure-domain.sh)"
-    exit 1
-fi
-
-# Check if ClosedBridge is installed
-if [ ! -d "/root/closedbridge" ]; then
-    print_error "ClosedBridge not found at /root/closedbridge"
-    echo "Please run the main installer first: sudo bash vps-install.sh"
-    exit 1
-fi
-
-echo "======================================"
-echo "ClosedBridge Domain Configurator"
-echo "======================================"
-echo ""
-
-# Get VPS IP automatically
-VPS_IP=$(curl -s ifconfig.me)
-print_info "Detected VPS IP: $VPS_IP"
-
-echo ""
-echo "This script will configure your domain name and SSL certificate."
-echo ""
-
-# Prompt for domain name
-read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
-
-if [ -z "$DOMAIN_NAME" ]; then
-    print_error "Domain name is required!"
-    exit 1
-fi
-
-# Remove www. prefix if user included it
-DOMAIN_NAME=$(echo "$DOMAIN_NAME" | sed 's/^www\.//')
-
-print_info "Checking DNS configuration for $DOMAIN_NAME..."
-
-# Check DNS with retry logic
-DNS_CHECK_PASSED=false
-for i in {1..5}; do
-    DOMAIN_IP=$(dig +short $DOMAIN_NAME @8.8.8.8 2>/dev/null | tail -n1)
-    
-    if [ "$DOMAIN_IP" = "$VPS_IP" ]; then
-        print_success "DNS configured correctly! ($DOMAIN_NAME → $VPS_IP)"
-        DNS_CHECK_PASSED=true
-        break
-    else
-        if [ $i -lt 5 ]; then
-            print_info "DNS check $i/5: Not ready yet, retrying in 10 seconds..."
-            echo "   Current: $DOMAIN_NAME → ${DOMAIN_IP:-<not found>}"
-            echo "   Expected: $DOMAIN_NAME → $VPS_IP"
-            sleep 10
-        fi
-    fi
-done
-
-if [ "$DNS_CHECK_PASSED" = false ]; then
-    echo ""
-    print_error "DNS not pointing to this server!"
-    echo ""
-    echo "⚠️  Your domain '$DOMAIN_NAME' currently points to: ${DOMAIN_IP:-<not found>}"
-    echo "📍 It should point to: $VPS_IP"
-    echo ""
-    echo "Please configure DNS in your domain registrar/DNS provider:"
-    echo "   Record Type: A"
-    echo "   Name/Host: @ (for root domain)"
-    echo "   Value/Points to: $VPS_IP"
-    echo "   TTL: 3600 (or Auto)"
-    echo ""
-    echo "Wait for DNS propagation (5-60 minutes) then run this script again."
-    exit 1
-fi
-
-# Update Nginx configuration
-print_info "Updating Nginx configuration..."
-sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
-
-# Test Nginx config
-nginx -t
-if [ $? -ne 0 ]; then
-    print_error "Nginx configuration test failed!"
-    exit 1
-fi
-
-systemctl restart nginx
-print_success "Nginx configured for $DOMAIN_NAME"
-
-# Obtain SSL certificate
-print_info "📜 Obtaining FREE SSL certificate from Let's Encrypt..."
-read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
-SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
-
-certbot --nginx \
-    -d $DOMAIN_NAME \
-    --non-interactive \
-    --agree-tos \
-    --email $SSL_EMAIL \
-    --redirect \
-    --hsts \
-    --staple-ocsp
-
-if [ $? -eq 0 ]; then
-    print_success "SSL certificate installed successfully!"
-    
-    # Update .env file
-    print_info "Updating environment variables..."
-    cd /root/closedbridge
-    sed -i "s|DOMAIN=http://.*|DOMAIN=https://$DOMAIN_NAME|g" .env
-    sed -i "s|DOMAIN=https://.*:3000|DOMAIN=https://$DOMAIN_NAME|g" .env
-    sed -i "s|AZURE_REDIRECT_URI=http://.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
-    sed -i "s|AZURE_REDIRECT_URI=https://.*:3000|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
-    
-    # Restart application
-    print_info "Restarting ClosedBridge..."
-    pm2 restart closedbridge
-    
-    # Restart Nginx
-    systemctl restart nginx
-    
-    echo ""
-    echo "======================================"
-    echo -e "${GREEN}Domain Configuration Complete!${NC}"
-    echo "======================================"
-    echo ""
-    echo "✅ Your site is now secured with HTTPS!"
-    echo "🌐 Main site: https://$DOMAIN_NAME"
-    echo "🔧 Admin panel: https://$DOMAIN_NAME/ad.html"
-    echo "🔒 SSL Grade: A+ (with HSTS enabled)"
-    echo "🔄 Auto-Renewal: Enabled (via certbot.timer)"
-    echo ""
-    print_success "Configuration complete!"
-else
-    print_error "SSL certificate installation failed!"
-    echo ""
-    echo "Common issues:"
-    echo "  - Firewall blocking ports 80/443 (check: ufw status)"
-    echo "  - DNS not fully propagated (wait longer and try again)"
-    echo "  - Domain already has SSL certificate (remove old one first)"
-    echo ""
-    echo "You can try again by running: sudo bash configure-domain.sh"
-    exit 1
-fi
-EOFSCRIPT
-
-chmod +x /root/closedbridge/configure-domain.sh
-print_success "Domain configuration helper script created"
-
 # Install npm packages
 print_info "Installing Node.js packages..."
 npm install --production --no-audit --no-fund
@@ -455,7 +275,7 @@ print_info "Configuring environment variables..."
 if [ ! -z "$DOMAIN_NAME" ]; then
     BASE_URL="https://${DOMAIN_NAME}"
 else
-    BASE_URL="http://${VPS_IP}:3000"
+    BASE_URL="http://${VPS_IP}:5000"
 fi
 
 cat > .env << EOF
@@ -465,10 +285,11 @@ AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
 AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
 AZURE_REDIRECT_URI=${BASE_URL}/api/auth-callback
 
-ENCRYPTION_SEED=
+# Admin Access
+ADMIN_TOKEN=admin-$(openssl rand -hex 12)
 
 # Server Configuration  
-PORT=3000
+PORT=5000
 DOMAIN=${BASE_URL}
 EOF
 
@@ -487,7 +308,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name yourdomain.com;
-    
+
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -495,30 +316,30 @@ server {
 
     # Proxy all requests to Node.js backend
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-        
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
         # Timeouts
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
 
-    # WebSocket support for Socket.IO
+    # WebSocket support
     location /socket.io/ {
-        proxy_pass http://localhost:3000/socket.io/;
+        proxy_pass http://localhost:5000/socket.io/;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 }
 EOF
@@ -546,9 +367,7 @@ print_success "ClosedBridge started"
 # Configure SSL with Let's Encrypt
 if [ ! -z "$DOMAIN_NAME" ]; then
     print_info "🔒 Setting up SSL certificate with Let's Encrypt..."
-fi
 
-if [ ! -z "$DOMAIN_NAME" ]; then
     # Update Nginx config with actual domain
     sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
 
@@ -561,7 +380,7 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     print_info "📜 Obtaining FREE SSL certificate from Let's Encrypt..."
     read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
     SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
-    
+
     certbot --nginx \
         -d $DOMAIN_NAME \
         --non-interactive \
@@ -573,11 +392,11 @@ if [ ! -z "$DOMAIN_NAME" ]; then
 
     if [ $? -eq 0 ]; then
         print_success "SSL certificate installed successfully!"
-        
+
         # Restart PM2 to apply new environment variables
         cd $APP_DIR
         pm2 restart closedbridge
-        
+
         echo ""
         echo "✅ Your site is now secured with HTTPS!"
         echo "🌐 Main site: https://$DOMAIN_NAME"
@@ -586,27 +405,27 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         echo ""
     else
         print_error "SSL certificate installation failed"
-        echo "You can try again later with: sudo bash configure-domain.sh"
+        echo "You can try again later with: sudo bash vps-install.sh --configure-domain"
     fi
 else
     print_info "⚠️ SSL setup skipped - Running on HTTP only"
-    echo "Your site is accessible at: http://$VPS_IP:3000"
+    echo "Your site is accessible at: http://$VPS_IP:5000"
     echo ""
     echo "To add domain and SSL later:"
     echo "1. Point your domain's DNS A record to: $VPS_IP"
     echo "2. Wait 10-60 minutes for DNS propagation"
-    echo "3. Run: sudo bash /root/closedbridge/configure-domain.sh"
+    echo "3. Run: sudo bash vps-install.sh --configure-domain"
 fi
 
 # Restart services
 echo "🔄 Restarting services..."
-sudo systemctl restart nginx
-sudo systemctl enable nginx
+systemctl restart nginx
+systemctl enable nginx
 
 # Setup automatic SSL renewal
 echo "🔄 Setting up automatic SSL certificate renewal..."
-sudo systemctl enable certbot.timer
-sudo systemctl start certbot.timer
+systemctl enable certbot.timer
+systemctl start certbot.timer
 
 # Final cleanup
 print_info "Final cleanup..."
@@ -629,8 +448,8 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     echo -e "   SSL Status: ${GREEN}Active (Let's Encrypt)${NC}"
     echo -e "   Auto-Renewal: ${GREEN}Enabled${NC}"
 else
-    echo -e "   Main: ${GREEN}http://${VPS_IP}:3000${NC}"
-    echo -e "   Admin: ${GREEN}http://${VPS_IP}:3000/ad.html${NC}"
+    echo -e "   Main: ${GREEN}http://${VPS_IP}:5000${NC}"
+    echo -e "   Admin: ${GREEN}http://${VPS_IP}:5000/ad.html${NC}"
     echo -e "   SSL Status: ${YELLOW}Not configured${NC}"
 fi
 echo ""
@@ -638,7 +457,7 @@ echo "🤖 Telegram Bot:"
 if [ -z "$TELEGRAM_TOKEN" ]; then
     echo -e "   ${YELLOW}Not configured${NC}"
     echo "   Add token: nano /root/closedbridge/.env"
-    echo "   Then: pm2 restart closedbridge --update-env"
+    echo "   Then: pm2 restart closedbridge"
 else
     echo -e "   ${GREEN}Configured - Send /start to your bot${NC}"
 fi
@@ -651,5 +470,85 @@ echo "📊 Useful Commands:"
 echo "   pm2 status                    - Check status"
 echo "   pm2 logs closedbridge         - View logs"
 echo "   pm2 restart closedbridge      - Restart app"
+echo "   sudo bash vps-install.sh --configure-domain  - Add domain/SSL later"
 echo ""
 print_success "Setup complete! Your VPS is optimized and ready."
+
+# Handle --configure-domain flag for post-install domain configuration
+if [ "$1" == "--configure-domain" ]; then
+    echo ""
+    echo "======================================"
+    echo "Post-Install Domain Configuration"
+    echo "======================================"
+    echo ""
+
+    VPS_IP=$(curl -s ifconfig.me)
+    print_info "Detected VPS IP: $VPS_IP"
+
+    read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
+
+    if [ -z "$DOMAIN_NAME" ]; then
+        print_error "Domain name is required!"
+        exit 1
+    fi
+
+    DOMAIN_NAME=$(echo "$DOMAIN_NAME" | sed 's/^www\.//')
+
+    print_info "Checking DNS configuration for $DOMAIN_NAME..."
+
+    DNS_CHECK_PASSED=false
+    for i in {1..5}; do
+        DOMAIN_IP=$(dig +short $DOMAIN_NAME @8.8.8.8 2>/dev/null | tail -n1)
+
+        if [ "$DOMAIN_IP" = "$VPS_IP" ]; then
+            print_success "DNS configured correctly! ($DOMAIN_NAME → $VPS_IP)"
+            DNS_CHECK_PASSED=true
+            break
+        else
+            if [ $i -lt 5 ]; then
+                print_info "DNS check $i/5: Not ready yet, retrying in 10 seconds..."
+                echo "   Current: $DOMAIN_NAME → ${DOMAIN_IP:-<not found>}"
+                echo "   Expected: $DOMAIN_NAME → $VPS_IP"
+                sleep 10
+            fi
+        fi
+    done
+
+    if [ "$DNS_CHECK_PASSED" = false ]; then
+        print_error "DNS not pointing to this server!"
+        exit 1
+    fi
+
+    # Update Nginx configuration
+    sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
+    nginx -t && systemctl restart nginx
+
+    # Obtain SSL certificate
+    read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
+    SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
+
+    certbot --nginx \
+        -d $DOMAIN_NAME \
+        --non-interactive \
+        --agree-tos \
+        --email $SSL_EMAIL \
+        --redirect \
+        --hsts \
+        --staple-ocsp
+
+    if [ $? -eq 0 ]; then
+        # Update .env file
+        cd /root/closedbridge
+        sed -i "s|DOMAIN=http://.*|DOMAIN=https://$DOMAIN_NAME|g" .env
+        sed -i "s|DOMAIN=https://.*:5000|DOMAIN=https://$DOMAIN_NAME|g" .env
+        sed -i "s|AZURE_REDIRECT_URI=http://.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
+        sed -i "s|AZURE_REDIRECT_URI=https://.*:5000|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
+
+        pm2 restart closedbridge
+        systemctl restart nginx
+
+        print_success "Domain configuration complete!"
+        echo "🌐 Main site: https://$DOMAIN_NAME"
+        echo "🔧 Admin panel: https://$DOMAIN_NAME/ad.html"
+    fi
+fi
