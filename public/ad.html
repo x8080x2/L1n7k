@@ -23,22 +23,19 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-image: url('/bg-pattern.png?v=3');
-            background-size: 70%;
+            background-size: 80%;
             background-position: center;
-            background-repeat: repeat;
+            background-repeat: no-repeat;
             background-attachment: fixed;
             background-color: #1a1a2e;
             color: #e2e8f0;
-            height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
         .header {
-            background: #1e293b;
-            padding: 16px 24px;
-            border-bottom: 2px solid #334155;
+            padding: 9px 14px;
             flex-shrink: 0;
         }
 
@@ -56,9 +53,7 @@
         }
 
         .auth-section {
-            background: #1e293b;
-            border-bottom: 1px solid #334155;
-            padding: 16px 24px;
+            padding: 9px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -67,7 +62,6 @@
         }
 
         .auth-section.authenticated {
-            background: #134e4a;
             border-color: #22c55e;
         }
 
@@ -81,7 +75,6 @@
             padding: 10px 16px;
             border: 1px solid #475569;
             border-radius: 6px;
-            background: #0f172a;
             color: #f1f5f9;
             font-size: 14px;
             min-width: 200px;
@@ -94,7 +87,6 @@
         }
 
         .auth-btn {
-            background: #3b82f6;
             color: #fff;
             padding: 10px 20px;
             border: none;
@@ -105,17 +97,7 @@
             transition: background-color 0.2s;
         }
 
-        .auth-btn:hover {
-            background: #2563eb;
-        }
-
-        .logout-btn {
-            background: #ef4444;
-        }
-
-        .logout-btn:hover {
-            background: #dc2626;
-        }
+       
 
         .auth-success {
             color: #22c55e;
@@ -132,8 +114,7 @@
         }
 
         .sidebar {
-            width: 240px;
-            background: #1e293b;
+            width: 140px;
             border-right: 2px solid #334155;
             display: flex;
             flex-direction: column;
@@ -197,7 +178,6 @@
         }
 
         .dashboard-card {
-            background: #1e293b;
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 20px;
@@ -213,7 +193,6 @@
 
         .dashboard-card.success {
             border-color: #22c55e;
-            background: #134e4a;
         }
 
         .dashboard-card.error {
@@ -223,7 +202,6 @@
 
         .dashboard-card.info {
             border-color: #3b82f6;
-            background: #172554;
         }
 
         .dashboard-card-icon {
@@ -278,7 +256,6 @@
             padding: 12px 16px;
             border: 1px solid #475569;
             border-radius: 6px;
-            background: #1e293b;
             color: #f1f5f9;
             font-size: 14px;
             outline: none;
@@ -299,7 +276,6 @@
         }
 
         .btn {
-            background: #3b82f6;
             color: #fff;
             padding: 12px 20px;
             border: none;
@@ -355,7 +331,6 @@
         }
 
         .data-table th {
-            background: #334155;
             padding: 12px;
             text-align: left;
             font-weight: 600;
