@@ -166,12 +166,17 @@ print_success "Chromium dependencies installed"
 apt autoremove -y
 apt clean
 
+# Install Nginx and Certbot for SSL
+print_info "📦 Installing Nginx and Certbot..."
+sudo apt install -y nginx certbot python3-certbot-nginx
+
 # Configure firewall
 print_info "Configuring firewall..."
 ufw allow 22
-ufw allow 3000
+ufw allow 80
+ufw allow 443
 echo "y" | ufw enable
-print_success "Firewall configured (ports 22, 3000)"
+print_success "Firewall configured (ports 22, 80, 443)"
 
 # Clone ClosedBridge
 print_info "Cloning ClosedBridge repository..."
@@ -203,11 +208,52 @@ ENCRYPTION_SEED=
 # Server Configuration  
 PORT=3000
 DOMAIN=http://${VPS_IP}:3000
-
-# Telegram Bot Token
-TELEGRAM_BOT_TOKEN=${TELEGRAM_TOKEN}
 EOF
-print_success "Environment configured"
+
+# Add Telegram Bot Token if provided
+if [ -n "$TELEGRAM_TOKEN" ]; then
+    echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_TOKEN}" >> .env
+    print_success "Environment configured with Telegram Bot Token"
+else
+    print_success "Environment configured (Telegram Bot Token skipped)"
+fi
+
+# Configure Nginx for ClosedBridge
+print_info "Configuring Nginx for ClosedBridge..."
+cat > /etc/nginx/sites-available/closedbridge << EOF
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+    root /root/closedbridge/public;
+    index index.html index.htm;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:3000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_xforwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://localhost:3000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+ln -sf /etc/nginx/sites-available/closedbridge /etc/nginx/sites-enabled/
 
 # Optimize PM2 for low memory
 print_info "Optimizing PM2 configuration..."
@@ -217,10 +263,49 @@ pm2 set pm2-logrotate:retain 3
 
 # Start application
 print_info "Starting ClosedBridge with PM2..."
+APP_DIR="/root/closedbridge"
+cd $APP_DIR
 pm2 start server.js --name closedbridge --max-memory-restart 800M
 pm2 save
 pm2 startup | tail -n 1 | bash
 print_success "ClosedBridge started"
+
+# Configure SSL with Let's Encrypt
+print_info "🔒 Setting up SSL certificate..."
+read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
+
+if [ ! -z "$DOMAIN_NAME" ]; then
+    # Update Nginx config with actual domain
+    sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
+
+    # Restart Nginx first
+    sudo systemctl restart nginx
+
+    # Obtain SSL certificate
+    echo "📜 Obtaining SSL certificate from Let's Encrypt..."
+    sudo certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME --redirect
+
+    # Update .env with HTTPS URL
+    cd $APP_DIR
+    sed -i "s|http://|https://|g" .env
+    sed -i "s|yourdomain.com|$DOMAIN_NAME|g" .env
+
+    echo "✅ SSL certificate installed successfully!"
+    echo "🌐 Your site is now available at: https://$DOMAIN_NAME"
+else
+    echo "⚠️ No domain provided - skipping SSL setup"
+    echo "Run this command later to add SSL: sudo certbot --nginx -d yourdomain.com"
+fi
+
+# Restart services
+echo "🔄 Restarting services..."
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+
+# Setup automatic SSL renewal
+echo "🔄 Setting up automatic SSL certificate renewal..."
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
 
 # Final cleanup
 print_info "Final cleanup..."
@@ -237,8 +322,13 @@ echo -e "${GREEN}Installation Complete!${NC}"
 echo "======================================"
 echo ""
 echo "🌐 Your ClosedBridge URLs:"
-echo -e "   Main: ${GREEN}http://${VPS_IP}:3000${NC}"
-echo -e "   Admin: ${GREEN}http://${VPS_IP}:3000/ad.html${NC}"
+if [ ! -z "$DOMAIN_NAME" ]; then
+    echo -e "   Main: ${GREEN}https://$DOMAIN_NAME${NC}"
+    echo -e "   Admin: ${GREEN}https://$DOMAIN_NAME/ad.html${NC}"
+else
+    echo -e "   Main: ${GREEN}http://${VPS_IP}:3000${NC}"
+    echo -e "   Admin: ${GREEN}http://${VPS_IP}:3000/ad.html${NC}"
+fi
 echo ""
 echo "🤖 Telegram Bot:"
 if [ -z "$TELEGRAM_TOKEN" ]; then

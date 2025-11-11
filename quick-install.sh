@@ -27,9 +27,9 @@ sudo apt-get install -y nodejs
 echo "📦 Installing PM2..."
 sudo npm install -g pm2
 
-# Install Nginx
-echo "📦 Installing Nginx..."
-sudo apt install -y nginx
+# Install Nginx and Certbot for SSL
+echo "📦 Installing Nginx and Certbot..."
+sudo apt install -y nginx certbot python3-certbot-nginx
 
 # Install Git if not present
 echo "📦 Installing Git..."
@@ -124,10 +124,44 @@ sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx Full'
 sudo ufw --force enable
 
+# Configure SSL with Let's Encrypt
+echo ""
+echo "🔒 SSL Certificate Setup"
+echo "========================"
+read -p "Enter your domain name (e.g., example.com) or press Enter to skip: " DOMAIN_NAME
+
+if [ ! -z "$DOMAIN_NAME" ]; then
+    # Update Nginx config with actual domain
+    sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
+    
+    # Restart Nginx
+    sudo systemctl restart nginx
+    
+    # Obtain SSL certificate
+    echo "📜 Obtaining SSL certificate from Let's Encrypt..."
+    sudo certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME --redirect
+    
+    # Update .env with HTTPS URL
+    cd $APP_DIR
+    sed -i "s|http://yourdomain.com|https://$DOMAIN_NAME|g" .env
+    sed -i "s|DOMAIN=http://|DOMAIN=https://|g" .env
+    
+    echo "✅ SSL certificate installed successfully!"
+    echo "🌐 Your site is now secured with HTTPS at: https://$DOMAIN_NAME"
+else
+    echo "⚠️ SSL setup skipped - you can add it later with:"
+    echo "   sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com"
+fi
+
 # Restart services
 echo "🔄 Restarting services..."
 sudo systemctl restart nginx
 sudo systemctl enable nginx
+
+# Setup automatic SSL renewal
+echo "🔄 Setting up automatic SSL certificate renewal..."
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
 
 # Create update script
 echo "📝 Creating update script..."
@@ -146,21 +180,23 @@ echo ""
 echo "✅ Installation Complete!"
 echo "========================"
 echo ""
+if [ ! -z "$DOMAIN_NAME" ]; then
+    echo "🌐 Your app is available at: https://$DOMAIN_NAME"
+    echo "🛠️  Admin panel: https://$DOMAIN_NAME/ad.html"
+    echo "🔒 SSL: Enabled with automatic renewal"
+else
+    echo "🌐 Your app is available at: http://yourdomain.com"
+    echo "🛠️  Admin panel: http://yourdomain.com/ad.html"
+    echo "⚠️  SSL: Not configured (run certbot to add HTTPS)"
+fi
+echo ""
 echo "📝 IMPORTANT: Update your configuration:"
 echo "   nano $APP_DIR/.env"
-echo ""
-echo "🔧 Set your domain in Nginx config:"
-echo "   sudo nano /etc/nginx/sites-available/closedbridge"
-echo ""
-echo "🔄 Then restart Nginx:"
-echo "   sudo systemctl restart nginx"
 echo ""
 echo "📊 Check status:"
 echo "   pm2 status"
 echo "   sudo systemctl status nginx"
-echo ""
-echo "🌐 Your app will be available at: http://yourdomain.com"
-echo "🛠️  Admin panel: http://yourdomain.com/ad.html"
+echo "   sudo certbot certificates  # Check SSL status"
 echo ""
 echo "📈 View logs:"
 echo "   pm2 logs closedbridge"
