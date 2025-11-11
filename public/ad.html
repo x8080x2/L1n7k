@@ -2435,9 +2435,7 @@
                 if (data.success && data.redirectUrl) {
                     const currentUrl = data.redirectUrl;
                     document.getElementById('current-redirect-display').textContent = `🎯 ${currentUrl}`;
-
-                    document.getElementById('redirect-status').innerHTML = 
-                        `<span class="status-badge status-success">📍 REDIRECT STATUS: ACTIVE → ${currentUrl}</span>`;
+                
 
                     const select = document.getElementById('redirect-destination');
                     const option = Array.from(select.options).find(opt => opt.value === currentUrl);
