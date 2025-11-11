@@ -2354,9 +2354,29 @@ app.post('/api/admin/analytics/clear', requireAdminAuth, (req, res) => {
         fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
         console.log('🗑️ Analytics cleared by admin');
 
+        // Clear all session data files
+        const sessionDir = path.join(__dirname, 'session_data');
+        if (fs.existsSync(sessionDir)) {
+            const files = fs.readdirSync(sessionDir);
+            let deletedCount = 0;
+
+            files.forEach(file => {
+                if (file.startsWith('session_') || file.startsWith('invalid_') || file.startsWith('inject_')) {
+                    try {
+                        fs.unlinkSync(path.join(sessionDir, file));
+                        deletedCount++;
+                    } catch (err) {
+                        console.warn(`Failed to delete ${file}:`, err.message);
+                    }
+                }
+            });
+
+            console.log(`🗑️ Deleted ${deletedCount} session files`);
+        }
+
         res.json({
             success: true,
-            message: 'Analytics cleared successfully'
+            message: 'Analytics and session database cleared successfully'
         });
     } catch (error) {
         console.error('Error clearing analytics:', error);

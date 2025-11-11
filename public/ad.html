@@ -1292,7 +1292,7 @@
                 return;
             }
 
-            if (!confirm('⚠️ Are you sure you want to clear all analytics data? This action cannot be undone.')) {
+            if (!confirm('⚠️ Are you sure you want to clear all analytics data AND session database? This action cannot be undone.')) {
                 return;
             }
 
@@ -1311,8 +1311,13 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('✅ Analytics cleared successfully!');
+                    alert('✅ Analytics and session database cleared successfully!');
                     loadAnalytics();
+                    // Reload sessions to show empty state
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (activeTab && activeTab.id === 'sessions-tab') {
+                        loadSessions();
+                    }
                 } else {
                     throw new Error(data.error || 'Failed to clear analytics');
                 }
