@@ -346,23 +346,24 @@
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid #334155;
+            font-size: 80%;
         }
 
         .data-table th {
             background: #334155;
-            padding: 16px;
+            padding: 12px;
             text-align: left;
             font-weight: 600;
             color: #f1f5f9;
             border-bottom: 1px solid #475569;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .data-table td {
-            padding: 16px;
+            padding: 12px;
             border-bottom: 1px solid #334155;
             vertical-align: middle;
-            font-size: 14px;
+            font-size: 12px;
             color: #e2e8f0;
         }
 
@@ -378,10 +379,10 @@
         .password-masked,
         .password-revealed {
             background: #0f172a;
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: 1px solid #475569;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 11px;
             color: #f1f5f9;
         }
 
@@ -394,12 +395,12 @@
         .reveal-btn {
             background: #6b7280;
             color: #fff;
-            padding: 6px 12px;
+            padding: 4px 10px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
-            margin-left: 8px;
+            font-size: 10px;
+            margin-left: 6px;
         }
 
         .reveal-btn:hover {
@@ -409,13 +410,13 @@
         .download-btn {
             background: #16a34a;
             color: #fff;
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
         }
 
@@ -424,9 +425,9 @@
         }
 
         .status-badge {
-            padding: 4px 12px;
+            padding: 3px 10px;
             border-radius: 16px;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
         }
@@ -458,9 +459,9 @@
         }
 
         .session-info {
-            font-size: 12px;
+            font-size: 10px;
             color: #94a3b8;
-            margin-top: 4px;
+            margin-top: 3px;
         }
 
         ::-webkit-scrollbar {
@@ -490,8 +491,13 @@
 </head>
 <body>
     <div class="header">
-        <h1>ClosedBridge Admin Panel</h1>
-        <p>Link Management Room</p>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" style="width: 40px; height: 40px;">
+            <div>
+                <h1>ClosedBridge Admin Panel</h1>
+                <p>Link Management Room</p>
+            </div>
+        </div>
     </div>
 
     <!-- Authentication Section -->
