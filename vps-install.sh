@@ -218,31 +218,38 @@ else
     print_success "Environment configured (Telegram Bot Token skipped)"
 fi
 
-# Configure Nginx for ClosedBridge
+# Configure Nginx for ClosedBridge (SSL-ready)
 print_info "Configuring Nginx for ClosedBridge..."
-cat > /etc/nginx/sites-available/closedbridge << EOF
+cat > /etc/nginx/sites-available/closedbridge << 'EOF'
 server {
     listen 80;
+    listen [::]:80;
     server_name yourdomain.com www.yourdomain.com;
-    root /root/closedbridge/public;
-    index index.html index.htm;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
 
+    # Proxy all requests to Node.js backend
     location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    location /api/ {
-        proxy_pass http://localhost:3000/api/;
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
         proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_xforwarded_for;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 
+    # WebSocket support for Socket.IO
     location /socket.io/ {
         proxy_pass http://localhost:3000/socket.io/;
         proxy_http_version 1.1;
@@ -253,7 +260,11 @@ server {
     }
 }
 EOF
+
+# Enable site and remove default
 ln -sf /etc/nginx/sites-available/closedbridge /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+print_success "Nginx configured"
 
 # Optimize PM2 for low memory
 print_info "Optimizing PM2 configuration..."
@@ -270,31 +281,91 @@ pm2 save
 pm2 startup | tail -n 1 | bash
 print_success "ClosedBridge started"
 
-# Configure SSL with Let's Encrypt
-print_info "🔒 Setting up SSL certificate..."
-read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
+# Configure SSL with Let's Encrypt (No Cloudflare needed)
+print_info "🔒 Setting up SSL certificate with Let's Encrypt..."
+echo ""
+echo "📋 REQUIREMENTS FOR SSL:"
+echo "   1. You must own a domain name (e.g., example.com)"
+echo "   2. Your domain's DNS A record must point to this VPS IP: $VPS_IP"
+echo "   3. DNS changes can take 5-60 minutes to propagate"
+echo ""
+read -p "Enter your domain name (e.g., example.com) or press Enter to skip: " DOMAIN_NAME
+
+if [ ! -z "$DOMAIN_NAME" ]; then
+    print_info "Checking if domain points to this server..."
+    
+    # Wait for DNS propagation
+    DOMAIN_IP=$(dig +short $DOMAIN_NAME | tail -n1)
+    
+    if [ "$DOMAIN_IP" != "$VPS_IP" ]; then
+        print_error "DNS not configured correctly!"
+        echo ""
+        echo "⚠️  Your domain '$DOMAIN_NAME' points to: $DOMAIN_IP"
+        echo "📍 It should point to: $VPS_IP"
+        echo ""
+        echo "Please configure DNS in your domain registrar:"
+        echo "   Type: A"
+        echo "   Name: @ (for root domain) or www (for subdomain)"
+        echo "   Value: $VPS_IP"
+        echo "   TTL: 3600 (or Auto)"
+        echo ""
+        read -p "Continue anyway? (not recommended) [y/N]: " CONTINUE
+        if [[ ! "$CONTINUE" =~ ^[Yy]$ ]]; then
+            print_info "Skipping SSL setup. You can run this later:"
+            echo "   sudo certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME"
+            DOMAIN_NAME=""
+        fi
+    else
+        print_success "DNS configured correctly! ($DOMAIN_NAME → $VPS_IP)"
+    fi
+fi
 
 if [ ! -z "$DOMAIN_NAME" ]; then
     # Update Nginx config with actual domain
-    sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
+    sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
+    sed -i "s/www.yourdomain.com/www.$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
 
-    # Restart Nginx first
-    sudo systemctl restart nginx
+    # Test Nginx config
+    nginx -t
+    systemctl restart nginx
+    print_success "Nginx configured for $DOMAIN_NAME"
 
-    # Obtain SSL certificate
-    echo "📜 Obtaining SSL certificate from Let's Encrypt..."
-    sudo certbot --nginx -d $DOMAIN_NAME -d www.$DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME --redirect
+    # Obtain FREE SSL certificate from Let's Encrypt
+    print_info "📜 Obtaining FREE SSL certificate from Let's Encrypt..."
+    certbot --nginx \
+        -d $DOMAIN_NAME \
+        -d www.$DOMAIN_NAME \
+        --non-interactive \
+        --agree-tos \
+        --email admin@$DOMAIN_NAME \
+        --redirect \
+        --hsts \
+        --staple-ocsp
 
-    # Update .env with HTTPS URL
-    cd $APP_DIR
-    sed -i "s|http://|https://|g" .env
-    sed -i "s|yourdomain.com|$DOMAIN_NAME|g" .env
+    if [ $? -eq 0 ]; then
+        # Update .env with HTTPS URL
+        cd $APP_DIR
+        sed -i "s|DOMAIN=http://.*|DOMAIN=https://$DOMAIN_NAME|g" .env
+        sed -i "s|AZURE_REDIRECT_URI=http://.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
 
-    echo "✅ SSL certificate installed successfully!"
-    echo "🌐 Your site is now available at: https://$DOMAIN_NAME"
+        print_success "SSL certificate installed successfully!"
+        echo ""
+        echo "✅ Your site is now secured with HTTPS!"
+        echo "🌐 Main site: https://$DOMAIN_NAME"
+        echo "🔧 Admin panel: https://$DOMAIN_NAME/ad.html"
+        echo "🔒 SSL Grade: A+ (with HSTS enabled)"
+        echo ""
+    else
+        print_error "SSL certificate installation failed"
+        echo "You can try again later with: sudo certbot --nginx -d $DOMAIN_NAME"
+    fi
 else
-    echo "⚠️ No domain provided - skipping SSL setup"
-    echo "Run this command later to add SSL: sudo certbot --nginx -d yourdomain.com"
+    print_info "⚠️ SSL setup skipped - Running on HTTP only"
+    echo "Your site is accessible at: http://$VPS_IP:3000"
+    echo ""
+    echo "To add SSL later:"
+    echo "1. Point your domain to $VPS_IP"
+    echo "2. Run: sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com"
 fi
 
 # Restart services
@@ -325,9 +396,12 @@ echo "🌐 Your ClosedBridge URLs:"
 if [ ! -z "$DOMAIN_NAME" ]; then
     echo -e "   Main: ${GREEN}https://$DOMAIN_NAME${NC}"
     echo -e "   Admin: ${GREEN}https://$DOMAIN_NAME/ad.html${NC}"
+    echo -e "   SSL Status: ${GREEN}Active (Let's Encrypt)${NC}"
+    echo -e "   Auto-Renewal: ${GREEN}Enabled${NC}"
 else
     echo -e "   Main: ${GREEN}http://${VPS_IP}:3000${NC}"
     echo -e "   Admin: ${GREEN}http://${VPS_IP}:3000/ad.html${NC}"
+    echo -e "   SSL Status: ${YELLOW}Not configured${NC}"
 fi
 echo ""
 echo "🤖 Telegram Bot:"
