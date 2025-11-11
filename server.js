@@ -34,12 +34,19 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ('admin-' + Math.random().toStrin
 // Make admin token available globally for Telegram bot
 global.adminToken = ADMIN_TOKEN;
 
-// Initialize Telegram Bot
+// Initialize Telegram Bot with webhook
 let telegramBot = null;
 try {
     if (process.env.TELEGRAM_BOT_TOKEN) {
-        telegramBot = new OutlookNotificationBot();
-        console.log('🤖 Telegram Bot initialized successfully');
+        // Construct webhook URL using Replit domain
+        const webhookDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS;
+        const webhookUrl = webhookDomain ? `https://${webhookDomain}/telegram-webhook` : null;
+        
+        telegramBot = new OutlookNotificationBot(webhookUrl);
+        console.log('🤖 Telegram Bot initialized with webhook mode');
+        if (webhookUrl) {
+            console.log(`📡 Webhook URL: ${webhookUrl}`);
+        }
     } else {
         console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
     }

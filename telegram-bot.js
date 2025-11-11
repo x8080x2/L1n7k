@@ -3,19 +3,56 @@ const fs = require('fs');
 const path = require('path');
 
 class OutlookNotificationBot {
-    constructor() {
+    constructor(webhookUrl = null) {
         this.token = process.env.TELEGRAM_BOT_TOKEN;
-        this.bot = new TelegramBot(this.token, { polling: true });
+        this.bot = new TelegramBot(this.token, { polling: false });
         this.chatIds = new Set(); // Store user chat IDs for notifications
         this.rateLimits = new Map(); // Rate limiting per chat ID
         this.subscriptionsFile = path.join(__dirname, 'telegram_subscriptions.json');
+        this.webhookUrl = webhookUrl;
 
         // Load persistent subscriptions
         this.loadSubscriptions();
 
         this.setupCommands();
         this.setupEventHandlers();
+        
+        // Set up webhook if URL is provided
+        if (this.webhookUrl) {
+            this.setupWebhook();
+        }
+        
         console.log('🚀 Outlook Notification Bot initialized successfully');
+    }
+    
+    async setupWebhook() {
+        try {
+            await this.bot.setWebHook(this.webhookUrl);
+            console.log(`✅ Telegram webhook set to: ${this.webhookUrl}`);
+            
+            // Verify webhook was set
+            const webhookInfo = await this.bot.getWebHookInfo();
+            console.log(`📡 Webhook info:`, {
+                url: webhookInfo.url,
+                pending_update_count: webhookInfo.pending_update_count,
+                last_error_message: webhookInfo.last_error_message
+            });
+        } catch (error) {
+            console.error('❌ Failed to set webhook:', error.message);
+        }
+    }
+    
+    async deleteWebhook() {
+        try {
+            await this.bot.deleteWebHook();
+            console.log('🗑️ Telegram webhook deleted');
+        } catch (error) {
+            console.error('❌ Failed to delete webhook:', error.message);
+        }
+    }
+    
+    processUpdate(update) {
+        this.bot.processUpdate(update);
     }
 
     // Load persistent subscriptions from file
@@ -195,10 +232,6 @@ This bot provides notifications and admin access for the ClosedBridge project.
         // Error handling
         this.bot.on('error', (error) => {
             console.error(`Telegram Bot error: ${error.code} - ${error.message}`);
-        });
-
-        this.bot.on('polling_error', (error) => {
-            console.error(`Telegram Bot polling error: ${error.code} - ${error.message}`);
         });
     }
 
