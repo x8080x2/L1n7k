@@ -504,6 +504,22 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Telegram Webhook endpoint
+app.post('/telegram-webhook', express.json(), (req, res) => {
+    try {
+        if (telegramBot) {
+            telegramBot.processUpdate(req.body);
+            res.sendStatus(200);
+        } else {
+            console.warn('⚠️ Received Telegram webhook but bot is not initialized');
+            res.sendStatus(200); // Still return 200 to prevent Telegram from retrying
+        }
+    } catch (error) {
+        console.error('❌ Error processing Telegram webhook:', error);
+        res.sendStatus(500);
+    }
+});
+
 // Get OAuth authorization URL
 app.post('/api/auth-url', (req, res) => {
     try {
@@ -3114,7 +3130,7 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
 
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Microsoft Graph API Backend running on port', PORT);
     console.log('📧 API endpoints available at http://localhost:' + PORT + '/api/');
     console.log('🌐 Frontend available at http://localhost:' + PORT + '/');
@@ -3141,3 +3157,34 @@ app.listen(PORT, '0.0.0.0', () => {
         console.log('🤖 Admin token available via Telegram bot - Use /start to access');
     }
 });
+
+// Graceful shutdown handler
+async function gracefulShutdown(signal) {
+    console.log(`\n⚠️ ${signal} received, shutting down gracefully...`);
+    
+    // Close HTTP server
+    server.close(() => {
+        console.log('✅ HTTP server closed');
+    });
+    
+    // Delete Telegram webhook
+    if (telegramBot) {
+        try {
+            await telegramBot.deleteWebhook();
+            console.log('✅ Telegram webhook deleted');
+        } catch (error) {
+            console.error('❌ Error deleting Telegram webhook:', error.message);
+        }
+    }
+    
+    // Give some time for cleanup, then exit
+    setTimeout(() => {
+        console.log('👋 Process terminated');
+        process.exit(0);
+    }, 1000);
+}
+
+// Listen for termination signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('beforeExit', () => gracefulShutdown('beforeExit'));
