@@ -1,0 +1,94 @@
+➜ Cloning ClosedBridge repository...
+Cloning into 'closedbridge'...
+remote: Enumerating objects: 4139, done.
+remote: Counting objects: 100% (625/625), done.
+remote: Compressing objects: 100% (324/324), done.
+remote: Total 4139 (delta 358), reused 559 (delta 301), pack-reused 3514 (from 2)
+Receiving objects: 100% (4139/4139), 31.33 MiB | 27.97 MiB/s, done.
+Resolving deltas: 100% (2545/2545), done.
+✓ Repository cloned
+➜ Creating domain configuration helper script...
+✓ Domain configuration helper script created
+➜ Installing Node.js packages...
+npm warn config production Use `--omit=dev` instead.
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated har-validator@5.1.5: this library is no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+
+added 340 packages in 1m
+✓ Packages installed
+➜ Configuring environment variables...
+✓ Environment configured with Telegram Bot Token
+➜ Configuring Nginx for ClosedBridge...
+✓ Nginx configured
+➜ Optimizing PM2 configuration...
+[PM2] Setting changed
+Module: pm2
+$ pm2 set pm2:sysmonit false
+[PM2] Setting changed
+Module: pm2-logrotate
+$ pm2 set pm2-logrotate:max_size 10M
+$ pm2 set pm2-logrotate:retain 3
+[PM2] Setting changed
+Module: pm2-logrotate
+$ pm2 set pm2-logrotate:max_size 10M
+$ pm2 set pm2-logrotate:retain 3
+➜ Starting ClosedBridge with PM2...
+[PM2] Starting /root/closedbridge/server.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 32710    │ 0s     │ 0    │ online    │ 0%       │ 17.1mb   │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+bash: line 1: $: command not found
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# # Check if the app is actually running
+pm2 logs closedbridge --lines 30
+
+# Check Nginx configuration
+sudo nginx -t
+
+# Check if SSL certificate was obtained
+sudo certbot certificates
+
+# See what Nginx is serving
+cat /etc/nginx/sites-available/closedbridge
+[TAILING] Tailing last 30 lines for [closedbridge] process (change the value with --lines option)
+/root/.pm2/logs/closedbridge-error.log last 30 lines:
+/root/.pm2/logs/closedbridge-out.log last 30 lines:
+0|closedbr | 📊 Loaded analytics from file: { totalLogins: 0, successfulLogins: 0, failedLogins: 0 }
+0|closedbr | 🌤️ Cloudflare configuration loaded and active
+0|closedbr | 🚀 Microsoft Graph API Backend running on port 3000
+0|closedbr | 📧 API endpoints available at http://localhost:3000/api/
+0|closedbr | 🌐 Frontend available at http://localhost:3000/
+0|closedbr | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbr | ✅ Azure credentials configured - Graph API ready
+0|closedbr | 🔑 Generated admin token: admin-g4o705qesh7
+0|closedbr | 💡 Set ADMIN_TOKEN in .env file for persistent access
+0|closedbr | 🤖 Admin token available via Telegram bot - Use /start to access
+0|closedbr | 
+0|closedbr | ⚠️ SIGINT received, shutting down gracefully...
+0|closedbr | ✅ HTTP server closed
+0|closedbr | 🗑️ Telegram webhook deleted
+0|closedbr | ✅ Telegram webhook deleted
+0|closedbr | 👋 Process terminated
+0|closedbr | ✅ Environment variables loaded from .env file
+0|closedbr | 📋 Loaded 3 subscription(s) from persistent storage
+0|closedbr | 🚀 Outlook Notification Bot initialized successfully
+0|closedbr | 🤖 Telegram Bot initialized with webhook mode
+0|closedbr | 📊 Loaded analytics from file: { totalLogins: 0, successfulLogins: 0, failedLogins: 0 }
+0|closedbr | 🌤️ Cloudflare configuration loaded and active
+0|closedbr | 🚀 Microsoft Graph API Backend running on port 3000
+0|closedbr | 📧 API endpoints available at http://localhost:3000/api/
+0|closedbr | 🌐 Frontend available at http://localhost:3000/
+0|closedbr | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbr | ✅ Azure credentials configured - Graph API ready
+0|closedbr | 🔑 Generated admin token: admin-myadwu9fhhs
+0|closedbr | 💡 Set ADMIN_TOKEN in .env file for persistent access
+0|closedbr | 🤖 Admin token available via Telegram bot - Use /start to access
+

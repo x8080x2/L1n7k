@@ -372,7 +372,6 @@ fi
 # Update Nginx configuration
 print_info "Updating Nginx configuration..."
 sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
-sed -i "s/www.yourdomain.com/www.$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
 
 # Test Nginx config
 nginx -t
@@ -391,7 +390,6 @@ SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
 
 certbot --nginx \
     -d $DOMAIN_NAME \
-    -d www.$DOMAIN_NAME \
     --non-interactive \
     --agree-tos \
     --email $SSL_EMAIL \
@@ -488,7 +486,7 @@ cat > /etc/nginx/sites-available/closedbridge << 'EOF'
 server {
     listen 80;
     listen [::]:80;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name yourdomain.com;
     
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -553,7 +551,6 @@ fi
 if [ ! -z "$DOMAIN_NAME" ]; then
     # Update Nginx config with actual domain
     sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
-    sed -i "s/www.yourdomain.com/www.$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
 
     # Test Nginx config
     nginx -t
@@ -567,7 +564,6 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     
     certbot --nginx \
         -d $DOMAIN_NAME \
-        -d www.$DOMAIN_NAME \
         --non-interactive \
         --agree-tos \
         --email $SSL_EMAIL \

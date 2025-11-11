@@ -1,0 +1,56 @@
+Welcome to Ubuntu 25.04 (GNU/Linux 6.14.0-35-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+49 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# cd /root/closedbridge
+sudo bash configure-domain.sh
+======================================
+ClosedBridge Domain Configurator
+======================================
+
+➜ Detected VPS IP: 167.71.165.86
+
+This script will configure your domain name and SSL certificate.
+
+Enter your domain name (e.g., example.com): chatterdrive.info
+➜ Checking DNS configuration for chatterdrive.info...
+✓ DNS configured correctly! (chatterdrive.info → 167.71.165.86)
+➜ Updating Nginx configuration...
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+✓ Nginx configured for chatterdrive.info
+➜ 📜 Obtaining FREE SSL certificate from Let's Encrypt...
+Enter email for SSL certificate notifications (default: admin@chatterdrive.info): 
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Account registered.
+Requesting a certificate for chatterdrive.info and www.chatterdrive.info
+
+Certbot failed to authenticate some domains (authenticator: nginx). The Certificate Authority reported these problems:
+  Domain: www.chatterdrive.info
+  Type:   dns
+  Detail: DNS problem: NXDOMAIN looking up A for www.chatterdrive.info - check that a DNS record exists for this domain; DNS problem: NXDOMAIN looking up AAAA for www.chatterdrive.info - check that a DNS record exists for this domain
+
+Hint: The Certificate Authority failed to verify the temporary nginx configuration changes made by Certbot. Ensure the listed domains point to this nginx server and that it is accessible from the internet.
+
+Some challenges have failed.
+Ask for help or search for solutions at https://community.letsencrypt.org. See the logfile /var/log/letsencrypt/letsencrypt.log or re-run Certbot with -v for more details.
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~/closedbridge# 
+
+
+
+
+
+
+
+
+
+
+
+
+
