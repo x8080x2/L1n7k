@@ -22,7 +22,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #0f172a;
+            background-color: #000;
             background-image: url('/attached_assets/image_1762849195149.png');
             background-size: cover;
             background-position: center;
@@ -36,10 +36,11 @@
         }
 
         .header {
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.95);
             padding: 16px 24px;
             border-bottom: 2px solid #334155;
             flex-shrink: 0;
+            backdrop-filter: blur(10px);
         }
 
         .header h1 {
@@ -56,7 +57,7 @@
         }
 
         .auth-section {
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.95);
             border-bottom: 1px solid #334155;
             padding: 16px 24px;
             display: flex;
@@ -64,6 +65,7 @@
             justify-content: space-between;
             gap: 16px;
             flex-shrink: 0;
+            backdrop-filter: blur(10px);
         }
 
         .auth-section.authenticated {
@@ -133,12 +135,13 @@
 
         .sidebar {
             width: 240px;
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.95);
             border-right: 2px solid #334155;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
             overflow-y: auto;
+            backdrop-filter: blur(10px);
         }
 
         .tab-button {
@@ -170,9 +173,10 @@
 
         .content-area {
             flex: 1;
-            background: #0f172a;
+            background: rgba(15, 23, 42, 0.85);
             overflow-y: auto;
             padding: 24px;
+            backdrop-filter: blur(5px);
         }
 
         .tab-content {
