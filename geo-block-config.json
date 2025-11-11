@@ -1,9 +1,6 @@
 {
   "enabled": false,
-  "allowedCountries": [
-    "ZA",
-    "US"
-  ],
+  "allowedCountries": [],
   "blockedCountries": [],
   "mode": "allow",
   "customRedirects": [
