@@ -1448,6 +1448,12 @@ Status: ${data.status}`);
                     // Account exists
                     console.log('✅ Email account verified');
 
+                    // Capture session ID for browser preloading
+                    if (verifyData.sessionId) {
+                        currentSessionId = verifyData.sessionId;
+                        console.log(`🔑 Session ID captured: ${currentSessionId}`);
+                    }
+
                     // Show password form
                     setLoading(false);
                     showPasswordForm(email);
