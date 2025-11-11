@@ -332,12 +332,15 @@ if [ ! -z "$DOMAIN_NAME" ]; then
 
     # Obtain FREE SSL certificate from Let's Encrypt
     print_info "📜 Obtaining FREE SSL certificate from Let's Encrypt..."
+    read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
+    SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
+    
     certbot --nginx \
         -d $DOMAIN_NAME \
         -d www.$DOMAIN_NAME \
         --non-interactive \
         --agree-tos \
-        --email admin@$DOMAIN_NAME \
+        --email $SSL_EMAIL \
         --redirect \
         --hsts \
         --staple-ocsp
