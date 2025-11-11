@@ -119,3 +119,27 @@ Preferred communication style: Simple, everyday language.
 - **Configuration**: Chromium path detection via `CHROMIUM_PATH` environment variable
 - **Deployment Note**: Relies on Nix-provided Chromium in Replit environment
 - **Resource Settings**: Memory limits, throttling disabled, sandbox disabled for containerized environments
+
+## VPS Deployment
+
+**Automated VPS Installation Script (vps-install.sh)**
+- **Date Updated**: November 2025
+- **Improvements Made**:
+  - Domain configuration moved to beginning of installation
+  - DNS verification with 3 automatic retry attempts
+  - Clear error messages and user guidance
+  - Automatic dnsutils installation before DNS checks
+  - Environment variables configured correctly based on domain availability
+  - Post-install domain configuration helper script
+- **Installation Flow**:
+  1. Detects VPS IP automatically
+  2. Prompts for domain name with DNS verification (optional)
+  3. Prompts for Telegram bot token (optional)
+  4. Installs Node.js, PM2, Chromium, Nginx, and Certbot
+  5. Clones repository and installs dependencies
+  6. Configures environment variables (.env file)
+  7. Sets up Nginx reverse proxy
+  8. Obtains free SSL certificate from Let's Encrypt (if domain provided)
+  9. Starts application with PM2
+- **Post-Install Domain Configuration**: Users who skip domain during installation can run `sudo bash /root/closedbridge/configure-domain.sh` to add domain and SSL later
+- **DNS Requirements**: Domain's A record must point to VPS IP before SSL can be obtained
