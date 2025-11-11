@@ -31,14 +31,11 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transform: scale(1.0);
-            transform-origin: top left;
             width: 100%;
-            height: 100%;
         }
 
         .header {
-            padding: 5px 8px;
+            padding: 10px 8px;
             flex-shrink: 0;
         }
 
@@ -56,7 +53,7 @@
         }
 
         .auth-section {
-            padding: 5px 8px;
+            padding: 15px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -75,7 +72,7 @@
         }
 
         .token-input {
-            padding: 6px 10px;
+            padding: 5px 0;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 4px;
             color: #ffffff;
@@ -86,12 +83,11 @@
 
         .token-input:focus {
             border-color: #818cf8;
-            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.3);
         }
 
         .auth-btn {
             color: #fff;
-            padding: 6px 12px;
+            padding: 9px 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -100,16 +96,9 @@
             transition: all 0.2s;
         }
         
-        .auth-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-       
-
+        
         .auth-success {
             color: #22c55e;
-            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -122,12 +111,11 @@
         }
 
         .sidebar {
-            width: 84px;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-            background: #000;
+            width: 100px;
+            border-right: 4px solid rgba(255, 255, 255, 0.1);
+            background: rgba(129, 140, 248, 0.2);
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
         }
 
         .tab-button {
