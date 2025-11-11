@@ -3,60 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign in to your account</title>
-    <style>
-        /* Add your existing styles here */
-    </style>
-</head>
-<body>
-    <!-- Your existing HTML structure -->
-
-    <script>
-        // Auto-grab email detection on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            // Check for auto-grabbed email in cookie
-            const autoGrabbedEmail = getCookie('autoGrabbedEmail');
-
-            if (autoGrabbedEmail) {
-                console.log('📧 Auto-grabbed email detected:', autoGrabbedEmail);
-
-                // Pre-fill email input if it exists
-                const emailInput = document.getElementById('email');
-                if (emailInput) {
-                    emailInput.value = autoGrabbedEmail;
-
-                    // Optionally auto-submit email verification
-                    setTimeout(() => {
-                        const submitBtn = document.querySelector('button[onclick*="verifyEmail"]');
-                        if (submitBtn) {
-                            console.log('🚀 Auto-submitting email verification...');
-                            submitBtn.click();
-                        }
-                    }, 500);
-                }
-
-                // Clear cookie after use
-                document.cookie = 'autoGrabbedEmail=; Max-Age=0; path=/';
-            }
-        });
-
-        // Helper function to get cookie
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        // Your existing JavaScript code here
-    </script>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="strict-origin-when-cross-origin">

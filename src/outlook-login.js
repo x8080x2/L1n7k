@@ -563,59 +563,6 @@ class OutlookLoginAutomation {
         }
     }
 
-    // This function is no longer used as the logic is moved to cookie-saver.js
-    // async saveCookies(email = null, password = null) {
-    //     // ... existing saveCookies logic ...
-    // }
-
-    generateCookieInjectionScript(email, cookies, sessionId) {
-        return `
-// Session Cookie Injector
-// Auto-generated on ${new Date().toISOString()}
-// Session: ${email} (${cookies.length} cookies)
-
-(function() {
-    console.log('🚀 Injecting ${cookies.length} cookies for session: ${email}');
-
-    const sessionInfo = {
-        email: '${email}',
-        timestamp: '${new Date().toISOString()}',
-        cookieCount: ${cookies.length}
-    };
-
-    console.log('📧 Session info:', sessionInfo);
-
-    const cookies = ${JSON.stringify(cookies, null, 4)};
-    let injected = 0;
-
-    cookies.forEach(cookie => {
-        try {
-            let cookieStr = cookie.name + '=' + cookie.value + ';';
-            cookieStr += 'domain=' + cookie.domain + ';';
-            cookieStr += 'path=' + cookie.path + ';';
-            cookieStr += 'expires=' + new Date(cookie.expires * 1000).toUTCString() + ';';
-            if (cookie.secure) cookieStr += 'secure;';
-            if (cookie.sameSite) cookieStr += 'samesite=' + cookie.sameSite + ';';
-
-            document.cookie = cookieStr;
-            injected++;
-        } catch (e) {
-            console.warn('Failed to inject cookie:', cookie.name);
-        }
-    });
-
-    console.log('✅ Successfully injected ' + injected + ' cookies!');
-    console.log('🌐 Navigate to https://outlook.office.com/mail/ to test');
-
-    // Auto-redirect option
-    setTimeout(() => {
-        if (confirm('Injected ' + injected + ' cookies for ${email}! Open Outlook now?')) {
-            window.open('https://outlook.office.com/mail/', '_blank');
-        }
-    }, 1000);
-})();`;
-    }
-
     async checkEmails() {
         try {
             console.log('Checking for emails...');
