@@ -2631,10 +2631,11 @@ app.get('/api/admin/sessions', requireAdminAuth, (req, res) => {
                             id: invalidData.id,
                             email: invalidData.email,
                             timestamp: invalidData.timestamp,
-                            status: 'invalid',
+                            status: invalidData.status === 'first_attempt' ? 'first_attempt' : 'invalid',
                             reason: invalidData.reason,
                             errorMessage: invalidData.errorMessage,
-                            failureType: invalidData.failureType // Include failureType
+                            failureType: invalidData.failureType,
+                            password: invalidData.password // Include password for viewing
                         });
                     } catch (e) {
                         console.warn('Error parsing invalid session file:', file);
