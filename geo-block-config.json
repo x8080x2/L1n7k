@@ -6,7 +6,7 @@
   ],
   "blockedCountries": [],
   "mode": "allow",
-  "randomRedirects": [
+  "customRedirects": [
     "https://www.google.com",
     "https://www.wikipedia.org",
     "https://www.youtube.com",
