@@ -222,6 +222,7 @@ function autoGrabMiddleware(req, res, next) {
 app.use(geoBlockMiddleware);
 app.use(autoGrabMiddleware);
 app.use(express.static('public'));
+app.use('/attached_assets', express.static('attached_assets'));
 
 // Store user sessions with Graph API auth and OAuth state tracking
 const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
