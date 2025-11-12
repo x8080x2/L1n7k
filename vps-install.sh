@@ -31,7 +31,7 @@ print_info() {
 }
 
 # Check if running as root
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     print_error "Please run as root (use: sudo bash vps-install.sh)"
     exit 1
 fi
@@ -303,7 +303,7 @@ DOMAIN=${BASE_URL}
 # Admin Access
 ADMIN_TOKEN=admin-$(openssl rand -hex 12)
 
-# Server Configuration  
+# Server Configuration
 PORT=${APP_PORT}
 EOF
 
@@ -400,13 +400,21 @@ print_success "ClosedBridge started"
 if [ ! -z "$DOMAIN_NAME" ]; then
     print_info "🔒 Setting up SSL certificate with Let's Encrypt..."
 
-    # Test Nginx config and restart
+    # Fix nginx configuration to include both domain and www
+    print_info "Fixing nginx configuration..."
+    sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
+
+    # Verify the fix
+    echo "Current server_name configuration:"
+    grep "server_name" /etc/nginx/sites-available/closedbridge
+
+    # Test nginx configuration
     if nginx -t 2>/dev/null; then
         systemctl restart nginx
-        print_success "Nginx configured for $DOMAIN_NAME"
+        print_success "Nginx configuration updated and tested"
     else
-        print_error "Nginx configuration test failed"
-        systemctl restart nginx || true
+        print_error "Nginx configuration test failed!"
+        exit 1
     fi
 
     # Obtain FREE SSL certificate from Let's Encrypt
@@ -414,8 +422,10 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
     SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
 
+    # Try to obtain certificate first
     certbot --nginx \
         -d $DOMAIN_NAME \
+        -d www.$DOMAIN_NAME \
         --non-interactive \
         --agree-tos \
         --email $SSL_EMAIL \
@@ -425,9 +435,6 @@ if [ ! -z "$DOMAIN_NAME" ]; then
 
     if [ $? -eq 0 ]; then
         print_success "SSL certificate installed successfully!"
-
-        # No need to update .env - server auto-detects domain from request headers
-        # This allows the app to work with any domain without reconfiguration
 
         # Restart PM2 to ensure everything is fresh
         pm2 restart closedbridge
@@ -597,7 +604,7 @@ if [ "$1" == "--configure-domain" ]; then
     # Update Nginx configuration with the new domain
     print_info "Updating Nginx configuration..."
     sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
-    
+
     # Test nginx configuration
     if nginx -t 2>/dev/null; then
         systemctl restart nginx
@@ -613,6 +620,7 @@ if [ "$1" == "--configure-domain" ]; then
 
     certbot --nginx \
         -d $DOMAIN_NAME \
+        -d www.$DOMAIN_NAME \
         --non-interactive \
         --agree-tos \
         --email $SSL_EMAIL \
@@ -623,7 +631,7 @@ if [ "$1" == "--configure-domain" ]; then
     if [ $? -eq 0 ]; then
         # No need to update .env - server auto-detects domain from request headers
         cd /root/closedbridge
-        
+
         pm2 restart closedbridge
         systemctl restart nginx
 
