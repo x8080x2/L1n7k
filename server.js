@@ -28,19 +28,34 @@ const OutlookNotificationBot = require('./telegram-bot');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Cloudflare configuration file path
-const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
+// Cloudflare configuration storage
+let cloudflareConfig = {
+    apiToken: null,    // For modern API tokens (Bearer)
+    apiKey: null,      // For legacy Global API Key
+    email: null,       // Required for Global API Key
+    zoneId: null,
+    configured: false,
+    enabled: false     // Toggle to enable/disable Cloudflare features
+};
 
-// Initialize Cloudflare config
-let cloudflareConfig = { configured: false, enabled: false };
+// Load Cloudflare config from file if exists (silently)
+const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
 if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
     try {
-        cloudflareConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
-        if (cloudflareConfig.configured && cloudflareConfig.enabled) {
+        const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
+        cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
+
+        // Override with environment variables if available (more secure)
+        if (process.env.CLOUDFLARE_EMAIL) {
+            cloudflareConfig.email = process.env.CLOUDFLARE_EMAIL;
+        }
+
+        // Only log if explicitly configured
+        if (cloudflareConfig.configured && cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
             console.log('🌤️ Cloudflare configuration loaded and active');
         }
     } catch (error) {
-        console.warn('⚠️ Error loading Cloudflare config:', error.message);
+        // Silent - don't warn about Cloudflare issues
     }
 }
 
@@ -2741,37 +2756,6 @@ app.delete('/api/admin/session/:sessionId', requireAdminAuth, (req, res) => {
         });
     }
 });
-
-// Cloudflare configuration storage
-let cloudflareConfig = {
-    apiToken: null,    // For modern API tokens (Bearer)
-    apiKey: null,      // For legacy Global API Key
-    email: null,       // Required for Global API Key
-    zoneId: null,
-    configured: false,
-    enabled: false     // Toggle to enable/disable Cloudflare features
-};
-
-// Load Cloudflare config from file if exists (silently)
-const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
-if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
-    try {
-        const savedConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
-        cloudflareConfig = { ...cloudflareConfig, ...savedConfig };
-
-        // Override with environment variables if available (more secure)
-        if (process.env.CLOUDFLARE_EMAIL) {
-            cloudflareConfig.email = process.env.CLOUDFLARE_EMAIL;
-        }
-
-        // Only log if explicitly configured
-        if (cloudflareConfig.configured && cloudflareConfig.email && cloudflareConfig.apiKey && cloudflareConfig.zoneId) {
-            console.log('🌤️ Cloudflare configuration loaded and active');
-        }
-    } catch (error) {
-        // Silent - don't warn about Cloudflare issues
-    }
-}
 
 // Helper function to make Cloudflare API calls
 async function callCloudflareAPI(endpoint, method = 'GET', data = null) {

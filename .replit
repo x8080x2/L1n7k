@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "python-3.11"]
+modules = ["nodejs-20", "web", "bash"]
 [agent]
 expertMode = true
 integrations = ["github:1.0.0"]
@@ -86,6 +86,10 @@ externalPort = 6800
 [[ports]]
 localPort = 46119
 externalPort = 3000
+
+[[ports]]
+localPort = 46447
+externalPort = 8099
 
 [deployment]
 deploymentTarget = "vm"
