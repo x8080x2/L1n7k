@@ -317,11 +317,19 @@ fi
 
 # Configure Nginx for ClosedBridge (SSL-ready)
 print_info "Configuring Nginx for ClosedBridge..."
+
+# Set server_name based on whether domain is configured
+if [ -n "$DOMAIN_NAME" ]; then
+    SERVER_NAME="$DOMAIN_NAME www.$DOMAIN_NAME"
+else
+    SERVER_NAME="_"
+fi
+
 cat > /etc/nginx/sites-available/closedbridge << EOF
 server {
     listen 80;
     listen [::]:80;
-    server_name _;
+    server_name $SERVER_NAME;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -589,9 +597,18 @@ if [ "$1" == "--configure-domain" ]; then
         exit 1
     fi
 
-    # Update Nginx configuration
-    sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
-    nginx -t && systemctl restart nginx
+    # Update Nginx configuration with the new domain
+    print_info "Updating Nginx configuration..."
+    sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
+    
+    # Test nginx configuration
+    if nginx -t 2>/dev/null; then
+        systemctl restart nginx
+        print_success "Nginx configuration updated"
+    else
+        print_error "Nginx configuration test failed!"
+        exit 1
+    fi
 
     # Obtain SSL certificate
     read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
