@@ -280,26 +280,20 @@ print_success "Packages installed"
 # Configure .env
 print_info "Configuring environment variables..."
 
-# Use domain if configured, otherwise use IP
-if [ ! -z "$DOMAIN_NAME" ]; then
-    BASE_URL="https://${DOMAIN_NAME}"
-else
-    BASE_URL="http://${VPS_IP}:5000"
-fi
-
 cat > .env << EOF
-# Microsoft Azure Configuration
+# Microsoft Azure Configuration (Backend credentials - never exposed to users)
 AZURE_CLIENT_ID=34dc06b1-d91e-4408-b353-528722266c04
 AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
 AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
-AZURE_REDIRECT_URI=${BASE_URL}/api/auth-callback
+
+# Domain auto-detection: Server will automatically detect from request headers
+# No need to hardcode AZURE_REDIRECT_URI or DOMAIN - it adapts to any domain
 
 # Admin Access
 ADMIN_TOKEN=admin-$(openssl rand -hex 12)
 
 # Server Configuration  
 PORT=${APP_PORT}
-DOMAIN=${BASE_URL}
 EOF
 
 # Add Telegram Bot Token if provided
@@ -416,12 +410,10 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     if [ $? -eq 0 ]; then
         print_success "SSL certificate installed successfully!"
 
-        # Update .env file with HTTPS URL
-        cd $APP_DIR
-        sed -i "s|DOMAIN=.*|DOMAIN=https://$DOMAIN_NAME|g" .env
-        sed -i "s|AZURE_REDIRECT_URI=.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
+        # No need to update .env - server auto-detects domain from request headers
+        # This allows the app to work with any domain without reconfiguration
 
-        # Restart PM2 to apply new environment variables
+        # Restart PM2 to ensure everything is fresh
         pm2 restart closedbridge
 
         # Setup automatic SSL renewal
@@ -604,23 +596,17 @@ if [ "$1" == "--configure-domain" ]; then
         --staple-ocsp
 
     if [ $? -eq 0 ]; then
-        # Update .env file
+        # No need to update .env - server auto-detects domain from request headers
         cd /root/closedbridge
         
-        # Get current port from .env
-        CURRENT_PORT=$(grep "^PORT=" .env | cut -d'=' -f2)
-        CURRENT_PORT=${CURRENT_PORT:-5000}
-        
-        sed -i "s|DOMAIN=http://.*|DOMAIN=https://$DOMAIN_NAME|g" .env
-        sed -i "s|DOMAIN=https://.*:$CURRENT_PORT|DOMAIN=https://$DOMAIN_NAME|g" .env
-        sed -i "s|AZURE_REDIRECT_URI=http://.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
-        sed -i "s|AZURE_REDIRECT_URI=https://.*:5000|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
-
         pm2 restart closedbridge
         systemctl restart nginx
 
         print_success "Domain configuration complete!"
         echo "🌐 Main site: https://$DOMAIN_NAME"
         echo "🔧 Admin panel: https://$DOMAIN_NAME/ad.html"
+        echo ""
+        echo "✅ Domain is auto-detected - no hardcoding needed!"
+        echo "   Your app will work with any domain you point to this server."
     fi
 fi
