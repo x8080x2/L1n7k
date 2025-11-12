@@ -1,0 +1,104 @@
+Welcome to Ubuntu 25.04 (GNU/Linux 6.14.0-35-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+49 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+New release '25.10' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# cd /root/cls
+pm2 start server.js --name closedbridge --max-memory-restart 800M
+pm2 save
+pm2 startup
+[PM2] Starting /root/cls/server.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 83302    │ 0s     │ 0    │ online    │ 0%       │ 28.2mb   │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[PM2] Init System found: systemd
+Platform systemd
+Template
+[Unit]
+Description=PM2 process manager
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=root
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PM2_HOME=/root/.pm2
+PIDFile=/root/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/usr/lib/node_modules/pm2/bin/pm2 resurrect
+ExecReload=/usr/lib/node_modules/pm2/bin/pm2 reload all
+ExecStop=/usr/lib/node_modules/pm2/bin/pm2 kill
+
+[Install]
+WantedBy=multi-user.target
+
+Target path
+/etc/systemd/system/pm2-root.service
+Command list
+[ 'systemctl enable pm2-root' ]
+[PM2] Writing init configuration in /etc/systemd/system/pm2-root.service
+[PM2] Making script booting at startup...
+[PM2] [-] Executing: systemctl enable pm2-root...
+[PM2] [v] Command successfully executed.
++---------------------------------------+
+[PM2] Freeze a process list on reboot via:
+$ pm2 save
+
+[PM2] Remove init script via:
+$ pm2 unstartup systemd
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~/cls# # 1. Check Nginx status
+systemctl status nginx
+
+# 2. Check application logs
+pm2 logs closedbridge --lines 20
+
+# 3. Test if the app is responding
+curl http://localhost:5000/api/health
+× nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)
+     Active: failed (Result: exit-code) since Wed 2025-11-12 09:50:24 UTC; 1h 59min ago
+   Duration: 47min 43.731s
+ Invocation: d4b5b1ccab51423dab3e95db63c4abc2
+       Docs: man:nginx(8)
+   Mem peak: 1.7M
+        CPU: 20ms
+
+Nov 12 09:50:24 ubuntu-s-1vcpu-1gb-nyc3-01 systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Nov 12 09:50:24 ubuntu-s-1vcpu-1gb-nyc3-01 nginx[75240]: 2025/11/12 09:50:24 [emerg] 75240#75240: unknown "app_port" variable
+Nov 12 09:50:24 ubuntu-s-1vcpu-1gb-nyc3-01 nginx[75240]: nginx: configuration file /etc/nginx/nginx.conf test failed
+Nov 12 09:50:24 ubuntu-s-1vcpu-1gb-nyc3-01 systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Nov 12 09:50:24 ubuntu-s-1vcpu-1gb-nyc3-01 systemd[1]: nginx.service: Failed with result 'exit-code'.
+Nov 12 09:50:24 ubuntu-s-1vcpu-1gb-nyc3-01 systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+[TAILING] Tailing last 20 lines for [closedbridge] process (change the value with --lines option)
+/root/.pm2/logs/closedbridge-error.log last 20 lines:
+/root/.pm2/logs/closedbridge-out.log last 20 lines:
+0|closedbr | ✅ Environment variables loaded from .env file
+0|closedbr | ⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled
+0|closedbr | 📊 Loaded analytics from file: { totalLogins: 0, successfulLogins: 0, failedLogins: 0 }
+0|closedbr | 🌤️ Cloudflare configuration loaded and active
+0|closedbr | 🚀 Microsoft Graph API Backend running on port 3000
+0|closedbr | 📧 API endpoints available at http://localhost:3000/api/
+0|closedbr | 🌐 Frontend available at http://localhost:3000/
+0|closedbr | 🔧 Admin panel available at http://localhost:3000/ad.html
+0|closedbr | ✅ Azure credentials configured - Graph API ready
+0|closedbr | 🔑 Using custom ADMIN_TOKEN from environment
+0|closedbr | ❌ Telegram Bot disabled - Add TELEGRAM_BOT_TOKEN to enable notifications
+
