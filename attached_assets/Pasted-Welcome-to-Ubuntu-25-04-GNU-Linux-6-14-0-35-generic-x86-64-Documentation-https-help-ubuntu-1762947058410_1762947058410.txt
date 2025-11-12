@@ -1,0 +1,684 @@
+Welcome to Ubuntu 25.04 (GNU/Linux 6.14.0-35-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+49 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+New release '25.10' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+
+The programs included with the Ubuntu system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
+applicable law.
+
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# cd /home
+-bash: cd: /home: No such file or directory
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# cd root
+-bash: cd: root: No such file or directory
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# # 1. Download the install script directly from GitHub
+cd /root
+wget https://raw.githubusercontent.com/x8080x2/L1n7k/main/vps-install.sh
+
+# 2. Run the installer (it will clone from GitHub automatically)
+sudo bash vps-install.sh
+--2025-11-12 11:27:34--  https://raw.githubusercontent.com/x8080x2/L1n7k/main/vps-install.sh
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.111.133, 185.199.110.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.111.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 18751 (18K) [text/plain]
+Saving to: ‘vps-install.sh’
+
+vps-install.sh                                       100%[=====================================================================================================================>]  18.31K  --.-KB/s    in 0s      
+
+2025-11-12 11:27:35 (59.7 MB/s) - ‘vps-install.sh’ saved [18751/18751]
+
+======================================
+ClosedBridge VPS Auto-Installer
+======================================
+➜ Detected VPS IP: 167.71.165.86
+➜ Installing DNS utilities...
+✓ DNS utilities installed
+
+======================================
+📋 CONFIGURATION SETUP
+======================================
+
+🌐 DOMAIN CONFIGURATION:
+   If you have a domain name and want HTTPS/SSL, enter it now.
+   Make sure your domain's DNS A record points to: 167.71.165.86
+   (You can skip and configure later using: sudo bash vps-install.sh --configure-domain)
+
+Enter your domain name (e.g., example.com) or press Enter to skip: chatterdrive.info
+➜ Checking DNS configuration for chatterdrive.info...
+✓ DNS configured correctly! (chatterdrive.info → 167.71.165.86)
+
+🤖 Enter your Telegram Bot Token (or press Enter to skip): 8390642583:AAEFrtZP8uQQUXB1vPX-As-J-Pv8INN4k54
+
+🔌 Enter port number (default: 5000): 3000
+➜ Application will run on port: 3000
+
+➜ Starting installation with memory optimization...
+➜ Cleaning VPS to free memory...
+The following package was automatically installed and is no longer required:
+  squashfs-tools
+Use 'sudo apt autoremove' to remove it.
+
+REMOVING:
+  snapd*
+
+Summary:
+  Upgrading: 0, Installing: 0, Removing: 1, Not Upgrading: 51
+  Freed space: 139 MB
+
+(Reading database ... 119692 files and directories currently installed.)
+Removing snapd (2.71+ubuntu25.04) ...
+Stopping snap.cups.cups-browsed.service
+Stopping unit snap.cups.cups-browsed.service
+Waiting until unit snap.cups.cups-browsed.service is stopped [attempt 1]
+snap.cups.cups-browsed.service is stopped.
+Stopping snap.cups.cupsd.service
+Stopping unit snap.cups.cupsd.service
+Waiting until unit snap.cups.cupsd.service is stopped [attempt 1]
+snap.cups.cupsd.service is stopped.
+Stopping 'snapd.service', but its triggering units are still active:
+snapd.socket
+Processing triggers for dbus (1.16.2-2ubuntu1) ...
+Processing triggers for man-db (2.13.0-1) ...
+(Reading database ... 119600 files and directories currently installed.)
+Purging configuration files for snapd (2.71+ubuntu25.04) ...
+Stopping snap.cups.cups-browsed.service
+Stopping unit snap.cups.cups-browsed.service
+Waiting until unit snap.cups.cups-browsed.service is stopped [attempt 1]
+snap.cups.cups-browsed.service is stopped.
+Removing snap.cups.cups-browsed.service
+Stopping snap.cups.cupsd.service
+Stopping unit snap.cups.cupsd.service
+Waiting until unit snap.cups.cupsd.service is stopped [attempt 1]
+snap.cups.cupsd.service is stopped.
+Removing snap.cups.cupsd.service
+Stopping snap-bare-5.mount
+Stopping unit snap-bare-5.mount
+Waiting until unit snap-bare-5.mount is stopped [attempt 1]
+snap-bare-5.mount is stopped.
+Removing snap bare and revision 5
+Removing snap-bare-5.mount
+Stopping snap-core22-2139.mount
+Stopping unit snap-core22-2139.mount
+Waiting until unit snap-core22-2139.mount is stopped [attempt 1]
+snap-core22-2139.mount is stopped.
+Removing snap core22 and revision 2139
+Removing snap-core22-2139.mount
+Stopping snap-cups-1127.mount
+Stopping unit snap-cups-1127.mount
+Waiting until unit snap-cups-1127.mount is stopped [attempt 1]
+snap-cups-1127.mount is stopped.
+Removing snap cups and revision 1127
+Removing snap-cups-1127.mount
+Stopping snap-gnome\x2d42\x2d2204-226.mount
+Stopping unit snap-gnome\x2d42\x2d2204-226.mount
+Waiting until unit snap-gnome\x2d42\x2d2204-226.mount is stopped [attempt 1]
+snap-gnome\x2d42\x2d2204-226.mount is stopped.
+Removing snap gnome-42-2204 and revision 226
+Removing snap-gnome\x2d42\x2d2204-226.mount
+Stopping snap-gtk\x2dcommon\x2dthemes-1535.mount
+Stopping unit snap-gtk\x2dcommon\x2dthemes-1535.mount
+Waiting until unit snap-gtk\x2dcommon\x2dthemes-1535.mount is stopped [attempt 1]
+snap-gtk\x2dcommon\x2dthemes-1535.mount is stopped.
+Removing snap gtk-common-themes and revision 1535
+Removing snap-gtk\x2dcommon\x2dthemes-1535.mount
+Stopping snap-snapd-25577.mount
+Stopping unit snap-snapd-25577.mount
+Waiting until unit snap-snapd-25577.mount is stopped [attempt 1]
+snap-snapd-25577.mount is stopped.
+Removing snap snapd and revision 25577
+Removing snap-snapd-25577.mount
+Discarding preserved snap namespaces
+Final directory cleanup
+Removing extra snap-confine apparmor rules
+Removing snapd cache
+Removing snapd state
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+Note, selecting 'apache2-ssl-dev' for glob 'apache2*'
+Note, selecting 'apache2-suexec-pristine' for glob 'apache2*'
+Note, selecting 'apache2.2-common' for glob 'apache2*'
+Note, selecting 'apache2-api-20120211' for glob 'apache2*'
+Note, selecting 'apache2-suexec-custom' for glob 'apache2*'
+Note, selecting 'apache2-data' for glob 'apache2*'
+Note, selecting 'apache2-bin' for glob 'apache2*'
+Note, selecting 'apache2-dev' for glob 'apache2*'
+Note, selecting 'apache2-doc' for glob 'apache2*'
+Note, selecting 'apache2-utils' for glob 'apache2*'
+Note, selecting 'apache2' for glob 'apache2*'
+Note, selecting 'apache2-suexec' for glob 'apache2*'
+Note, selecting 'apache2-api-20120211-openssl1.1' for glob 'apache2*'
+Note, selecting 'apache2-bin' instead of 'apache2-api-20120211'
+Note, selecting 'apache2-bin' instead of 'apache2-api-20120211-openssl1.1'
+Package 'apache2.2-common' is not installed, so not removed
+Note, selecting 'mysql-server-core' for glob 'mysql*'
+Note, selecting 'mysql-testsuite' for glob 'mysql*'
+Note, selecting 'mysql-server-5.0' for glob 'mysql*'
+Note, selecting 'mysql-server-5.5' for glob 'mysql*'
+Note, selecting 'mysql-server-5.6' for glob 'mysql*'
+Note, selecting 'mysql-server-5.7' for glob 'mysql*'
+Note, selecting 'mysql-server-8.0' for glob 'mysql*'
+Note, selecting 'mysql-client-5.0' for glob 'mysql*'
+Note, selecting 'mysql-client-5.1' for glob 'mysql*'
+Note, selecting 'mysql-client-5.5' for glob 'mysql*'
+Note, selecting 'mysql-client-5.6' for glob 'mysql*'
+Note, selecting 'mysql-client-5.7' for glob 'mysql*'
+Note, selecting 'mysql-client-8.0' for glob 'mysql*'
+Note, selecting 'mysql-common' for glob 'mysql*'
+Note, selecting 'mysqltcl' for glob 'mysql*'
+Note, selecting 'mysql-testsuite-5.5' for glob 'mysql*'
+Note, selecting 'mysql-testsuite-5.6' for glob 'mysql*'
+Note, selecting 'mysql-testsuite-5.7' for glob 'mysql*'
+Note, selecting 'mysql-testsuite-8.0' for glob 'mysql*'
+Note, selecting 'mysql-client' for glob 'mysql*'
+Note, selecting 'mysql-router' for glob 'mysql*'
+Note, selecting 'mysql-sandbox' for glob 'mysql*'
+Note, selecting 'mysql-source' for glob 'mysql*'
+Note, selecting 'mysqltuner' for glob 'mysql*'
+Note, selecting 'mysql-common-5.6' for glob 'mysql*'
+Note, selecting 'mysql-server' for glob 'mysql*'
+Note, selecting 'mysql-server-core-5.0' for glob 'mysql*'
+Note, selecting 'mysql-server-core-5.1' for glob 'mysql*'
+Note, selecting 'mysql-server-core-5.5' for glob 'mysql*'
+Note, selecting 'mysql-server-core-5.6' for glob 'mysql*'
+Note, selecting 'mysql-server-core-5.7' for glob 'mysql*'
+Note, selecting 'mysql-server-core-8.0' for glob 'mysql*'
+Note, selecting 'mysql-client-core' for glob 'mysql*'
+Note, selecting 'mysql-client-core-5.0' for glob 'mysql*'
+Note, selecting 'mysql-client-core-5.1' for glob 'mysql*'
+Note, selecting 'mysql-client-core-5.5' for glob 'mysql*'
+Note, selecting 'mysql-client-core-5.6' for glob 'mysql*'
+Note, selecting 'mysql-client-core-5.7' for glob 'mysql*'
+Note, selecting 'mysql-client-core-8.0' for glob 'mysql*'
+Note, selecting 'mysql-cluster-community-client-plugins' for glob 'mysql*'
+Note, selecting 'mysql-shell' for glob 'mysql*'
+Package 'mysql-client-8.0' is not installed, so not removed
+Package 'mysql-client-core-8.0' is not installed, so not removed
+Note, selecting 'mysql-common' instead of 'mysql-common-5.6'
+Package 'mysql-server-5.5' is not installed, so not removed
+Package 'mysql-server-8.0' is not installed, so not removed
+Package 'mysql-server-core-8.0' is not installed, so not removed
+Package 'mysql-client-core-5.5' is not installed, so not removed
+Package 'mysql-client-core-5.6' is not installed, so not removed
+Package 'mysql-client-core-5.7' is not installed, so not removed
+Package 'mysql-client-5.5' is not installed, so not removed
+Package 'mysql-client-5.6' is not installed, so not removed
+Package 'mysql-client-5.7' is not installed, so not removed
+Package 'mysql-server-5.7' is not installed, so not removed
+Package 'mysql-client-5.0' is not installed, so not removed
+Package 'mysql-client-5.1' is not installed, so not removed
+Package 'mysql-client-core-5.0' is not installed, so not removed
+Package 'mysql-client-core-5.1' is not installed, so not removed
+Package 'mysql-cluster-community-client-plugins' is not installed, so not removed
+Package 'mysql-server-core-5.5' is not installed, so not removed
+Package 'mysql-server-core-5.6' is not installed, so not removed
+Package 'mysql-server-core-5.7' is not installed, so not removed
+Package 'mysql-server-5.6' is not installed, so not removed
+Package 'mysql-server-5.0' is not installed, so not removed
+Package 'mysql-server-core-5.0' is not installed, so not removed
+Package 'mysql-server-core-5.1' is not installed, so not removed
+Package 'mysql-testsuite-5.5' is not installed, so not removed
+Package 'mysql-testsuite-5.6' is not installed, so not removed
+Package 'mysql-testsuite-5.7' is not installed, so not removed
+Package 'mysql-testsuite-8.0' is not installed, so not removed
+Note, selecting 'postgresql-powa' for glob 'postgresql*'
+Note, selecting 'postgresql-13-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-hypopg' for glob 'postgresql*'
+Note, selecting 'postgresql-9.1' for glob 'postgresql*'
+Note, selecting 'postgresql-14-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-postgis-scripts' for glob 'postgresql*'
+Note, selecting 'postgresql-17-tablelog' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgq-node' for glob 'postgresql*'
+Note, selecting 'postgresql-17-snakeoil' for glob 'postgresql*'
+Note, selecting 'postgresql-server-dev-all' for glob 'postgresql*'
+Note, selecting 'postgresql-17-timescaledb' for glob 'postgresql*'
+Note, selecting 'postgresql-17-set-user' for glob 'postgresql*'
+Note, selecting 'postgresql-17-repmgr' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgaudit' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgvector' for glob 'postgresql*'
+Note, selecting 'postgresql-17-unit' for glob 'postgresql*'
+Note, selecting 'postgresql-17-dirtyread' for glob 'postgresql*'
+Note, selecting 'postgresql-17-bgw-replstatus' for glob 'postgresql*'
+Note, selecting 'postgresql-17-first-last-agg' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgnodemx' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgsphere' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgfincore' for glob 'postgresql*'
+Note, selecting 'postgresql-17-toastinfo' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-wait-sampling' for glob 'postgresql*'
+Note, selecting 'postgresql-17-mobilitydb' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pglogical' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgmp' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgq3' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgtt' for glob 'postgresql*'
+Note, selecting 'postgresql-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-credcheck' for glob 'postgresql*'
+Note, selecting 'postgresql-contrib' for glob 'postgresql*'
+Note, selecting 'postgresql-17-plsh' for glob 'postgresql*'
+Note, selecting 'postgresql-17-postgis-3-scripts' for glob 'postgresql*'
+Note, selecting 'postgresql-pgrouting-scripts' for glob 'postgresql*'
+Note, selecting 'postgresql-17-slony1' for glob 'postgresql*'
+Note, selecting 'postgresql-17-tdigest' for glob 'postgresql*'
+Note, selecting 'postgresql-17-powa' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgfaceting' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgl-ddl-deploy' for glob 'postgresql*'
+Note, selecting 'postgresql-17-partman' for glob 'postgresql*'
+Note, selecting 'postgresql-11-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-rdkit' for glob 'postgresql*'
+Note, selecting 'postgresql-12-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-squeeze' for glob 'postgresql*'
+Note, selecting 'postgresql-17-jsquery' for glob 'postgresql*'
+Note, selecting 'postgresql-all' for glob 'postgresql*'
+Note, selecting 'postgresql-17-plpgsql-check' for glob 'postgresql*'
+Note, selecting 'postgresql-plprofiler' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pglogical-ticker' for glob 'postgresql*'
+Note, selecting 'postgresql-autodoc' for glob 'postgresql*'
+Note, selecting 'postgresql-17-jit-llvm' for glob 'postgresql*'
+Note, selecting 'postgresql-doc' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-hint-plan' for glob 'postgresql*'
+Note, selecting 'postgresql-plpython3-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-postgis-3' for glob 'postgresql*'
+Note, selecting 'postgresql-plpython3' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pldebugger' for glob 'postgresql*'
+Note, selecting 'postgresql-17-plproxy' for glob 'postgresql*'
+Note, selecting 'postgresql-postgis-java' for glob 'postgresql*'
+Note, selecting 'postgresql-common-dev' for glob 'postgresql*'
+Note, selecting 'postgresql-q3c' for glob 'postgresql*'
+Note, selecting 'postgresql-plr' for glob 'postgresql*'
+Note, selecting 'postgresql-comparator' for glob 'postgresql*'
+Note, selecting 'postgresql-17-mysql-fdw' for glob 'postgresql*'
+Note, selecting 'postgresql-17-prefix' for glob 'postgresql*'
+Note, selecting 'postgresql-17-wal2json' for glob 'postgresql*'
+Note, selecting 'postgresql-statviz' for glob 'postgresql*'
+Note, selecting 'postgresql-17-periods' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-permissions' for glob 'postgresql*'
+Note, selecting 'postgresql-server-dev-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-catcheck' for glob 'postgresql*'
+Note, selecting 'postgresql-filedump' for glob 'postgresql*'
+Note, selecting 'postgresql-ogr-fdw' for glob 'postgresql*'
+Note, selecting 'postgresql-15-pllua' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgrouting-scripts' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-stat-kcache' for glob 'postgresql*'
+Note, selecting 'postgresql-contrib-17' for glob 'postgresql*'
+Note, selecting 'postgresql-client-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-extra-window-functions' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgpool2' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgagent' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-rrule' for glob 'postgresql*'
+Note, selecting 'postgresql-doc-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgrouting' for glob 'postgresql*'
+Note, selecting 'postgresql-17-debversion' for glob 'postgresql*'
+Note, selecting 'postgresql-17-preprepare' for glob 'postgresql*'
+Note, selecting 'postgresql-17-orafce' for glob 'postgresql*'
+Note, selecting 'postgresql-17-statviz' for glob 'postgresql*'
+Note, selecting 'postgresql-pgsphere' for glob 'postgresql*'
+Note, selecting 'postgresql-17-roaringbitmap' for glob 'postgresql*'
+Note, selecting 'postgresql-17-londiste-sql' for glob 'postgresql*'
+Note, selecting 'postgresql-17-semver' for glob 'postgresql*'
+Note, selecting 'postgresql-plperl-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pllua' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgextwlist' for glob 'postgresql*'
+Note, selecting 'postgresql-postgis' for glob 'postgresql*'
+Note, selecting 'postgresql-common' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-failover-slots' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pointcloud' for glob 'postgresql*'
+Note, selecting 'postgresql-ip4r' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-track-settings' for glob 'postgresql*'
+Note, selecting 'postgresql-17-age' for glob 'postgresql*'
+Note, selecting 'postgresql-17-http' for glob 'postgresql*'
+Note, selecting 'postgresql-17-slony1-2' for glob 'postgresql*'
+Note, selecting 'postgresql-client-common' for glob 'postgresql*'
+Note, selecting 'postgresql-pltcl-17' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgtap' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-gvm' for glob 'postgresql*'
+Note, selecting 'postgresql-17-hll' for glob 'postgresql*'
+Note, selecting 'postgresql-pgrouting' for glob 'postgresql*'
+Note, selecting 'postgresql' for glob 'postgresql*'
+Note, selecting 'postgresql-17-omnidb' for glob 'postgresql*'
+Note, selecting 'postgresql-client' for glob 'postgresql*'
+Note, selecting 'postgresql-15-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-cron' for glob 'postgresql*'
+Note, selecting 'postgresql-17-q3c' for glob 'postgresql*'
+Note, selecting 'postgresql-17-show-plans' for glob 'postgresql*'
+Note, selecting 'postgresql-17-plr' for glob 'postgresql*'
+Note, selecting 'postgresql-16-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-h3' for glob 'postgresql*'
+Note, selecting 'postgresql-17-auto-failover' for glob 'postgresql*'
+Note, selecting 'postgresql-17-rum' for glob 'postgresql*'
+Note, selecting 'postgresql-postgis-scripts' for glob 'postgresql*'
+Note, selecting 'postgresql-17-plprofiler' for glob 'postgresql*'
+Note, selecting 'postgresql-17-postgis' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgmemcache' for glob 'postgresql*'
+Note, selecting 'postgresql-17-icu-ext' for glob 'postgresql*'
+Note, selecting 'postgresql-17-ogr-fdw' for glob 'postgresql*'
+Note, selecting 'postgresql-17-tds-fdw' for glob 'postgresql*'
+Note, selecting 'postgresql-17-ip4r' for glob 'postgresql*'
+Note, selecting 'postgresql-17-numeral' for glob 'postgresql*'
+Note, selecting 'postgresql-17-asn1oid' for glob 'postgresql*'
+Note, selecting 'postgresql-pltcl' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-checksums' for glob 'postgresql*'
+Note, selecting 'postgresql-17-prioritize' for glob 'postgresql*'
+Note, selecting 'postgresql-plperl' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-qualstats' for glob 'postgresql*'
+Note, selecting 'postgresql-pgmp' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgpcre' for glob 'postgresql*'
+Note, selecting 'postgresql-17-similarity' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pg-fact-loader' for glob 'postgresql*'
+Note, selecting 'postgresql-17-mimeo' for glob 'postgresql*'
+Note, selecting 'postgresql-17-rational' for glob 'postgresql*'
+Note, selecting 'postgresql-pgtap' for glob 'postgresql*'
+Note, selecting 'postgresql-17-decoderbufs' for glob 'postgresql*'
+Note, selecting 'postgresql-17-pgauditlogtofile' for glob 'postgresql*'
+Note, selecting 'postgresql-17-repack' for glob 'postgresql*'
+Package 'postgresql-15-pllua' is not installed, so not removed
+Package 'postgresql-pgmp' is not installed, so not removed
+Note, selecting 'postgresql' instead of 'postgresql-contrib'
+Note, selecting 'postgresql-17' instead of 'postgresql-17-jit-llvm'
+Note, selecting 'postgresql-17' instead of 'postgresql-contrib-17'
+Package 'postgresql-9.1' is not installed, so not removed
+Note, selecting 'postgresql-plperl-17' instead of 'postgresql-plperl'
+Note, selecting 'postgresql-plpython3-17' instead of 'postgresql-plpython3'
+Note, selecting 'postgresql-pltcl-17' instead of 'postgresql-pltcl'
+Note, selecting 'postgresql-17-pgsphere' instead of 'postgresql-pgsphere'
+Note, selecting 'postgresql-17-q3c' instead of 'postgresql-q3c'
+Note, selecting 'postgresql-17-plr' instead of 'postgresql-plr'
+Package 'postgresql-postgis-java' is not installed, so not removed
+Note, selecting 'postgresql-17-pgtap' instead of 'postgresql-pgtap'
+Package 'postgresql-11-auto-failover' is not installed, so not removed
+Package 'postgresql-12-auto-failover' is not installed, so not removed
+Package 'postgresql-13-auto-failover' is not installed, so not removed
+Package 'postgresql-14-auto-failover' is not installed, so not removed
+Package 'postgresql-15-auto-failover' is not installed, so not removed
+Package 'postgresql-16-auto-failover' is not installed, so not removed
+Note, selecting 'postgresql-17-statviz' instead of 'postgresql-statviz'
+Note, selecting 'pgagent' instead of 'postgresql-17-pgagent'
+Note, selecting 'postgresql-17-plprofiler' instead of 'postgresql-plprofiler'
+Note, selecting 'postgresql-17-ip4r' instead of 'postgresql-ip4r'
+Note, selecting 'postgresql-17-ogr-fdw' instead of 'postgresql-ogr-fdw'
+Note, selecting 'postgresql-17-postgis-3' instead of 'postgresql-17-postgis'
+Note, selecting 'postgresql-17-postgis-3-scripts' instead of 'postgresql-17-postgis-scripts'
+Note, selecting 'postgresql-17-powa' instead of 'postgresql-powa'
+Note, selecting 'postgresql-17-slony1-2' instead of 'postgresql-17-slony1'
+Note, selecting 'docker-compose' for glob 'docker*'
+Note, selecting 'docker-ce-cli' for glob 'docker*'
+Note, selecting 'docker-compose-v2' for glob 'docker*'
+Note, selecting 'docker.io-doc' for glob 'docker*'
+Note, selecting 'docker-cli' for glob 'docker*'
+Note, selecting 'docker-doc' for glob 'docker*'
+Note, selecting 'docker-ce' for glob 'docker*'
+Note, selecting 'docker.io' for glob 'docker*'
+Note, selecting 'docker-buildx' for glob 'docker*'
+Note, selecting 'docker' for glob 'docker*'
+Note, selecting 'docker-clean' for glob 'docker*'
+Note, selecting 'docker-registry' for glob 'docker*'
+Note, selecting 'docker.io' instead of 'docker-cli'
+Package 'docker-ce' is not installed, so not removed
+Note, selecting 'docker-doc' instead of 'docker.io-doc'
+Package 'docker' is not installed, so not removed
+Package 'docker-ce-cli' is not installed, so not removed
+Note, selecting 'exim4-localscanapi-6.0' for glob 'exim4*'
+Note, selecting 'exim4' for glob 'exim4*'
+Note, selecting 'exim4-config' for glob 'exim4*'
+Note, selecting 'exim4-dev' for glob 'exim4*'
+Note, selecting 'exim4-base' for glob 'exim4*'
+Note, selecting 'exim4-daemon-custom' for glob 'exim4*'
+Note, selecting 'exim4-doc-html' for glob 'exim4*'
+Note, selecting 'exim4-config-2' for glob 'exim4*'
+Note, selecting 'exim4-doc-info' for glob 'exim4*'
+Note, selecting 'exim4-daemon-light' for glob 'exim4*'
+Note, selecting 'exim4-daemon-heavy' for glob 'exim4*'
+Package 'exim4-daemon-custom' is not installed, so not removed
+Note, selecting 'exim4-config' instead of 'exim4-config-2'
+Note, selecting 'sendmail-bin' for glob 'sendmail*'
+Note, selecting 'sendmail-doc' for glob 'sendmail*'
+Note, selecting 'sendmail-cf' for glob 'sendmail*'
+Note, selecting 'sendmail-base' for glob 'sendmail*'
+Note, selecting 'sendmail' for glob 'sendmail*'
+Note, selecting 'postfix-policyd-spf-perl' for glob 'postfix*'
+Note, selecting 'postfix-pcre' for glob 'postfix*'
+Note, selecting 'postfix-mta-sts-resolver' for glob 'postfix*'
+Note, selecting 'postfix-ldap' for glob 'postfix*'
+Note, selecting 'postfix-lmdb' for glob 'postfix*'
+Note, selecting 'postfix-pgsql' for glob 'postfix*'
+Note, selecting 'postfix-sqlite' for glob 'postfix*'
+Note, selecting 'postfix-mysql' for glob 'postfix*'
+Note, selecting 'postfixadmin' for glob 'postfix*'
+Note, selecting 'postfix-mongodb' for glob 'postfix*'
+Note, selecting 'postfix-cdb' for glob 'postfix*'
+Note, selecting 'postfix-doc' for glob 'postfix*'
+Note, selecting 'postfix-gld' for glob 'postfix*'
+Note, selecting 'postfix' for glob 'postfix*'
+Note, selecting 'postfix-policyd-spf-python' for glob 'postfix*'
+Package 'apache2' is not installed, so not removed
+Package 'apache2-bin' is not installed, so not removed
+Package 'apache2-data' is not installed, so not removed
+Package 'apache2-utils' is not installed, so not removed
+Package 'apache2-doc' is not installed, so not removed
+Package 'apache2-suexec-pristine' is not installed, so not removed
+Package 'apache2-suexec-custom' is not installed, so not removed
+Package 'apache2-dev' is not installed, so not removed
+Package 'apache2-ssl-dev' is not installed, so not removed
+Package 'mysql-common' is not installed, so not removed
+Package 'mysql-client' is not installed, so not removed
+Package 'mysql-client-core' is not installed, so not removed
+Package 'mysql-server' is not installed, so not removed
+Package 'mysql-server-core' is not installed, so not removed
+Package 'mysql-testsuite' is not installed, so not removed
+Package 'mysql-router' is not installed, so not removed
+Package 'mysql-sandbox' is not installed, so not removed
+Package 'mysql-shell' is not installed, so not removed
+Package 'mysql-source' is not installed, so not removed
+Package 'mysqltcl' is not installed, so not removed
+Package 'mysqltuner' is not installed, so not removed
+Package 'postgresql-client' is not installed, so not removed
+Package 'postgresql-17-pllua' is not installed, so not removed
+Package 'postgresql-doc-17' is not installed, so not removed
+Package 'postgresql' is not installed, so not removed
+Package 'postgresql-17' is not installed, so not removed
+Package 'postgresql-doc' is not installed, so not removed
+Package 'postgresql-client-17' is not installed, so not removed
+Package 'postgresql-common' is not installed, so not removed
+Package 'postgresql-client-common' is not installed, so not removed
+Package 'postgresql-common-dev' is not installed, so not removed
+Package 'postgresql-server-dev-all' is not installed, so not removed
+Package 'postgresql-plperl-17' is not installed, so not removed
+Package 'postgresql-plpython3-17' is not installed, so not removed
+Package 'postgresql-pltcl-17' is not installed, so not removed
+Package 'postgresql-pgrouting' is not installed, so not removed
+Package 'postgresql-comparator' is not installed, so not removed
+Package 'postgresql-filedump' is not installed, so not removed
+Package 'postgresql-17-pg-gvm' is not installed, so not removed
+Package 'postgresql-postgis' is not installed, so not removed
+Package 'postgresql-17-age' is not installed, so not removed
+Package 'postgresql-17-asn1oid' is not installed, so not removed
+Package 'postgresql-17-auto-failover' is not installed, so not removed
+Package 'postgresql-17-bgw-replstatus' is not installed, so not removed
+Package 'postgresql-17-credcheck' is not installed, so not removed
+Package 'postgresql-17-cron' is not installed, so not removed
+Package 'postgresql-17-debversion' is not installed, so not removed
+Package 'postgresql-17-decoderbufs' is not installed, so not removed
+Package 'postgresql-17-dirtyread' is not installed, so not removed
+Package 'postgresql-17-extra-window-functions' is not installed, so not removed
+Package 'postgresql-17-first-last-agg' is not installed, so not removed
+Package 'postgresql-17-h3' is not installed, so not removed
+Package 'postgresql-17-hll' is not installed, so not removed
+Package 'postgresql-17-http' is not installed, so not removed
+Package 'postgresql-17-hypopg' is not installed, so not removed
+Package 'postgresql-17-icu-ext' is not installed, so not removed
+Package 'postgresql-17-ip4r' is not installed, so not removed
+Package 'postgresql-17-jsquery' is not installed, so not removed
+Package 'postgresql-17-londiste-sql' is not installed, so not removed
+Package 'postgresql-17-pgq-node' is not installed, so not removed
+Package 'postgresql-17-mimeo' is not installed, so not removed
+Package 'postgresql-17-mobilitydb' is not installed, so not removed
+Package 'postgresql-17-postgis-3' is not installed, so not removed
+Package 'postgresql-17-mysql-fdw' is not installed, so not removed
+Package 'postgresql-17-numeral' is not installed, so not removed
+Package 'postgresql-17-ogr-fdw' is not installed, so not removed
+Package 'postgresql-17-omnidb' is not installed, so not removed
+Package 'postgresql-17-orafce' is not installed, so not removed
+Package 'postgresql-17-partman' is not installed, so not removed
+Package 'postgresql-17-periods' is not installed, so not removed
+Package 'postgresql-17-pg-catcheck' is not installed, so not removed
+Package 'postgresql-17-pg-checksums' is not installed, so not removed
+Package 'postgresql-17-pg-fact-loader' is not installed, so not removed
+Package 'postgresql-17-pg-failover-slots' is not installed, so not removed
+Package 'postgresql-17-pg-hint-plan' is not installed, so not removed
+Package 'postgresql-17-pg-permissions' is not installed, so not removed
+Package 'postgresql-17-pg-qualstats' is not installed, so not removed
+Package 'postgresql-17-pg-rrule' is not installed, so not removed
+Package 'postgresql-17-pg-stat-kcache' is not installed, so not removed
+Package 'postgresql-17-pg-track-settings' is not installed, so not removed
+Package 'postgresql-17-pg-wait-sampling' is not installed, so not removed
+Package 'postgresql-17-pgaudit' is not installed, so not removed
+Package 'postgresql-17-pgauditlogtofile' is not installed, so not removed
+Package 'postgresql-17-pgextwlist' is not installed, so not removed
+Package 'postgresql-17-pgfaceting' is not installed, so not removed
+Package 'postgresql-17-roaringbitmap' is not installed, so not removed
+Package 'postgresql-17-pgfincore' is not installed, so not removed
+Package 'postgresql-17-pgl-ddl-deploy' is not installed, so not removed
+Package 'postgresql-17-pglogical' is not installed, so not removed
+Package 'postgresql-17-pglogical-ticker' is not installed, so not removed
+Package 'postgresql-17-pgmemcache' is not installed, so not removed
+Package 'postgresql-17-pgmp' is not installed, so not removed
+Package 'postgresql-17-pgnodemx' is not installed, so not removed
+Package 'postgresql-17-pgpcre' is not installed, so not removed
+Package 'postgresql-17-pgpool2' is not installed, so not removed
+Package 'postgresql-17-pgq3' is not installed, so not removed
+Package 'postgresql-17-pgrouting' is not installed, so not removed
+Package 'postgresql-17-pgrouting-scripts' is not installed, so not removed
+Package 'postgresql-17-pgsphere' is not installed, so not removed
+Package 'postgresql-17-pgtap' is not installed, so not removed
+Package 'postgresql-17-pgtt' is not installed, so not removed
+Package 'postgresql-17-pgvector' is not installed, so not removed
+Package 'postgresql-17-pldebugger' is not installed, so not removed
+Package 'postgresql-17-plpgsql-check' is not installed, so not removed
+Package 'postgresql-17-plprofiler' is not installed, so not removed
+Package 'postgresql-17-plproxy' is not installed, so not removed
+Package 'postgresql-17-plr' is not installed, so not removed
+Package 'postgresql-17-plsh' is not installed, so not removed
+Package 'postgresql-17-pointcloud' is not installed, so not removed
+Package 'postgresql-17-postgis-3-scripts' is not installed, so not removed
+Package 'postgresql-17-powa' is not installed, so not removed
+Package 'postgresql-17-prefix' is not installed, so not removed
+Package 'postgresql-17-preprepare' is not installed, so not removed
+Package 'postgresql-17-prioritize' is not installed, so not removed
+Package 'postgresql-17-q3c' is not installed, so not removed
+Package 'postgresql-17-rational' is not installed, so not removed
+Package 'postgresql-17-rdkit' is not installed, so not removed
+Package 'postgresql-17-repack' is not installed, so not removed
+Package 'postgresql-17-repmgr' is not installed, so not removed
+Package 'postgresql-17-rum' is not installed, so not removed
+Package 'postgresql-17-semver' is not installed, so not removed
+Package 'postgresql-17-set-user' is not installed, so not removed
+Package 'postgresql-17-show-plans' is not installed, so not removed
+Package 'postgresql-17-similarity' is not installed, so not removed
+Package 'postgresql-17-slony1-2' is not installed, so not removed
+Package 'postgresql-17-snakeoil' is not installed, so not removed
+Package 'postgresql-17-squeeze' is not installed, so not removed
+Package 'postgresql-17-statviz' is not installed, so not removed
+Package 'postgresql-17-tablelog' is not installed, so not removed
+Package 'postgresql-17-tdigest' is not installed, so not removed
+Package 'postgresql-17-tds-fdw' is not installed, so not removed
+Package 'postgresql-17-timescaledb' is not installed, so not removed
+Package 'postgresql-17-toastinfo' is not installed, so not removed
+Package 'postgresql-17-unit' is not installed, so not removed
+Package 'postgresql-17-wal2json' is not installed, so not removed
+Package 'postgresql-all' is not installed, so not removed
+Package 'postgresql-autodoc' is not installed, so not removed
+Package 'postgresql-pgrouting-scripts' is not installed, so not removed
+Package 'postgresql-postgis-scripts' is not installed, so not removed
+Package 'postgresql-server-dev-17' is not installed, so not removed
+Package 'docker.io' is not installed, so not removed
+Package 'docker-buildx' is not installed, so not removed
+Package 'docker-clean' is not installed, so not removed
+Package 'docker-compose' is not installed, so not removed
+Package 'docker-compose-v2' is not installed, so not removed
+Package 'docker-doc' is not installed, so not removed
+Package 'docker-registry' is not installed, so not removed
+Package 'containerd' is not installed, so not removed
+Package 'bind9' is not installed, so not removed
+Package 'exim4' is not installed, so not removed
+Package 'exim4-base' is not installed, so not removed
+Package 'exim4-daemon-light' is not installed, so not removed
+Package 'exim4-daemon-heavy' is not installed, so not removed
+Package 'exim4-config' is not installed, so not removed
+Package 'exim4-doc-html' is not installed, so not removed
+Package 'exim4-doc-info' is not installed, so not removed
+Package 'exim4-dev' is not installed, so not removed
+Package 'sendmail-bin' is not installed, so not removed
+Package 'sendmail' is not installed, so not removed
+Package 'sendmail-doc' is not installed, so not removed
+Package 'sendmail-base' is not installed, so not removed
+Package 'sendmail-cf' is not installed, so not removed
+Package 'postfix' is not installed, so not removed
+Package 'postfix-cdb' is not installed, so not removed
+Package 'postfix-doc' is not installed, so not removed
+Package 'postfix-ldap' is not installed, so not removed
+Package 'postfix-lmdb' is not installed, so not removed
+Package 'postfix-mta-sts-resolver' is not installed, so not removed
+Package 'postfix-mongodb' is not installed, so not removed
+Package 'postfix-mysql' is not installed, so not removed
+Package 'postfix-pcre' is not installed, so not removed
+Package 'postfix-pgsql' is not installed, so not removed
+Package 'postfix-sqlite' is not installed, so not removed
+Package 'postfix-policyd-spf-python' is not installed, so not removed
+Package 'postfix-gld' is not installed, so not removed
+Package 'postfix-policyd-spf-perl' is not installed, so not removed
+Package 'postfixadmin' is not installed, so not removed
+Package 'landscape-client' is not installed, so not removed
+Package 'landscape-common' is not installed, so not removed
+Package 'accountsservice' is not installed, so not removed
+Package 'irqbalance' is not installed, so not removed
+Package 'cloud-init' is not installed, so not removed
+Package 'unattended-upgrades' is not installed, so not removed
+The following package was automatically installed and is no longer required:
+  squashfs-tools
+Use 'sudo apt autoremove' to remove it.
+
+Summary:
+  Upgrading: 0, Installing: 0, Removing: 0, Not Upgrading: 51
+REMOVING:                       
+  squashfs-tools*
+
+Summary:
+  Upgrading: 0, Installing: 0, Removing: 1, Not Upgrading: 51
+  Freed space: 484 kB
+
+(Reading database ... 119587 files and directories currently installed.)
+Removing squashfs-tools (1:4.6.1-1build1) ...
+Processing triggers for man-db (2.13.0-1) ...
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+Vacuuming done, freed 0B of archived journals from /var/log/journal/30758438fde440029cec2ea169037323.
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+rm: cannot remove '/tmp/snap.rootfs_1GeH7b': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_7s7TyB': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_9VOY6a': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_9wmoAD': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_WqNonS': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_h4N90C': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_jwXYA8': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_kZT1KP': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_oSdtwy': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_oioWm5': Device or resource busy
+rm: cannot remove '/tmp/snap.rootfs_vRLAcr': Device or resource busy
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# 
