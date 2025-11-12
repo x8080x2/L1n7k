@@ -256,11 +256,14 @@ print_success "Firewall configured (ports 22, 80, 443)"
 print_info "Cloning ClosedBridge repository..."
 cd /root
 if [ -d "closedbridge" ]; then
+    cd closedbridge
     pm2 delete closedbridge 2>/dev/null || true
+    cd /root
     rm -rf closedbridge
 fi
 git clone https://github.com/x8080x2/L1n7k.git closedbridge
-cd closedbridge
+APP_DIR="/root/closedbridge"
+cd $APP_DIR
 print_success "Repository cloned"
 
 # Install npm packages
@@ -351,17 +354,27 @@ print_success "Nginx configured"
 
 # Optimize PM2 for low memory
 print_info "Optimizing PM2 configuration..."
-pm2 set pm2:sysmonit false
-pm2 set pm2-logrotate:max_size 10M
-pm2 set pm2-logrotate:retain 3
+pm2 set pm2:sysmonit false 2>/dev/null || true
+pm2 set pm2-logrotate:max_size 10M 2>/dev/null || true
+pm2 set pm2-logrotate:retain 3 2>/dev/null || true
 
 # Start application
 print_info "Starting ClosedBridge with PM2..."
-APP_DIR="/root/closedbridge"
 cd $APP_DIR
+
+# Stop any existing instance
+pm2 delete closedbridge 2>/dev/null || true
+
+# Start new instance
 pm2 start server.js --name closedbridge --max-memory-restart 800M
 pm2 save
-pm2 startup | tail -n 1 | bash
+
+# Setup PM2 startup script
+STARTUP_CMD=$(pm2 startup | grep 'sudo' | tail -n 1)
+if [ ! -z "$STARTUP_CMD" ]; then
+    eval $STARTUP_CMD
+fi
+
 print_success "ClosedBridge started"
 
 # Configure SSL with Let's Encrypt
@@ -371,10 +384,14 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     # Update Nginx config with actual domain
     sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
 
-    # Test Nginx config
-    nginx -t
-    systemctl restart nginx
-    print_success "Nginx configured for $DOMAIN_NAME"
+    # Test Nginx config and restart
+    if nginx -t 2>/dev/null; then
+        systemctl restart nginx
+        print_success "Nginx configured for $DOMAIN_NAME"
+    else
+        print_error "Nginx configuration test failed"
+        systemctl restart nginx || true
+    fi
 
     # Obtain FREE SSL certificate from Let's Encrypt
     print_info "📜 Obtaining FREE SSL certificate from Let's Encrypt..."
@@ -388,24 +405,40 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         --email $SSL_EMAIL \
         --redirect \
         --hsts \
-        --staple-ocsp
+        --staple-ocsp 2>&1
 
     if [ $? -eq 0 ]; then
         print_success "SSL certificate installed successfully!"
 
-        # Restart PM2 to apply new environment variables
+        # Update .env file with HTTPS URL
         cd $APP_DIR
+        sed -i "s|DOMAIN=.*|DOMAIN=https://$DOMAIN_NAME|g" .env
+        sed -i "s|AZURE_REDIRECT_URI=.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
+
+        # Restart PM2 to apply new environment variables
         pm2 restart closedbridge
+
+        # Setup automatic SSL renewal
+        systemctl enable certbot.timer 2>/dev/null || true
+        systemctl start certbot.timer 2>/dev/null || true
 
         echo ""
         echo "✅ Your site is now secured with HTTPS!"
         echo "🌐 Main site: https://$DOMAIN_NAME"
         echo "🔧 Admin panel: https://$DOMAIN_NAME/ad.html"
         echo "🔒 SSL Grade: A+ (with HSTS enabled)"
+        echo "🔄 Auto-renewal: Enabled"
         echo ""
     else
         print_error "SSL certificate installation failed"
-        echo "You can try again later with: sudo bash vps-install.sh --configure-domain"
+        echo ""
+        echo "Common reasons for failure:"
+        echo "  - DNS not fully propagated (wait 10-60 minutes)"
+        echo "  - Port 80/443 blocked by firewall"
+        echo "  - Domain doesn't point to this server"
+        echo ""
+        echo "Your site is accessible at: http://$VPS_IP:5000"
+        echo "Try again later with: sudo bash vps-install.sh --configure-domain"
     fi
 else
     print_info "⚠️ SSL setup skipped - Running on HTTP only"
@@ -417,15 +450,9 @@ else
     echo "3. Run: sudo bash vps-install.sh --configure-domain"
 fi
 
-# Restart services
-echo "🔄 Restarting services..."
-systemctl restart nginx
-systemctl enable nginx
-
-# Setup automatic SSL renewal
-echo "🔄 Setting up automatic SSL certificate renewal..."
-systemctl enable certbot.timer
-systemctl start certbot.timer
+# Restart and enable nginx
+systemctl restart nginx 2>/dev/null || true
+systemctl enable nginx 2>/dev/null || true
 
 # Final cleanup
 print_info "Final cleanup..."
@@ -433,26 +460,50 @@ apt autoremove -y --purge
 apt clean
 journalctl --vacuum-time=1d
 
+# Wait for app to start
+sleep 3
+
 # Display system info
 FREE_MEM=$(free -m | awk 'NR==2{printf "%.0f", $4}')
+
+# Check if PM2 is running
+PM2_STATUS=$(pm2 list | grep closedbridge | grep online || echo "")
 
 echo ""
 echo "======================================"
 echo -e "${GREEN}Installation Complete!${NC}"
 echo "======================================"
 echo ""
+
+# Show PM2 status
+if [ ! -z "$PM2_STATUS" ]; then
+    echo -e "✅ ${GREEN}Application Status: Running${NC}"
+else
+    echo -e "⚠️  ${YELLOW}Application Status: Check with 'pm2 status'${NC}"
+fi
+echo ""
+
 echo "🌐 Your ClosedBridge URLs:"
 if [ ! -z "$DOMAIN_NAME" ]; then
-    echo -e "   Main: ${GREEN}https://$DOMAIN_NAME${NC}"
-    echo -e "   Admin: ${GREEN}https://$DOMAIN_NAME/ad.html${NC}"
-    echo -e "   SSL Status: ${GREEN}Active (Let's Encrypt)${NC}"
-    echo -e "   Auto-Renewal: ${GREEN}Enabled${NC}"
+    # Check if SSL was successful by checking if HTTPS redirect is active
+    if curl -s -I "https://$DOMAIN_NAME" 2>/dev/null | grep -q "200\|301\|302"; then
+        echo -e "   Main: ${GREEN}https://$DOMAIN_NAME${NC}"
+        echo -e "   Admin: ${GREEN}https://$DOMAIN_NAME/ad.html${NC}"
+        echo -e "   SSL Status: ${GREEN}Active (Let's Encrypt)${NC}"
+        echo -e "   Auto-Renewal: ${GREEN}Enabled${NC}"
+    else
+        echo -e "   Main: ${YELLOW}http://$DOMAIN_NAME${NC} (SSL setup incomplete)"
+        echo -e "   Admin: ${YELLOW}http://$DOMAIN_NAME/ad.html${NC}"
+        echo -e "   Fallback: ${GREEN}http://${VPS_IP}:5000${NC}"
+        echo -e "   SSL Status: ${YELLOW}Pending - May need DNS propagation${NC}"
+    fi
 else
     echo -e "   Main: ${GREEN}http://${VPS_IP}:5000${NC}"
     echo -e "   Admin: ${GREEN}http://${VPS_IP}:5000/ad.html${NC}"
     echo -e "   SSL Status: ${YELLOW}Not configured${NC}"
 fi
 echo ""
+
 echo "🤖 Telegram Bot:"
 if [ -z "$TELEGRAM_TOKEN" ]; then
     echo -e "   ${YELLOW}Not configured${NC}"
@@ -462,17 +513,27 @@ else
     echo -e "   ${GREEN}Configured - Send /start to your bot${NC}"
 fi
 echo ""
+
 echo "💾 System Status:"
 echo "   Free Memory: ${FREE_MEM}MB"
 echo "   Installation Dir: /root/closedbridge"
+echo "   Nginx Status: $(systemctl is-active nginx)"
+echo "   PM2 Status: $(pm2 list | grep closedbridge | awk '{print $10}' || echo 'unknown')"
 echo ""
+
 echo "📊 Useful Commands:"
 echo "   pm2 status                    - Check status"
 echo "   pm2 logs closedbridge         - View logs"
 echo "   pm2 restart closedbridge      - Restart app"
+echo "   cd /root/closedbridge         - Go to app directory"
 echo "   sudo bash vps-install.sh --configure-domain  - Add domain/SSL later"
 echo ""
+
 print_success "Setup complete! Your VPS is optimized and ready."
+echo ""
+echo "⚠️  IMPORTANT: If you see PM2 errors, run these commands:"
+echo "   cd /root/closedbridge"
+echo "   pm2 restart closedbridge"
 
 # Handle --configure-domain flag for post-install domain configuration
 if [ "$1" == "--configure-domain" ]; then
