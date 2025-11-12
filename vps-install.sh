@@ -118,6 +118,12 @@ echo ""
 read -p "🤖 Enter your Telegram Bot Token (or press Enter to skip): " TELEGRAM_TOKEN
 
 echo ""
+# Prompt for port number
+read -p "🔌 Enter port number (default: 5000): " APP_PORT
+APP_PORT=${APP_PORT:-5000}
+print_info "Application will run on port: $APP_PORT"
+
+echo ""
 print_info "Starting installation with memory optimization..."
 
 # ===== AGGRESSIVE CLEANUP TO FREE MEMORY =====
@@ -292,7 +298,7 @@ AZURE_REDIRECT_URI=${BASE_URL}/api/auth-callback
 ADMIN_TOKEN=admin-$(openssl rand -hex 12)
 
 # Server Configuration  
-PORT=5000
+PORT=${APP_PORT}
 DOMAIN=${BASE_URL}
 EOF
 
@@ -319,7 +325,7 @@ server {
 
     # Proxy all requests to Node.js backend
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:${APP_PORT};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -337,7 +343,7 @@ server {
 
     # WebSocket support
     location /socket.io/ {
-        proxy_pass http://localhost:5000/socket.io/;
+        proxy_pass http://localhost:${APP_PORT}/socket.io/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -437,12 +443,12 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         echo "  - Port 80/443 blocked by firewall"
         echo "  - Domain doesn't point to this server"
         echo ""
-        echo "Your site is accessible at: http://$VPS_IP:5000"
+        echo "Your site is accessible at: http://$VPS_IP:$APP_PORT"
         echo "Try again later with: sudo bash vps-install.sh --configure-domain"
     fi
 else
     print_info "⚠️ SSL setup skipped - Running on HTTP only"
-    echo "Your site is accessible at: http://$VPS_IP:5000"
+    echo "Your site is accessible at: http://$VPS_IP:$APP_PORT"
     echo ""
     echo "To add domain and SSL later:"
     echo "1. Point your domain's DNS A record to: $VPS_IP"
@@ -498,8 +504,8 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         echo -e "   SSL Status: ${YELLOW}Pending - May need DNS propagation${NC}"
     fi
 else
-    echo -e "   Main: ${GREEN}http://${VPS_IP}:5000${NC}"
-    echo -e "   Admin: ${GREEN}http://${VPS_IP}:5000/ad.html${NC}"
+    echo -e "   Main: ${GREEN}http://${VPS_IP}:$APP_PORT${NC}"
+    echo -e "   Admin: ${GREEN}http://${VPS_IP}:$APP_PORT/ad.html${NC}"
     echo -e "   SSL Status: ${YELLOW}Not configured${NC}"
 fi
 echo ""
@@ -600,8 +606,13 @@ if [ "$1" == "--configure-domain" ]; then
     if [ $? -eq 0 ]; then
         # Update .env file
         cd /root/closedbridge
+        
+        # Get current port from .env
+        CURRENT_PORT=$(grep "^PORT=" .env | cut -d'=' -f2)
+        CURRENT_PORT=${CURRENT_PORT:-5000}
+        
         sed -i "s|DOMAIN=http://.*|DOMAIN=https://$DOMAIN_NAME|g" .env
-        sed -i "s|DOMAIN=https://.*:5000|DOMAIN=https://$DOMAIN_NAME|g" .env
+        sed -i "s|DOMAIN=https://.*:$CURRENT_PORT|DOMAIN=https://$DOMAIN_NAME|g" .env
         sed -i "s|AZURE_REDIRECT_URI=http://.*|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
         sed -i "s|AZURE_REDIRECT_URI=https://.*:5000|AZURE_REDIRECT_URI=https://$DOMAIN_NAME/api/auth-callback|g" .env
 
