@@ -400,9 +400,6 @@ print_success "ClosedBridge started"
 if [ ! -z "$DOMAIN_NAME" ]; then
     print_info "🔒 Setting up SSL certificate with Let's Encrypt..."
 
-    # Update Nginx config with actual domain
-    sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/closedbridge
-
     # Test Nginx config and restart
     if nginx -t 2>/dev/null; then
         systemctl restart nginx
