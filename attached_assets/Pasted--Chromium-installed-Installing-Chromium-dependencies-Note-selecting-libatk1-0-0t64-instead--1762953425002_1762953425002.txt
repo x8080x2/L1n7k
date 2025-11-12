@@ -1,0 +1,98 @@
+✓ Chromium installed
+➜ Installing Chromium dependencies...
+Note, selecting 'libatk1.0-0t64' instead of 'libatk1.0-0'
+Note, selecting 'libatk-bridge2.0-0t64' instead of 'libatk-bridge2.0-0'
+Note, selecting 'libcups2t64' instead of 'libcups2'
+Note, selecting 'libatspi2.0-0t64' instead of 'libatspi2.0-0'
+Note, selecting 'libgtk-3-0t64' instead of 'libgtk-3-0'
+Package libasound2 is a virtual package provided by:
+  libasound2t64 1.2.13-1ubuntu0.1 (= 1.2.13-1ubuntu0.1)
+  liboss4-salsa-asound2 4.2-build2020-1ubuntu3
+You should explicitly select one to install.
+
+✓ Chromium dependencies installed
+Summary:                        
+  Upgrading: 0, Installing: 0, Removing: 0, Not Upgrading: 51
+➜ 📦 Installing Nginx and Certbot...
+nginx is already the newest version (1.26.3-2ubuntu1.2).
+certbot is already the newest version (2.11.0-1).
+python3-certbot-nginx is already the newest version (2.9.0-1).
+Summary:                    
+  Upgrading: 0, Installing: 0, Removing: 0, Not Upgrading: 51
+➜ Configuring firewall...
+Skipping adding existing rule
+Skipping adding existing rule (v6)
+Skipping adding existing rule
+Skipping adding existing rule (v6)
+Skipping adding existing rule
+Skipping adding existing rule (v6)
+Command may disrupt existing ssh connections. Proceed with operation (y|n)? Firewall is active and enabled on system startup
+✓ Firewall configured (ports 22, 80, 443)
+➜ Cloning ClosedBridge repository...
+[PM2] Applying action deleteProcessId on app [closedbridge](ids: [ 0 ])
+[PM2] [closedbridge](0) ✓
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Cloning into 'closedbridge'...
+remote: Enumerating objects: 4245, done.
+remote: Counting objects: 100% (731/731), done.
+remote: Compressing objects: 100% (380/380), done.
+remote: Total 4245 (delta 431), reused 645 (delta 351), pack-reused 3514 (from 2)
+Receiving objects: 100% (4245/4245), 32.47 MiB | 28.01 MiB/s, done.
+Resolving deltas: 100% (2618/2618), done.
+✓ Repository cloned
+➜ Installing Node.js packages...
+npm warn config production Use `--omit=dev` instead.
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated har-validator@5.1.5: this library is no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+
+added 340 packages in 11s
+✓ Packages installed
+➜ Configuring environment variables...
+✓ Environment configured with Telegram Bot Token
+➜ Configuring Nginx for ClosedBridge...
+✓ Nginx configured
+➜ Optimizing PM2 configuration...
+[PM2] Setting changed
+Module: pm2
+$ pm2 set pm2:sysmonit false
+[PM2] Setting changed
+Module: pm2-logrotate
+$ pm2 set pm2-logrotate:max_size 10M
+$ pm2 set pm2-logrotate:retain 3
+[PM2] Setting changed
+Module: pm2-logrotate
+$ pm2 set pm2-logrotate:max_size 10M
+$ pm2 set pm2-logrotate:retain 3
+➜ Starting ClosedBridge with PM2...
+[PM2] Starting /root/closedbridge/server.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ closedbridge    │ default     │ 1.0.0   │ fork    │ 14315    │ 0s     │ 0    │ online    │ 0%       │ 18.4mb   │ root     │ disabled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+✓ ClosedBridge started
+➜ 🔒 Setting up SSL certificate with Let's Encrypt...
+✓ Nginx configured for chatterdrive.info
+➜ 📜 Obtaining FREE SSL certificate from Let's Encrypt...
+Enter email for SSL certificate notifications (default: admin@chatterdrive.info): 
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Certificate not yet due for renewal
+Deploying certificate
+Could not install certificate
+
+NEXT STEPS:
+- The certificate was saved, but could not be installed (installer: nginx). After fixing the error shown below, try installing it again by running:
+  certbot install --cert-name chatterdrive.info
+
+Could not automatically find a matching server block for chatterdrive.info. Set the `server_name` directive to use the Nginx installer.
+Ask for help or search for solutions at https://community.letsencrypt.org. See the logfile /var/log/letsencrypt/letsencrypt.log or re-run Certbot with -v for more details.
+root@ubuntu-s-1vcpu-1gb-nyc3-01:~# 
