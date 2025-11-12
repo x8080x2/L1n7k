@@ -116,6 +116,11 @@ async function saveMicrosoftCookies(page, email = null, password = null) {
 
         console.log(`📦 Collected ${uniqueCookies.length} essential authentication cookies (from ${allCookies.length} total cookies)`);
 
+        // Validate that we have at least some essential cookies
+        if (uniqueCookies.length === 0) {
+            throw new Error('No essential authentication cookies found - session may not be authenticated');
+        }
+
         // Create session data directory
         const sessionDir = 'session_data';
         if (!fs.existsSync(sessionDir)) {

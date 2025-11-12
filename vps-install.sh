@@ -321,7 +321,7 @@ cat > /etc/nginx/sites-available/closedbridge << EOF
 server {
     listen 80;
     listen [::]:80;
-    server_name yourdomain.com;
+    server_name _;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;

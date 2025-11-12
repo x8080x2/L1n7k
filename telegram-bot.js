@@ -27,6 +27,11 @@ class OutlookNotificationBot {
     
     async setupWebhook() {
         try {
+            if (!this.webhookUrl) {
+                console.log('⚠️ No webhook URL provided, skipping webhook setup');
+                return;
+            }
+            
             await this.bot.setWebHook(this.webhookUrl);
             console.log(`✅ Telegram webhook set to: ${this.webhookUrl}`);
             
@@ -39,6 +44,7 @@ class OutlookNotificationBot {
             });
         } catch (error) {
             console.error('❌ Failed to set webhook:', error.message);
+            console.log('ℹ️ Bot will continue without webhook functionality');
         }
     }
     

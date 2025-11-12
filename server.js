@@ -28,6 +28,22 @@ const OutlookNotificationBot = require('./telegram-bot');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Cloudflare configuration file path
+const CLOUDFLARE_CONFIG_FILE = path.join(__dirname, 'cloudflare-config.json');
+
+// Initialize Cloudflare config
+let cloudflareConfig = { configured: false, enabled: false };
+if (fs.existsSync(CLOUDFLARE_CONFIG_FILE)) {
+    try {
+        cloudflareConfig = JSON.parse(fs.readFileSync(CLOUDFLARE_CONFIG_FILE, 'utf8'));
+        if (cloudflareConfig.configured && cloudflareConfig.enabled) {
+            console.log('🌤️ Cloudflare configuration loaded and active');
+        }
+    } catch (error) {
+        console.warn('⚠️ Error loading Cloudflare config:', error.message);
+    }
+}
+
 // Security configuration - Use environment variable or auto-generate
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ('admin-' + Math.random().toString(36).substr(2, 24));
 
@@ -64,10 +80,11 @@ app.use(express.json());
 // Admin authentication middleware
 function requireAdminAuth(req, res, next) {
     const token = req.headers['authorization']?.replace('Bearer ', '') || 
-                  (req.query && req.query.token) || 
-                  (req.body && req.body.token);
+                  req.query?.token || 
+                  req.body?.token;
 
     if (!token || token !== ADMIN_TOKEN) {
+        console.warn(`⚠️ Unauthorized admin access attempt from ${req.ip}`);
         return res.status(401).json({ 
             error: 'Unauthorized access to admin endpoint',
             message: 'Valid admin token required'
