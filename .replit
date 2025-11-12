@@ -1,10 +1,11 @@
-modules = ["nodejs-20", "web", "bash"]
+modules = ["nodejs-20", "web", "bash", "python-3.11"]
 [agent]
 expertMode = true
+integrations = ["github:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["chromium", "glib", "xorg.libX11", "xorg.libXcomposite", "xorg.libXcursor", "xorg.libXdamage", "xorg.libXext", "xorg.libXi", "xorg.libXrandr", "xorg.libXrender", "xorg.libXScrnSaver", "xorg.libXtst", "xorg.libxcb", "nss", "gcc", "libdrm", "at-spi2-atk", "gtk3", "xorg.libxshmfence", "libxkbcommon", "mesa", "libGL", "vulkan-loader", "xorg.xorgserver", "xorg.xvfb", "nginx"]
+packages = ["at-spi2-atk", "chromium", "gcc", "glib", "gtk3", "libGL", "libdrm", "libxkbcommon", "mesa", "nginx", "nss", "vulkan-loader", "xorg.libX11", "xorg.libXScrnSaver", "xorg.libXcomposite", "xorg.libXcursor", "xorg.libXdamage", "xorg.libXext", "xorg.libXi", "xorg.libXrandr", "xorg.libXrender", "xorg.libXtst", "xorg.libxcb", "xorg.libxshmfence", "xorg.xorgserver", "xorg.xvfb"]
 
 [workflows]
 runButton = "Project"
