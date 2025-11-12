@@ -280,14 +280,25 @@ print_success "Packages installed"
 # Configure .env
 print_info "Configuring environment variables..."
 
+# Determine base URL for Telegram bot links
+if [ ! -z "$DOMAIN_NAME" ]; then
+    BASE_URL="https://${DOMAIN_NAME}"
+else
+    BASE_URL="http://${VPS_IP}:${APP_PORT}"
+fi
+
 cat > .env << EOF
 # Microsoft Azure Configuration (Backend credentials - never exposed to users)
 AZURE_CLIENT_ID=34dc06b1-d91e-4408-b353-528722266c04
 AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
 AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
 
-# Domain auto-detection: Server will automatically detect from request headers
-# No need to hardcode AZURE_REDIRECT_URI or DOMAIN - it adapts to any domain
+# AZURE_REDIRECT_URI: Auto-detected by server from request headers (no hardcoding!)
+# Server uses: req.protocol + req.get('host') to build redirect URI dynamically
+
+# DOMAIN: Used by Telegram bot to generate admin panel links in notifications
+# This is the only place we set the domain - server still auto-detects everything else
+DOMAIN=${BASE_URL}
 
 # Admin Access
 ADMIN_TOKEN=admin-$(openssl rand -hex 12)

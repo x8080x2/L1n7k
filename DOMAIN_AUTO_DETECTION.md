@@ -67,12 +67,22 @@ AZURE_CLIENT_ID=34dc06b1-d91e-4408-b353-528722266c04
 AZURE_CLIENT_SECRET=05a49988-1efb-4952-88cc-cb04e9f4c099
 AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
 
+# DOMAIN: Used ONLY by Telegram bot for generating notification links
+# Server still auto-detects everything else from request headers
+DOMAIN=https://chatterdrive.info
+
 # Auto-generated admin token
 ADMIN_TOKEN=admin-xxxxxxxxxxxxxx
 
 # Server configuration
 PORT=5000
 ```
+
+**Note on DOMAIN variable:**
+- **NOT used** for OAuth redirect URIs (server auto-detects those)
+- **ONLY used** by Telegram bot to construct admin panel links in notifications
+- Telegram bot sends outgoing messages, so it can't auto-detect from requests
+- This is the ONLY domain configuration needed - everything else is automatic
 
 These are YOUR backend credentials for YOUR Azure app registration - not user credentials.
 
