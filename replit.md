@@ -123,7 +123,11 @@ Preferred communication style: Simple, everyday language.
 ## VPS Deployment
 
 **Automated VPS Installation Script (vps-install.sh)**
-- **Date Updated**: November 2025
+- **Date Updated**: November 12, 2025
+- **Recent Bug Fixes**:
+  - Fixed nginx server_name configuration to use actual domain instead of hardcoded "_" placeholder
+  - Updated --configure-domain feature to use regex-based sed replacement for any existing server_name
+  - Both initial install and post-install domain addition now work correctly with SSL certificate installation
 - **Improvements Made**:
   - Domain configuration moved to beginning of installation
   - DNS verification with 3 automatic retry attempts
