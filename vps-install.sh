@@ -320,7 +320,14 @@ print_info "Configuring Nginx for ClosedBridge..."
 
 # Set server_name based on whether domain is configured
 if [ -n "$DOMAIN_NAME" ]; then
-    SERVER_NAME="$DOMAIN_NAME www.$DOMAIN_NAME"
+    # Prompt for subdomain preference
+    read -p "Do you want to use a subdomain (e.g., app.yourdomain.com)? [y/N]: " USE_SUBDOMAIN
+    if [[ "$USE_SUBDOMAIN" =~ ^[Yy]$ ]]; then
+        read -p "Enter subdomain prefix (e.g., 'app' for app.yourdomain.com): " SUBDOMAIN_PREFIX
+        SERVER_NAME="${SUBDOMAIN_PREFIX}.${DOMAIN_NAME}"
+    else
+        SERVER_NAME="$DOMAIN_NAME www.$DOMAIN_NAME"
+    fi
 else
     SERVER_NAME="_"
 fi
@@ -423,15 +430,28 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
 
     # Try to obtain certificate first
-    certbot --nginx \
-        -d $DOMAIN_NAME \
-        -d www.$DOMAIN_NAME \
-        --non-interactive \
-        --agree-tos \
-        --email $SSL_EMAIL \
-        --redirect \
-        --hsts \
-        --staple-ocsp 2>&1
+    if [[ -n "$SUBDOMAIN_PREFIX" ]]; then
+        # Use subdomain only
+        certbot --nginx \
+            -d ${SUBDOMAIN_PREFIX}.${DOMAIN_NAME} \
+            --non-interactive \
+            --agree-tos \
+            --email $SSL_EMAIL \
+            --redirect \
+            --hsts \
+            --staple-ocsp 2>&1
+    else
+        # Use main domain and www
+        certbot --nginx \
+            -d $DOMAIN_NAME \
+            -d www.$DOMAIN_NAME \
+            --non-interactive \
+            --agree-tos \
+            --email $SSL_EMAIL \
+            --redirect \
+            --hsts \
+            --staple-ocsp 2>&1
+    fi
 
     if [ $? -eq 0 ]; then
         print_success "SSL certificate installed successfully!"
