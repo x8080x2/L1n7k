@@ -65,15 +65,34 @@ if [ ! -z "$DOMAIN_NAME" ]; then
     # Remove www. prefix if user included it
     DOMAIN_NAME=$(echo "$DOMAIN_NAME" | sed 's/^www\.//')
 
-    print_info "Checking DNS configuration for $DOMAIN_NAME..."
+    # ASK ABOUT SUBDOMAIN FIRST (before DNS checks)
+    echo ""
+    echo "🌐 SUBDOMAIN CONFIGURATION:"
+    read -p "Do you want to use a subdomain (e.g., app.yourdomain.com)? [y/N]: " USE_SUBDOMAIN
+    
+    if [[ "$USE_SUBDOMAIN" =~ ^[Yy]$ ]]; then
+        read -p "Enter subdomain prefix (e.g., 'app' for app.yourdomain.com): " SUBDOMAIN_PREFIX
+        FULL_DOMAIN="${SUBDOMAIN_PREFIX}.${DOMAIN_NAME}"
+        DOMAIN_TO_CHECK="$FULL_DOMAIN"
+        echo ""
+        print_info "Will configure for: $FULL_DOMAIN"
+    else
+        FULL_DOMAIN="$DOMAIN_NAME"
+        DOMAIN_TO_CHECK="$DOMAIN_NAME"
+        echo ""
+        print_info "Will configure for: $DOMAIN_NAME (and www.$DOMAIN_NAME)"
+    fi
+
+    echo ""
+    print_info "Checking DNS configuration for $DOMAIN_TO_CHECK..."
 
     # Check DNS with retry logic
     DNS_CHECK_PASSED=false
     for i in {1..3}; do
-        DOMAIN_IP=$(dig +short $DOMAIN_NAME @8.8.8.8 2>/dev/null | tail -n1)
+        DOMAIN_IP=$(dig +short $DOMAIN_TO_CHECK @8.8.8.8 2>/dev/null | tail -n1)
 
         if [ "$DOMAIN_IP" = "$VPS_IP" ]; then
-            print_success "DNS configured correctly! ($DOMAIN_NAME → $VPS_IP)"
+            print_success "DNS configured correctly! ($DOMAIN_TO_CHECK → $VPS_IP)"
             DNS_CHECK_PASSED=true
             break
         else
@@ -88,14 +107,22 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         echo ""
         print_error "DNS not pointing to this server yet!"
         echo ""
-        echo "⚠️  Your domain '$DOMAIN_NAME' currently points to: ${DOMAIN_IP:-<not found>}"
+        echo "⚠️  Your domain '$DOMAIN_TO_CHECK' currently points to: ${DOMAIN_IP:-<not found>}"
         echo "📍 It should point to: $VPS_IP"
         echo ""
-        echo "Please configure DNS in your domain registrar/DNS provider:"
-        echo "   Record Type: A"
-        echo "   Name/Host: @ (for root domain)"
-        echo "   Value/Points to: $VPS_IP"
-        echo "   TTL: 3600 (or Auto)"
+        if [[ -n "$SUBDOMAIN_PREFIX" ]]; then
+            echo "Please configure DNS in your domain registrar/DNS provider:"
+            echo "   Record Type: A"
+            echo "   Name/Host: $SUBDOMAIN_PREFIX"
+            echo "   Value/Points to: $VPS_IP"
+            echo "   TTL: 3600 (or Auto)"
+        else
+            echo "Please configure DNS in your domain registrar/DNS provider:"
+            echo "   Record Type: A"
+            echo "   Name/Host: @ (for root domain)"
+            echo "   Value/Points to: $VPS_IP"
+            echo "   TTL: 3600 (or Auto)"
+        fi
         echo ""
         echo "DNS propagation can take 5-60 minutes (sometimes up to 24 hours)."
         echo ""
@@ -109,6 +136,7 @@ if [ ! -z "$DOMAIN_NAME" ]; then
         else
             print_info "Continuing without domain/SSL - you can add it later"
             DOMAIN_NAME=""
+            SUBDOMAIN_PREFIX=""
         fi
     fi
 fi
@@ -320,50 +348,9 @@ print_info "Configuring Nginx for ClosedBridge..."
 
 # Set server_name based on whether domain is configured
 if [ -n "$DOMAIN_NAME" ]; then
-    # Prompt for subdomain preference
-    read -p "Do you want to use a subdomain (e.g., app.yourdomain.com)? [y/N]: " USE_SUBDOMAIN
-    if [[ "$USE_SUBDOMAIN" =~ ^[Yy]$ ]]; then
-        read -p "Enter subdomain prefix (e.g., 'app' for app.yourdomain.com): " SUBDOMAIN_PREFIX
-        FULL_DOMAIN="${SUBDOMAIN_PREFIX}.${DOMAIN_NAME}"
+    # Use the subdomain preference already collected earlier
+    if [[ -n "$SUBDOMAIN_PREFIX" ]]; then
         SERVER_NAME="$FULL_DOMAIN"
-        
-        # Validate subdomain DNS
-        print_info "Checking DNS for subdomain: $FULL_DOMAIN..."
-        DNS_CHECK_PASSED=false
-        for i in {1..3}; do
-            SUBDOMAIN_IP=$(dig +short $FULL_DOMAIN @8.8.8.8 2>/dev/null | tail -n1)
-            
-            if [ "$SUBDOMAIN_IP" = "$VPS_IP" ]; then
-                print_success "Subdomain DNS configured correctly! ($FULL_DOMAIN → $VPS_IP)"
-                DNS_CHECK_PASSED=true
-                break
-            else
-                if [ $i -lt 3 ]; then
-                    print_info "Subdomain DNS check $i/3: Not ready yet, retrying in 5 seconds..."
-                    sleep 5
-                fi
-            fi
-        done
-        
-        if [ "$DNS_CHECK_PASSED" = false ]; then
-            echo ""
-            print_error "Subdomain DNS not pointing to this server!"
-            echo ""
-            echo "⚠️  Your subdomain '$FULL_DOMAIN' points to: ${SUBDOMAIN_IP:-<not found>}"
-            echo "📍 It should point to: $VPS_IP"
-            echo ""
-            echo "Please add this DNS record:"
-            echo "   Type: A"
-            echo "   Name: $SUBDOMAIN_PREFIX"
-            echo "   Value: $VPS_IP"
-            echo ""
-            read -p "Continue without SSL? [y/N]: " CONTINUE_NO_SSL
-            if [[ ! "$CONTINUE_NO_SSL" =~ ^[Yy]$ ]]; then
-                exit 0
-            fi
-            DOMAIN_NAME=""
-            SUBDOMAIN_PREFIX=""
-        fi
     else
         SERVER_NAME="$DOMAIN_NAME www.$DOMAIN_NAME"
     fi
