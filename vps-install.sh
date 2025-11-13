@@ -42,8 +42,8 @@ print_info "Detected VPS IP: $VPS_IP"
 
 # Install DNS utilities early (needed for domain verification)
 print_info "Installing DNS utilities..."
-apt update -y > /dev/null 2>&1
-apt install -y dnsutils > /dev/null 2>&1
+DEBIAN_FRONTEND=noninteractive apt update -y
+DEBIAN_FRONTEND=noninteractive apt install -y dnsutils
 print_success "DNS utilities installed"
 
 echo ""
