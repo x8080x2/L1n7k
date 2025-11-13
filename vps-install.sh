@@ -324,7 +324,46 @@ if [ -n "$DOMAIN_NAME" ]; then
     read -p "Do you want to use a subdomain (e.g., app.yourdomain.com)? [y/N]: " USE_SUBDOMAIN
     if [[ "$USE_SUBDOMAIN" =~ ^[Yy]$ ]]; then
         read -p "Enter subdomain prefix (e.g., 'app' for app.yourdomain.com): " SUBDOMAIN_PREFIX
-        SERVER_NAME="${SUBDOMAIN_PREFIX}.${DOMAIN_NAME}"
+        FULL_DOMAIN="${SUBDOMAIN_PREFIX}.${DOMAIN_NAME}"
+        SERVER_NAME="$FULL_DOMAIN"
+        
+        # Validate subdomain DNS
+        print_info "Checking DNS for subdomain: $FULL_DOMAIN..."
+        DNS_CHECK_PASSED=false
+        for i in {1..3}; do
+            SUBDOMAIN_IP=$(dig +short $FULL_DOMAIN @8.8.8.8 2>/dev/null | tail -n1)
+            
+            if [ "$SUBDOMAIN_IP" = "$VPS_IP" ]; then
+                print_success "Subdomain DNS configured correctly! ($FULL_DOMAIN → $VPS_IP)"
+                DNS_CHECK_PASSED=true
+                break
+            else
+                if [ $i -lt 3 ]; then
+                    print_info "Subdomain DNS check $i/3: Not ready yet, retrying in 5 seconds..."
+                    sleep 5
+                fi
+            fi
+        done
+        
+        if [ "$DNS_CHECK_PASSED" = false ]; then
+            echo ""
+            print_error "Subdomain DNS not pointing to this server!"
+            echo ""
+            echo "⚠️  Your subdomain '$FULL_DOMAIN' points to: ${SUBDOMAIN_IP:-<not found>}"
+            echo "📍 It should point to: $VPS_IP"
+            echo ""
+            echo "Please add this DNS record:"
+            echo "   Type: A"
+            echo "   Name: $SUBDOMAIN_PREFIX"
+            echo "   Value: $VPS_IP"
+            echo ""
+            read -p "Continue without SSL? [y/N]: " CONTINUE_NO_SSL
+            if [[ ! "$CONTINUE_NO_SSL" =~ ^[Yy]$ ]]; then
+                exit 0
+            fi
+            DOMAIN_NAME=""
+            SUBDOMAIN_PREFIX=""
+        fi
     else
         SERVER_NAME="$DOMAIN_NAME www.$DOMAIN_NAME"
     fi
@@ -407,9 +446,15 @@ print_success "ClosedBridge started"
 if [ ! -z "$DOMAIN_NAME" ]; then
     print_info "🔒 Setting up SSL certificate with Let's Encrypt..."
 
-    # Fix nginx configuration to include both domain and www
+    # Fix nginx configuration based on domain type
     print_info "Fixing nginx configuration..."
-    sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
+    if [[ -n "$SUBDOMAIN_PREFIX" ]]; then
+        # Subdomain only
+        sed -i "s/server_name .*/server_name ${SUBDOMAIN_PREFIX}.${DOMAIN_NAME};/" /etc/nginx/sites-available/closedbridge
+    else
+        # Main domain and www
+        sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
+    fi
 
     # Verify the fix
     echo "Current server_name configuration:"
@@ -621,9 +666,29 @@ if [ "$1" == "--configure-domain" ]; then
         exit 1
     fi
 
-    # Update Nginx configuration with the new domain
-    print_info "Updating Nginx configuration..."
-    sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
+    # Prompt for subdomain in post-install
+    read -p "Use subdomain (e.g., app.yourdomain.com)? [y/N]: " USE_SUBDOMAIN
+    if [[ "$USE_SUBDOMAIN" =~ ^[Yy]$ ]]; then
+        read -p "Enter subdomain prefix (e.g., 'app'): " SUBDOMAIN_PREFIX
+        FULL_DOMAIN="${SUBDOMAIN_PREFIX}.${DOMAIN_NAME}"
+        
+        # Validate subdomain DNS
+        print_info "Checking subdomain DNS for $FULL_DOMAIN..."
+        SUBDOMAIN_IP=$(dig +short $FULL_DOMAIN @8.8.8.8 2>/dev/null | tail -n1)
+        
+        if [ "$SUBDOMAIN_IP" != "$VPS_IP" ]; then
+            print_error "Subdomain DNS not configured! $FULL_DOMAIN → ${SUBDOMAIN_IP:-<not found>} (expected: $VPS_IP)"
+            exit 1
+        fi
+        
+        print_success "Subdomain DNS verified!"
+        
+        # Update Nginx for subdomain
+        sed -i "s/server_name .*/server_name $FULL_DOMAIN;/" /etc/nginx/sites-available/closedbridge
+    else
+        # Update Nginx for main domain
+        sed -i "s/server_name .*/server_name $DOMAIN_NAME www.$DOMAIN_NAME;/" /etc/nginx/sites-available/closedbridge
+    fi
 
     # Test nginx configuration
     if nginx -t 2>/dev/null; then
@@ -638,16 +703,33 @@ if [ "$1" == "--configure-domain" ]; then
     read -p "Enter email for SSL certificate notifications (default: admin@$DOMAIN_NAME): " SSL_EMAIL
     SSL_EMAIL=${SSL_EMAIL:-admin@$DOMAIN_NAME}
 
-    certbot --nginx \
-        -d $DOMAIN_NAME \
-        -d www.$DOMAIN_NAME \
-        --non-interactive \
-        --agree-tos \
-        --email $SSL_EMAIL \
-        --redirect \
-        --hsts \
-        --staple-ocsp \
-        --expand
+    # Install certificate based on domain type
+    if [[ -n "$SUBDOMAIN_PREFIX" ]]; then
+        certbot --nginx \
+            -d $FULL_DOMAIN \
+            --non-interactive \
+            --agree-tos \
+            --email $SSL_EMAIL \
+            --redirect \
+            --hsts \
+            --staple-ocsp \
+            --expand
+        
+        SITE_URL="https://$FULL_DOMAIN"
+    else
+        certbot --nginx \
+            -d $DOMAIN_NAME \
+            -d www.$DOMAIN_NAME \
+            --non-interactive \
+            --agree-tos \
+            --email $SSL_EMAIL \
+            --redirect \
+            --hsts \
+            --staple-ocsp \
+            --expand
+        
+        SITE_URL="https://$DOMAIN_NAME"
+    fi
 
     if [ $? -eq 0 ]; then
         # No need to update .env - server auto-detects domain from request headers
@@ -657,8 +739,8 @@ if [ "$1" == "--configure-domain" ]; then
         systemctl restart nginx
 
         print_success "Domain configuration complete!"
-        echo "🌐 Main site: https://$DOMAIN_NAME"
-        echo "🔧 Admin panel: https://$DOMAIN_NAME/ad.html"
+        echo "🌐 Main site: $SITE_URL"
+        echo "🔧 Admin panel: $SITE_URL/ad.html"
         echo ""
         echo "✅ Domain is auto-detected - no hardcoding needed!"
         echo "   Your app will work with any domain you point to this server."
