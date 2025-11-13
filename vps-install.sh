@@ -626,7 +626,8 @@ if [ "$1" == "--configure-domain" ]; then
         --email $SSL_EMAIL \
         --redirect \
         --hsts \
-        --staple-ocsp
+        --staple-ocsp \
+        --expand
 
     if [ $? -eq 0 ]; then
         # No need to update .env - server auto-detects domain from request headers
