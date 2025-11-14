@@ -147,12 +147,13 @@ read -p "🤖 Enter your Telegram Bot Token (or press Enter to skip): " TELEGRAM
 
 echo ""
 # Prompt for Admin Token
-read -p "🔑 Enter your Admin Token (or press Enter for auto-generated): " ADMIN_TOKEN
-if [ -z "$ADMIN_TOKEN" ]; then
+read -p "🔑 Enter your Admin Token (default: admin-): " ADMIN_TOKEN_INPUT
+if [ -z "$ADMIN_TOKEN_INPUT" ]; then
     ADMIN_TOKEN="admin-$(openssl rand -hex 12)"
     print_info "Auto-generated admin token: $ADMIN_TOKEN"
 else
-    print_info "Using custom admin token"
+    ADMIN_TOKEN="$ADMIN_TOKEN_INPUT"
+    print_info "Using custom admin token: $ADMIN_TOKEN"
 fi
 
 echo ""
