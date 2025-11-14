@@ -32,6 +32,21 @@ ClosedBridge is a phishing simulation/social engineering testing platform that m
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## November 14, 2025 - Telegram Bot VPS Webhook Fix
+**Problem:** Telegram bot notifications failed on VPS installations because webhook URL was only constructed for Replit environments.
+
+**Solution:** Updated `server.js` Telegram bot initialization to support both Replit and VPS environments:
+- Checks `DOMAIN` environment variable (set by `vps-install.sh`) for VPS installations
+- Robust URL parsing with case-insensitive protocol detection
+- Handles edge cases: uppercase protocols, missing protocols, paths, ports, whitespace
+- Fails fast with clear error messages for misconfigured DOMAIN values
+- Preserves original protocol (http/https) and port from DOMAIN
+- Strips paths with helpful warnings
+
+**Impact:** Telegram bot now works correctly on VPS installations when DOMAIN is properly configured.
+
 # System Architecture
 
 ## Frontend Architecture
