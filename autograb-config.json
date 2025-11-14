@@ -1,5 +1,6 @@
 {
   "enabled": false,
   "autoRedirect": true,
-  "patterns": []
+  "patterns": [],
+  "subdomain": ""
 }

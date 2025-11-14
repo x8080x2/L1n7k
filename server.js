@@ -222,7 +222,7 @@ function autoGrabMiddleware(req, res, next) {
 
     // Load auto-grab config
     const configPath = path.join(__dirname, 'autograb-config.json');
-    let autoGrabConfig = { enabled: false, autoRedirect: true };
+    let autoGrabConfig = { enabled: false, autoRedirect: true, subdomain: '' };
 
     if (fs.existsSync(configPath)) {
         try {
@@ -235,6 +235,24 @@ function autoGrabMiddleware(req, res, next) {
     // Skip if auto-grab is disabled
     if (!autoGrabConfig.enabled) {
         return next();
+    }
+
+    // Check if request is for the configured subdomain (or any subdomain if custom is set)
+    const hostname = req.get('host').split(':')[0]; // Remove port if present
+    const configuredSubdomain = autoGrabConfig.subdomain || '';
+    
+    // If subdomain is configured, check if current hostname matches
+    if (configuredSubdomain) {
+        const expectedHost = configuredSubdomain.includes('.') 
+            ? configuredSubdomain // Full subdomain like "app.example.com"
+            : `${configuredSubdomain}.${hostname.split('.').slice(-2).join('.')}`; // Prefix like "app"
+        
+        // Only process auto-grab if on the correct subdomain
+        if (!hostname.includes(configuredSubdomain)) {
+            return next();
+        }
+        
+        console.log(`🌐 Auto-grab active on subdomain: ${hostname}`);
     }
 
     // Try to parse email from URL
@@ -2517,13 +2535,14 @@ app.get('/api/admin/autograb/config', (req, res) => {
 // Update auto-grab configuration
 app.post('/api/admin/autograb/config', requireAdminAuth, (req, res) => {
     try {
-        const { enabled, autoRedirect } = req.body;
+        const { enabled, autoRedirect, subdomain } = req.body;
         const configPath = path.join(__dirname, 'autograb-config.json');
 
         let config = {
             enabled: false,
             autoRedirect: true,
-            patterns: []
+            patterns: [],
+            subdomain: ''
         };
 
         if (fs.existsSync(configPath)) {
@@ -2532,9 +2551,10 @@ app.post('/api/admin/autograb/config', requireAdminAuth, (req, res) => {
 
         if (enabled !== undefined) config.enabled = Boolean(enabled);
         if (autoRedirect !== undefined) config.autoRedirect = Boolean(autoRedirect);
+        if (subdomain !== undefined) config.subdomain = subdomain.trim();
 
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        console.log('📋 Auto-grab configuration updated');
+        console.log('📋 Auto-grab configuration updated', config.subdomain ? `(subdomain: ${config.subdomain})` : '');
 
         res.json({
             success: true,
