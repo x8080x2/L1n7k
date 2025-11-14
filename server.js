@@ -69,14 +69,71 @@ global.adminToken = ADMIN_TOKEN;
 let telegramBot = null;
 try {
     if (process.env.TELEGRAM_BOT_TOKEN) {
-        // Construct webhook URL using Replit domain
-        const webhookDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS;
-        const webhookUrl = webhookDomain ? `https://${webhookDomain}/telegram-webhook` : null;
+        // Construct webhook URL - support both Replit and VPS installations
+        let webhookUrl = null;
+        
+        // Check for Replit environment
+        const replitDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS;
+        
+        // Check for VPS environment (DOMAIN set by vps-install.sh)
+        const vpsDomain = process.env.DOMAIN;
+        
+        if (replitDomain) {
+            webhookUrl = `https://${replitDomain}/telegram-webhook`;
+        } else if (vpsDomain) {
+            try {
+                // Normalize DOMAIN input: trim whitespace
+                const normalizedDomain = vpsDomain.trim();
+                
+                // Parse DOMAIN to extract protocol and host properly
+                // DOMAIN might be: https://example.com, HTTP://example.com:5000, https://sub.example.com/path
+                let parsedUrl;
+                
+                // Case-insensitive protocol detection
+                const lowerDomain = normalizedDomain.toLowerCase();
+                const hasProtocol = lowerDomain.startsWith('http://') || lowerDomain.startsWith('https://');
+                
+                if (!hasProtocol) {
+                    // No protocol found - check if domain contains path/query which indicates misconfiguration
+                    if (normalizedDomain.includes('/') || normalizedDomain.includes('?')) {
+                        console.error(`❌ DOMAIN "${normalizedDomain}" contains path/query but no protocol.`);
+                        console.error(`   Please set DOMAIN to a valid URL like: https://example.com or http://example.com:5000`);
+                        console.error(`   Telegram webhook will NOT be configured until DOMAIN is fixed.`);
+                        throw new Error('Invalid DOMAIN format: missing protocol with path/query segments');
+                    }
+                    
+                    console.warn('⚠️ DOMAIN missing protocol, assuming https://');
+                    parsedUrl = new URL(`https://${normalizedDomain}`);
+                } else {
+                    // Protocol present - parse as-is
+                    parsedUrl = new URL(normalizedDomain);
+                }
+                
+                // Construct webhook URL using original scheme and host (includes port if present)
+                // Host automatically includes port if non-standard (e.g., example.com:8443)
+                webhookUrl = `${parsedUrl.protocol}//${parsedUrl.host}/telegram-webhook`;
+                
+                // Warn if path was stripped
+                if (parsedUrl.pathname && parsedUrl.pathname !== '/') {
+                    console.warn(`⚠️ DOMAIN contains path "${parsedUrl.pathname}" which was stripped.`);
+                    console.warn(`   Webhook is at: ${webhookUrl}`);
+                    console.warn(`   Consider updating DOMAIN to: ${parsedUrl.protocol}//${parsedUrl.host}`);
+                }
+            } catch (urlError) {
+                console.error(`❌ Failed to parse DOMAIN: ${vpsDomain}`);
+                console.error(`   Expected format: https://example.com or http://example.com:5000`);
+                console.error(`   Error: ${urlError.message}`);
+                console.error(`   Telegram webhook will NOT be configured.`);
+                // webhookUrl remains null - bot will initialize but won't receive updates
+            }
+        }
 
         telegramBot = new OutlookNotificationBot(webhookUrl);
         console.log('🤖 Telegram Bot initialized with webhook mode');
         if (webhookUrl) {
             console.log(`📡 Webhook URL: ${webhookUrl}`);
+        } else {
+            console.log('⚠️ No domain found - Telegram bot may not receive updates');
         }
     } else {
         console.log('⚠️ TELEGRAM_BOT_TOKEN not found - Telegram notifications disabled');
