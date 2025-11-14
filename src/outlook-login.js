@@ -407,18 +407,17 @@ class OutlookLoginAutomation {
             const currentUrl = this.page.url();
             console.log(`Post-login URL: ${currentUrl}`);
 
-            // Check if we're still on a login page (indicates failure)
-            if (currentUrl.includes('login.microsoftonline.com') &&
-                (currentUrl.includes('error') || currentUrl.includes('username'))) {
-
-                // Only check for errors if we're still on login page
+            // Check if we're still on a login page (indicates potential failure)
+            if (currentUrl.includes('login.microsoftonline.com')) {
+                // Get page text and check for error messages
                 const pageText = await this.page.evaluate(() => document.body.textContent || '');
                 const errorPatterns = [
                     'Your account or password is incorrect',
                     'password is incorrect',
                     'Sign-in was unsuccessful',
                     'The username or password is incorrect',
-                    'Invalid credentials'
+                    'Invalid credentials',
+                    'incorrect password'
                 ];
 
                 for (const pattern of errorPatterns) {
@@ -429,12 +428,14 @@ class OutlookLoginAutomation {
                     }
                 }
 
-                // Check for visible error elements only on login pages
+                // Check for visible error elements
                 const errorSelectors = [
                     '[data-bind*="errorText"]',
                     '.alert-error',
                     '.error-message',
-                    '[role="alert"]'
+                    '[role="alert"]',
+                    '#passwordError',
+                    '.has-error'
                 ];
 
                 for (const selector of errorSelectors) {
@@ -448,7 +449,7 @@ class OutlookLoginAutomation {
 
                             if (isVisible) {
                                 const text = await this.page.evaluate(el => el.textContent, errorElement);
-                                if (text && text.trim() && text.toLowerCase().includes('password')) {
+                                if (text && text.trim().length > 0) {
                                     console.error(`Microsoft login failed: ${text.trim()}`);
                                     await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`);
                                     return false;
@@ -459,9 +460,36 @@ class OutlookLoginAutomation {
                         continue;
                     }
                 }
+
+                // Check if password input is still visible (means login didn't proceed)
+                try {
+                    const passwordInput = await this.page.$('input[type="password"]');
+                    if (passwordInput) {
+                        const isVisible = await this.page.evaluate(el => {
+                            const style = window.getComputedStyle(el);
+                            return style.display !== 'none' && style.visibility !== 'hidden';
+                        }, passwordInput);
+
+                        if (isVisible) {
+                            console.error('Microsoft login failed: Password input still visible after submission');
+                            await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`);
+                            return false;
+                        }
+                    }
+                } catch (e) {
+                    // Password input not found, might be okay
+                }
+
+                // If still on login.microsoftonline.com and not on the "keep me signed in" page
+                if (!pageText.toLowerCase().includes('stay signed in') && 
+                    !pageText.toLowerCase().includes('keep me signed in')) {
+                    console.error('Microsoft login failed: Still on login page without "stay signed in" prompt');
+                    await this.takeScreenshot(`screenshots/error-microsoft-login-${Date.now()}.png`);
+                    return false;
+                }
             }
 
-            // If we've moved away from login page or no errors found, consider it success
+            // If we've moved away from login page or found the "stay signed in" prompt, consider it success
             console.log('Microsoft login appears successful - no errors detected');
             return true;
 
