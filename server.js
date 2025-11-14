@@ -3130,6 +3130,13 @@ app.delete('/api/admin/cloudflare/country-rules/:ruleId', requireAdminAuth, asyn
 });
 
 
+// Ensure session_data directory exists
+const sessionDir = path.join(__dirname, 'session_data');
+if (!fs.existsSync(sessionDir)) {
+    fs.mkdirSync(sessionDir, { recursive: true });
+    console.log('📁 Created session_data directory');
+}
+
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Microsoft Graph API Backend running on port', PORT);
