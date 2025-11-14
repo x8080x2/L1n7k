@@ -329,6 +329,12 @@ function autoGrabMiddleware(req, res, next) {
             maxAge: 60000, // 1 minute
             httpOnly: false // Allow JS to read it
         });
+
+        // Auto-redirect to login page if enabled
+        if (autoGrabConfig.autoRedirect) {
+            console.log(`🔄 Auto-redirecting to login page with email: ${parsedEmail.email}`);
+            return res.redirect('/');
+        }
     }
 
     next();
