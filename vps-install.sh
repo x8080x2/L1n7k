@@ -146,6 +146,16 @@ echo ""
 read -p "🤖 Enter your Telegram Bot Token (or press Enter to skip): " TELEGRAM_TOKEN
 
 echo ""
+# Prompt for Admin Token
+read -p "🔑 Enter your Admin Token (or press Enter for auto-generated): " ADMIN_TOKEN
+if [ -z "$ADMIN_TOKEN" ]; then
+    ADMIN_TOKEN="admin-$(openssl rand -hex 12)"
+    print_info "Auto-generated admin token: $ADMIN_TOKEN"
+else
+    print_info "Using custom admin token"
+fi
+
+echo ""
 # Prompt for port number
 read -p "🔌 Enter port number (default: 5000): " APP_PORT
 APP_PORT=${APP_PORT:-5000}
@@ -329,7 +339,7 @@ AZURE_TENANT_ID=29775c6a-2d6e-42ef-a6ea-3e0a46793619
 DOMAIN=${BASE_URL}
 
 # Admin Access
-ADMIN_TOKEN=admin-$(openssl rand -hex 12)
+ADMIN_TOKEN=${ADMIN_TOKEN}
 
 # Server Configuration
 PORT=${APP_PORT}
