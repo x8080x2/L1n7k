@@ -321,7 +321,12 @@ print_info "Configuring environment variables..."
 
 # Determine base URL for Telegram bot links
 if [ ! -z "$DOMAIN_NAME" ]; then
-    BASE_URL="https://${DOMAIN_NAME}"
+    # Use the subdomain preference already collected earlier
+    if [[ -n "$SUBDOMAIN_PREFIX" ]]; then
+        BASE_URL="https://${FULL_DOMAIN}"
+    else
+        BASE_URL="https://${DOMAIN_NAME}"
+    fi
 else
     BASE_URL="http://${VPS_IP}:${APP_PORT}"
 fi
