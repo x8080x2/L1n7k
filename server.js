@@ -1436,16 +1436,29 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
 
             } catch (error) {
                 console.error('Error in fast auth with preload:', error);
-                // Clean up failed session
-                if (automation) {
-                    try {
-                        await automation.close();
-                    } catch (cleanupError) {
-                        console.warn('Error cleaning up failed session:', cleanupError.message);
+                
+                // Only clean up if this is the final attempt (attempt 2 or higher)
+                // Keep session alive for first retry
+                const shouldCleanup = attemptNum >= 2;
+                
+                if (shouldCleanup) {
+                    console.log('🧹 Cleaning up session after final failed attempt');
+                    if (automation) {
+                        try {
+                            await automation.close();
+                        } catch (cleanupError) {
+                            console.warn('Error cleaning up failed session:', cleanupError.message);
+                        }
                     }
-                }
-                if (sessionId && automationSessions.has(sessionId)) {
-                    automationSessions.delete(sessionId);
+                    if (sessionId && automationSessions.has(sessionId)) {
+                        automationSessions.delete(sessionId);
+                    }
+                } else {
+                    console.log('⏸️ Keeping session alive for retry (attempt ' + attemptNum + ')');
+                    // Mark session as ready for retry
+                    if (sessionId && automationSessions.has(sessionId)) {
+                        automationSessions.get(sessionId).status = 'preload_ready';
+                    }
                 }
             }
         }
