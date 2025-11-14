@@ -1229,9 +1229,14 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
             // Validate session matches email for security
             if (session.email !== email) {
                 console.warn(`⚠️ Session email mismatch: expected ${email}, got ${session.email}`);
+                // Clear mismatched session
+                try {
+                    if (session.automation) await session.automation.close();
+                } catch (e) {}
+                automationSessions.delete(sessionId);
             } else if (session.status === 'preload_ready') {
                 preloadedSession = session;
-                console.log(`✅ Found preloaded browser ready for: ${email} (${sessionId})`);
+                console.log(`✅ Found preloaded browser ready for: ${email} (${sessionId}) - attempt ${attemptNum}`);
             } else if (session.status === 'preloading') {
                 // Wait for preload to complete (bounded wait up to 15 seconds)
                 console.log(`⏳ Preload in progress for: ${email}, waiting for completion...`);
@@ -1421,13 +1426,23 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         }
                     } else {
                         console.log(`⏸️ Keeping session alive for retry (attempt ${attemptNum})`);
-                        // IMPORTANT: Keep session as preload_ready and reset email validation
+                        // IMPORTANT: Keep session as preload_ready
                         if (sessionId && automationSessions.has(sessionId)) {
                             const session = automationSessions.get(sessionId);
                             session.status = 'preload_ready';
-                            session.email = email; // Ensure email matches
+                            session.email = email;
                             session.lastAttempt = Date.now();
-                            console.log(`✅ Session ${sessionId} kept as preload_ready for second attempt`);
+                            
+                            // Verify browser page is still active
+                            if (session.automation && session.automation.page && !session.automation.page.isClosed()) {
+                                console.log(`✅ Session ${sessionId} kept as preload_ready - browser page active`);
+                            } else {
+                                console.warn(`⚠️ Session ${sessionId} browser page is closed - cleanup needed`);
+                                try {
+                                    if (session.automation) await session.automation.close();
+                                } catch (e) {}
+                                automationSessions.delete(sessionId);
+                            }
                         }
                     }
 

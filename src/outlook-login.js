@@ -261,6 +261,18 @@ class OutlookLoginAutomation {
                 throw new Error('Login provider not detected during preload');
             }
 
+            // Verify page is still active
+            if (!this.page || this.page.isClosed()) {
+                throw new Error('Browser page is closed - cannot continue authentication');
+            }
+
+            // Verify password field is still visible
+            try {
+                await this.page.waitForSelector('input[type="password"]', { timeout: 2000 });
+            } catch (e) {
+                throw new Error('Password field not found - page state may have changed');
+            }
+
             console.log(`🔐 Continuing authentication for: ${email} with provider: ${this.loginProvider}`);
 
             // Update activity timestamp
