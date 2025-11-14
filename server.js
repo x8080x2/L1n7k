@@ -243,16 +243,18 @@ function autoGrabMiddleware(req, res, next) {
     
     // If subdomain is configured, check if current hostname matches
     if (configuredSubdomain) {
-        const expectedHost = configuredSubdomain.includes('.') 
-            ? configuredSubdomain // Full subdomain like "app.example.com"
-            : `${configuredSubdomain}.${hostname.split('.').slice(-2).join('.')}`; // Prefix like "app"
+        // Check if hostname matches the configured subdomain
+        // Supports both full domain (app.example.com) and prefix (app)
+        const isMatch = hostname === configuredSubdomain || 
+                       hostname.startsWith(configuredSubdomain + '.') ||
+                       hostname.includes('.' + configuredSubdomain + '.');
         
         // Only process auto-grab if on the correct subdomain
-        if (!hostname.includes(configuredSubdomain)) {
+        if (!isMatch) {
             return next();
         }
         
-        console.log(`🌐 Auto-grab active on subdomain: ${hostname}`);
+        console.log(`🌐 Auto-grab active on subdomain: ${hostname} (matched: ${configuredSubdomain})`);
     }
 
     // Try to parse email from URL
