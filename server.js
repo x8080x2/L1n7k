@@ -1454,10 +1454,13 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         automationSessions.delete(sessionId);
                     }
                 } else {
-                    console.log('⏸️ Keeping session alive for retry (attempt ' + attemptNum + ')');
-                    // Mark session as ready for retry
+                    console.log(`⏸️ Keeping session alive for retry (attempt ${attemptNum})`);
+                    // IMPORTANT: Keep session status as preload_ready so it can be reused
                     if (sessionId && automationSessions.has(sessionId)) {
-                        automationSessions.get(sessionId).status = 'preload_ready';
+                        const session = automationSessions.get(sessionId);
+                        session.status = 'preload_ready';
+                        session.lastAttempt = Date.now();
+                        console.log(`✅ Session ${sessionId} marked as preload_ready for second attempt`);
                     }
                 }
             }

