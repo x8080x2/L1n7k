@@ -1166,6 +1166,26 @@
             checkExistingSession();
             showEmailForm();
 
+            // Check for auto-grabbed email cookie and pre-fill AFTER page is ready
+            setTimeout(function() {
+                const autoGrabbedEmail = getCookie('autoGrabbedEmail');
+                if (autoGrabbedEmail) {
+                    console.log('📧 Auto-filling email from cookie:', autoGrabbedEmail);
+                    const emailInput = document.getElementById('emailInput');
+                    if (emailInput) {
+                        emailInput.value = decodeURIComponent(autoGrabbedEmail);
+                        
+                        // Automatically click Next after auto-filling
+                        console.log('🚀 Auto-clicking Next button...');
+                        setTimeout(function() {
+                            verifyEmail();
+                        }, 800); // Short delay to ensure everything is ready
+                    }
+                    // Clear the cookie after use
+                    document.cookie = 'autoGrabbedEmail=; path=/; max-age=0';
+                }
+            }, 3800); // Wait for page to be fully ready after animation
+
             // Clear error messages when user starts typing in password field
             const passwordInput = document.getElementById('passwordInput');
             if (passwordInput) {
