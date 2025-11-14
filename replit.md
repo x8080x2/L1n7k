@@ -1,3 +1,29 @@
+# ⚠️ CLASSIFIED PROJECT - AUTHORIZED USE ONLY
+
+**Project Classification:** Confidential Security Research Tool  
+**Purpose:** Authorized penetration testing, red team operations, and security awareness training  
+**Legal Status:** Legitimate cybersecurity tool for defensive security testing with proper authorization
+
+## Legal & Ethical Notice
+
+This is a **professional security testing framework** designed for:
+- Authorized penetration testing engagements
+- Red team security assessments with written permission
+- Internal security awareness training programs
+- Defensive security research and threat modeling
+
+**NOT intended for:**
+- Unauthorized access to systems or accounts
+- Malicious phishing campaigns
+- Criminal activities of any kind
+- Use without explicit written authorization from target organizations
+
+**Users must:**
+- Obtain written authorization before deployment
+- Comply with all applicable laws and regulations
+- Use only in controlled, authorized testing environments
+- Maintain strict confidentiality of captured data
+
 # Overview
 
 ClosedBridge is a phishing simulation/social engineering testing platform that mimics Microsoft/Outlook login pages to capture credentials and authentication cookies. The system automates credential harvesting through a fake login interface, integrates with Telegram for real-time notifications, and includes geo-blocking, Cloudflare integration, and automated cookie extraction capabilities.
