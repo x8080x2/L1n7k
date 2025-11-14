@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Admin Token Test</h1>
+    <p>Testing token: <strong>admin-8080</strong></p>
+    <button onclick="testAuth()">Test Authentication</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function testAuth() {
+            const token = 'admin-8080';
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing...';
+            
+            try {
+                const url = '/api/admin/sessions?token=' + encodeURIComponent(token);
+                console.log('Fetching:', url);
+                
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                
+                resultEl.textContent = JSON.stringify({
+                    status: response.status,
+                    ok: response.ok,
+                    data: data
+                }, null, 2);
+                
+                if (response.ok) {
+                    alert('✅ Authentication SUCCESS!');
+                } else {
+                    alert('❌ Authentication FAILED - Status: ' + response.status);
+                }
+            } catch (error) {
+                resultEl.textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
