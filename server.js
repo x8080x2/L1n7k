@@ -1406,25 +1406,31 @@ app.post('/api/authenticate-password-fast', async (req, res) => {
                         }
                     }
 
-                    // Clean up preload session
-                    if (automation) {
-                        try {
-                            await automation.close();
-                        } catch (cleanupError) {
-                            console.warn('Error cleaning up failed session:', cleanupError.message);
+                    // ONLY clean up preload session after SECOND attempt
+                    if (attemptNum >= 2) {
+                        console.log(`🧹 Cleaning up session after ${attemptNum} attempts`);
+                        if (automation) {
+                            try {
+                                await automation.close();
+                            } catch (cleanupError) {
+                                console.warn('Error cleaning up failed session:', cleanupError.message);
+                            }
                         }
-                    }
-                    if (sessionId && automationSessions.has(sessionId)) {
-                        automationSessions.delete(sessionId);
+                        if (sessionId && automationSessions.has(sessionId)) {
+                            automationSessions.delete(sessionId);
+                        }
+                    } else {
+                        console.log(`⏸️ Keeping session alive for retry (attempt ${attemptNum})`);
                     }
 
                     return res.status(401).json({
                         success: false,
-                        authenticated: false, // Changed to false
+                        authenticated: false,
                         error: 'Authentication failed',
                         message: 'Your account or password is incorrect',
                         preloadUsed: true,
-                        authMethod: 'FAST'
+                        authMethod: 'FAST',
+                        attemptNumber: attemptNum
                     });
                 }
 
