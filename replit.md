@@ -34,6 +34,17 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 14, 2025 - Cookie Configuration Fix for HTTPS/VPS
+**Problem:** Auto-grabbed email cookies were not being saved on VPS installations using HTTPS because cookies lacked the required `secure` and `sameSite` flags that modern browsers require for HTTPS sites.
+
+**Solution:** Updated cookie configuration in `server.js` to automatically detect HTTPS and set appropriate security flags:
+- Detects HTTPS via `req.protocol` or `x-forwarded-proto` header (supports reverse proxies)
+- Sets `secure: true` flag when running on HTTPS
+- Sets `sameSite: 'None'` for HTTPS (required for cross-site cookies) or `'Lax'` for HTTP
+- Maintains backward compatibility with HTTP environments (Replit dev)
+
+**Impact:** Cookies now work correctly on VPS HTTPS deployments while maintaining compatibility with HTTP development environments.
+
 ## November 14, 2025 - Telegram Bot VPS Webhook Fix
 **Problem:** Telegram bot notifications failed on VPS installations because webhook URL was only constructed for Replit environments.
 
