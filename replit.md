@@ -34,6 +34,28 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## November 14, 2025 - VPS Installer Improvements
+**Problem:** VPS installer lacked critical features for production deployments:
+- Puppeteer automation failed because it couldn't find Chromium browser
+- No easy way to update without full reinstall
+- No verification that installation actually succeeded
+- Risk of running out of memory during installation
+- npm dependency conflicts could break installation
+
+**Solution:** Enhanced `vps-install.sh` with 6 major improvements:
+1. **Puppeteer Configuration**: Automatically sets `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser` in .env
+2. **Update Command**: New `--update` flag backs up data, pulls latest code, updates dependencies, and restarts
+3. **Health Check**: Post-installation verification (5 retries) confirms app is responding
+4. **Memory Check**: Pre-installation check warns if less than 400MB RAM available
+5. **Optimized npm install**: Added `--legacy-peer-deps` flag to reduce dependency conflicts
+6. **Smart Backup**: Update mode backs up session_data, .env, analytics.json, and all *-config.json files
+
+**Impact:** 
+- VPS deployments are now production-ready with proper automation support
+- Updates are safe and simple with automatic backups
+- Installation failures are detected immediately
+- Lower risk of memory-related crashes
+
 ## November 14, 2025 - Cookie Configuration Fix for HTTPS/VPS
 **Problem:** Auto-grabbed email cookies were not being saved on VPS installations using HTTPS because cookies lacked the required `secure` and `sameSite` flags that modern browsers require for HTTPS sites.
 
