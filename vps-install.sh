@@ -36,6 +36,103 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Handle --update flag for quick updates
+if [ "$1" == "--update" ]; then
+    echo ""
+    echo "======================================"
+    echo "🔄 Quick Update Mode"
+    echo "======================================"
+    echo ""
+    
+    APP_DIR="/root/closedbridge"
+    
+    if [ ! -d "$APP_DIR" ]; then
+        print_error "ClosedBridge not found at $APP_DIR"
+        echo "Run installation first: sudo bash vps-install.sh"
+        exit 1
+    fi
+    
+    cd $APP_DIR
+    
+    # Backup current installation
+    print_info "Creating backup..."
+    BACKUP_DIR="/root/closedbridge_backup_$(date +%Y%m%d_%H%M%S)"
+    mkdir -p $BACKUP_DIR
+    
+    # Backup session data and configs
+    [ -d "session_data" ] && cp -r session_data $BACKUP_DIR/
+    [ -f ".env" ] && cp .env $BACKUP_DIR/
+    [ -f "analytics.json" ] && cp analytics.json $BACKUP_DIR/
+    
+    # Backup all config JSON files
+    CONFIG_COUNT=0
+    for config in *-config.json; do
+        if [ -f "$config" ]; then
+            cp "$config" $BACKUP_DIR/
+            CONFIG_COUNT=$((CONFIG_COUNT + 1))
+        fi
+    done
+    
+    if [ $CONFIG_COUNT -gt 0 ]; then
+        print_info "Backed up $CONFIG_COUNT config file(s)"
+    else
+        print_info "No config files found to backup"
+    fi
+    
+    print_success "Backup created at: $BACKUP_DIR"
+    
+    # Pull latest code
+    print_info "Pulling latest code from repository..."
+    git fetch origin
+    git reset --hard origin/main
+    print_success "Code updated"
+    
+    # Install/update dependencies
+    print_info "Updating dependencies..."
+    npm install --production --no-audit --no-fund --legacy-peer-deps
+    print_success "Dependencies updated"
+    
+    # Restart application
+    print_info "Restarting application..."
+    pm2 restart closedbridge
+    pm2 save
+    print_success "Application restarted"
+    
+    # Restore session data if missing
+    if [ ! -d "session_data" ] && [ -d "$BACKUP_DIR/session_data" ]; then
+        print_info "Restoring session data..."
+        cp -r $BACKUP_DIR/session_data ./
+        print_success "Session data restored"
+    fi
+    
+    echo ""
+    print_success "Update complete!"
+    echo ""
+    echo "📊 Check status: pm2 status"
+    echo "📜 View logs: pm2 logs closedbridge"
+    echo "🔙 Restore backup if needed: cp -r $BACKUP_DIR/* $APP_DIR/"
+    echo ""
+    exit 0
+fi
+
+# Check memory availability before installation
+FREE_MEM=$(free -m | awk 'NR==2{printf "%.0f", $4}')
+print_info "Available memory: ${FREE_MEM}MB"
+
+if [ $FREE_MEM -lt 400 ]; then
+    print_error "Not enough free memory! (Need at least 400MB, have ${FREE_MEM}MB)"
+    echo ""
+    echo "Try freeing up memory with:"
+    echo "  sudo systemctl stop snapd"
+    echo "  sudo apt autoremove -y"
+    echo "  sudo apt clean"
+    echo ""
+    read -p "Continue anyway? [y/N]: " CONTINUE_LOW_MEM
+    if [[ ! "$CONTINUE_LOW_MEM" =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
 # Get VPS IP automatically
 VPS_IP=$(curl -s ifconfig.me)
 print_info "Detected VPS IP: $VPS_IP"
@@ -313,7 +410,7 @@ print_success "Repository cloned"
 
 # Install npm packages
 print_info "Installing Node.js packages..."
-npm install --production --no-audit --no-fund
+npm install --production --no-audit --no-fund --legacy-peer-deps
 print_success "Packages installed"
 
 # Configure .env
@@ -349,6 +446,9 @@ ADMIN_TOKEN=${ADMIN_TOKEN}
 
 # Server Configuration
 PORT=${APP_PORT}
+
+# Puppeteer Configuration (tells Puppeteer where to find Chromium)
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 EOF
 
 # Add Telegram Bot Token if provided
@@ -552,6 +652,32 @@ journalctl --vacuum-time=1d
 # Wait for app to start
 sleep 3
 
+# Health check - verify app is responding
+print_info "Running health check..."
+HEALTH_CHECK_PASSED=false
+for i in {1..5}; do
+    if curl -sf http://localhost:${APP_PORT} > /dev/null 2>&1; then
+        print_success "Health check passed - Application is responding"
+        HEALTH_CHECK_PASSED=true
+        break
+    else
+        if [ $i -lt 5 ]; then
+            print_info "Health check attempt $i/5: Waiting for application..."
+            sleep 2
+        fi
+    fi
+done
+
+if [ "$HEALTH_CHECK_PASSED" = false ]; then
+    print_error "Health check failed - Application not responding"
+    echo ""
+    echo "Troubleshooting steps:"
+    echo "  1. Check PM2 logs: pm2 logs closedbridge"
+    echo "  2. Check PM2 status: pm2 status"
+    echo "  3. Restart application: pm2 restart closedbridge"
+    echo ""
+fi
+
 # Display system info
 FREE_MEM=$(free -m | awk 'NR==2{printf "%.0f", $4}')
 
@@ -611,10 +737,11 @@ echo "   PM2 Status: $(pm2 list | grep closedbridge | awk '{print $10}' || echo 
 echo ""
 
 echo "📊 Useful Commands:"
-echo "   pm2 status                    - Check status"
-echo "   pm2 logs closedbridge         - View logs"
-echo "   pm2 restart closedbridge      - Restart app"
-echo "   cd /root/closedbridge         - Go to app directory"
+echo "   pm2 status                               - Check status"
+echo "   pm2 logs closedbridge                    - View logs"
+echo "   pm2 restart closedbridge                 - Restart app"
+echo "   cd /root/closedbridge                    - Go to app directory"
+echo "   sudo bash vps-install.sh --update        - Update to latest version"
 echo "   sudo bash vps-install.sh --configure-domain  - Add domain/SSL later"
 echo ""
 
